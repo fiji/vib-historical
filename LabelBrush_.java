@@ -54,19 +54,19 @@ public class LabelBrush_ implements PlugIn {
 
     //methods in a macro accessable format
     public synchronized static void label(String x, String y, String z, String flags, String width) {
-        label(Integer.parseInt(x),
-                Integer.parseInt(y),
-                Integer.parseInt(z),
-                Integer.parseInt(flags),
-                Integer.parseInt(width));
+        label((int)Float.parseFloat(x),
+                (int)Float.parseFloat(y),
+                (int)Float.parseFloat(z),
+                (int)Float.parseFloat(flags),
+                (int)Float.parseFloat(width));
     }
 
     public synchronized static void unlabel(String x, String y, String z, String flags, String width) {
-        unlabel(Integer.parseInt(x),
-                Integer.parseInt(y),
-                Integer.parseInt(z),
-                Integer.parseInt(flags),
-                Integer.parseInt(width));
+        unlabel((int)Float.parseFloat(x),
+                (int)Float.parseFloat(y),
+                (int)Float.parseFloat(z),
+                (int)Float.parseFloat(flags),
+                (int)Float.parseFloat(width));
     }
 
     public static void label(int x, int y, int z, int flags, int width) {
