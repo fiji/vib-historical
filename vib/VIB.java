@@ -1,6 +1,6 @@
 /*
- * convenience class
- */
+* convenience class
+*/
 
 package vib;
 
@@ -16,7 +16,7 @@ public class VIB {
 
 	public static void showProgress(int step, int count) {
 		if (IJ.getInstance() == null)
-			;
+		;
 		else
 			IJ.showProgress(step, count);
 	}
@@ -25,4 +25,3 @@ public class VIB {
 		BatchLog_.appendText(message + "\n");
 	}
 }
-
