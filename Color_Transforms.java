@@ -229,20 +229,12 @@ public class Color_Transforms implements PlugInFilter{
         title = imp.getTitle();
         sstack=new ImageStack(width,height); // Create new float stack for output
 
-        ImagePlus imc1=NewImage.createFloatImage(n1,width,height,1,NewImage.FILL_BLACK);
-        ImageProcessor ipc1=imc1.getProcessor();
-        ipc1.setPixels(c1);
-        sstack.addSlice(n1,ipc1);
-
-        ImagePlus imc2=NewImage.createFloatImage(n2,width,height,1,NewImage.FILL_BLACK);
-        ImageProcessor ipc2=imc2.getProcessor();
-        ipc2.setPixels(c2);
-        sstack.addSlice(n2,ipc2);
-
-        ImagePlus imc3=NewImage.createFloatImage(n3,width,height,1,NewImage.FILL_BLACK);
-        ImageProcessor ipc3=imc3.getProcessor();
-        ipc3.setPixels(c3);
-        sstack.addSlice(n3,ipc3);
+        ip = new FloatProcessor(width, height, c1, null);
+        sstack.addSlice(n1, ip);
+        ip = new FloatProcessor(width, height, c2, null);
+        sstack.addSlice(n2, ip);
+        ip = new FloatProcessor(width, height, c3, null);
+        sstack.addSlice(n3, ip);
 
         ImagePlus imluv=new ImagePlus(colourspaces[colourspace],sstack);
         imluv.show();
