@@ -26,43 +26,59 @@ public class Color_Transforms implements PlugInFilter{
     private String     title;           // Name of the original image
     private String     n1, n2, n3;      // Names for every layer on the stack
 
-  
+    final public int XYZ = 0;
+    final public int Yxy = 1;
+    final public int YIQ = 2;
+    final public int Luv = 3;
+    final public int Lab = 4;
+    final public int AC1C2 = 5;
+    final public int I1I2I3 = 6;
+    final public int Yuv = 7;
+    final public int YUV = 8;
+    final public int YQ1Q2 = 9;
+    final public int HSI = 10;
+    final public int HSV = 11;
+    final public int HSL = 12;
+    final public int LCHLuv = 13;
+    final public int LSHLuv = 14;
+    final public int LSHLab = 15;
+    final public String[] colourspaces = {"XYZ",
+                                 "Yxy",
+                                 "YIQ",
+                                 "Luv",
+                                 "Lab",
+                                 "AC1C2",
+                                 "I1I2I3",
+                                 "Yuv",
+                                 "YUV",
+                                 "YQ1Q2",
+                                 "HSI",
+                                 "HSV",
+                                 "HSL",
+                                 "LCHLuv",
+                                 "LSHLuv",
+                                 "LSHLab"};
+
     public int setup(String arg, ImagePlus imp){
         this.imp = imp;
-        if (arg.equals("about"))
-        {showAbout(); return DONE;}
+        if (arg.equals("about")) {
+		showAbout();
+		return DONE;
+	}
         return DOES_ALL;
     }
-  
-    public boolean showDialog(){
-        String[] colourspaces = {"XYZ", 
-                                 "Yxy", 
-                                 "YUV", 
-                                 "YIQ",
-                                 "Luv", 
-                                 "Lab",        
-                                 "AC1C2",
-                                 "I1I2I3", 
-                                 "Yuv", 
-                                 "YQ1Q2", 
-                                 "HSI", 
-                                 "HSV", 
-                                 "HSL", 
-                                 "LCHLuv", 
-                                 "LSHLuv", 
-                                 "LSHLab"};
+
+    public void run(ImageProcessor ip) {
         GenericDialog gd = new GenericDialog("Colour Transform");
         gd.addChoice("Colour space:", colourspaces, colourspaces[0]);
         gd.showDialog();
         if (gd.wasCanceled())
-            return false;
-        colourspace = colourspaces[gd.getNextChoiceIndex()];
-        return true;             
-    }
-  
-    public void run(ImageProcessor ip) {
-        if (!showDialog())
             return;
+        int colourspace = gd.getNextChoiceIndex();
+	run(ip, colourspace);
+    }
+
+    public void run(ImageProcessor ip, int colourspace) {
         int offset, i;
         width = ip.getWidth();
         height = ip.getHeight();
@@ -83,102 +99,104 @@ public class Color_Transforms implements PlugInFilter{
                 bf[i] =  (c&0x0000ff)/255f;         //B 0..1                    
             }
         }
-        
-        if(colourspace.equals("XYZ")){
+
+        switch (colourspace) {
+	case XYZ:
             n1 = "X";
             n2 = "Y";
             n3 = "Z";              
             getXYZ();
-        }
-        if(colourspace.equals("Yxy")){
+	    break;
+        case Yxy:
             n1 = "Y";
             n2 = "x";
             n3 = "y";              
             getYxy();
-        }
-        if(colourspace.equals("YUV")){
+	    break;
+        case YUV:
             n1 = "Y";
             n2 = "U";
             n3 = "V";              
             getYUV();
-        }
-        if(colourspace.equals("YIQ")){
+	    break;
+        case YIQ:
             n1 = "Y";
             n2 = "I";
             n3 = "Q";              
             getYIQ();
-        }
-        if(colourspace.equals("AC1C2")){
+	    break;
+        case AC1C2:
             n1 = "A";
             n2 = "C1";
             n3 = "C2";              
             getAC1C2();
-        }            
-        if(colourspace.equals("Luv")){
+	    break;
+        case Luv:
             n1 = "L";
             n2 = "u";
             n3 = "v";              
             getLuv();
-        }            
-        if(colourspace.equals("Lab")){
+	    break;
+        case Lab:
             n1 = "L";
             n2 = "a";
             n3 = "b";              
             getLab();
-        }
-        if(colourspace.equals("I1I2I3")){
+	    break;
+        case I1I2I3:
             n1 = "I1";
             n2 = "I2";
             n3 = "I3";              
             getI1I2I3();
-        }
-        if(colourspace.equals("Yuv")){
+	    break;
+        case Yuv:
             n1 = "Y";
             n2 = "u";
             n3 = "v";              
             getYuv();
-        }
-        if(colourspace.equals("YQ1Q2")){
+	    break;
+        case YQ1Q2:
             n1 = "Y";
             n2 = "Q1";
             n3 = "Q2";              
             getYQ1Q2();
-        }
-        if(colourspace.equals("HSI")){
+	    break;
+        case HSI:
             n1 = "I";
             n2 = "H";
             n3 = "S";              
             getHSI();
-        }
-        if(colourspace.equals("HSV")){
+	    break;
+        case HSV:
             n1 = "V";
             n2 = "H";
             n3 = "S";
             getHSV();
-        }
-        if(colourspace.equals("HSL")){
+	    break;
+        case HSL:
             n1 = "L";
             n2 = "H";
             n3 = "S";              
             getHSL();
-        }
-        if(colourspace.equals("LCHLuv")){
+	    break;
+        case LCHLuv:
             n1 = "L";
             n2 = "H";
-            n3 = "C";              
-            getLCHLuv();  
-        }
-        if(colourspace.equals("LSHLuv")){
+            n3 = "C";
+            getLCHLuv();
+	    break;
+        case LSHLuv:
             n1 = "L";
             n2 = "H";
-            n3 = "S";              
-            getLSHLuv();  
-        }
-        if(colourspace.equals("LSHLab")){
+            n3 = "S";
+            getLSHLuv();
+	    break;
+        case LSHLab:
             n1 = "L";
             n2 = "H";
             n3 = "S";              
             getLCHLab();
+	    break;
         }
         
         title = imp.getTitle();
@@ -199,7 +217,7 @@ public class Color_Transforms implements PlugInFilter{
         ipc3.setPixels(c3);
         sstack.addSlice(n3,ipc3);
 
-        ImagePlus imluv=new ImagePlus(colourspace,sstack);
+        ImagePlus imluv=new ImagePlus(colourspaces[colourspace],sstack);
         imluv.show();
         IJ.resetMinAndMax();        
         
