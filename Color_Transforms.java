@@ -66,7 +66,7 @@ public class Color_Transforms implements PlugInFilter{
 		showAbout();
 		return DONE;
 	}
-        return DOES_RGB | DOES_32;
+        return DOES_RGB | DOES_32 | NO_CHANGES;
     }
 
     public void run(ImageProcessor ip) {
@@ -390,20 +390,13 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    class Lab extends Transform {
+    class Lab extends XYZ {
         void transform(int q) {
-            float l, a, b;
-            rf[q] = (rf[q] > 0.04045f)?((float)Math.exp(Math.log((rf[q]+0.055f)/1.055f)*2.4f)):rf[q]/12.92f;
-            gf[q] = (gf[q] > 0.04045f)?((float)Math.exp(Math.log((gf[q]+0.055f)/1.055f)*2.4f)):gf[q]/12.92f;
-            bf[q] = (bf[q] > 0.04045f)?((float)Math.exp(Math.log((bf[q]+0.055f)/1.055f)*2.4f)):bf[q]/12.92f;
-
-            rf[q] = rf[q] * 100f;
-            gf[q] = gf[q] * 100f;
-            bf[q] = bf[q] * 100f;
-
-            float X = 0.4124f * rf[q] + 0.3576f * gf[q] + 0.1805f * bf[q];
-            float Y = 0.2126f * rf[q] + 0.7152f * gf[q] + 0.0722f * bf[q];
-            float Z = 0.0193f * rf[q] + 0.1192f * gf[q] + 0.9505f * bf[q];
+	    float l,a,b;
+	    super.transform(q); // XYZ
+            float X = rf[q];
+            float Y = gf[q];
+            float Z = bf[q];
 
             float fX, fY, fZ;
             float La, aa, bb;
