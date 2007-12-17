@@ -25,6 +25,7 @@ public class Color_Transforms implements PlugInFilter{
     private String     colourspace;     // Colour space chosen
     private String     title;           // Name of the original image
     private String     n1, n2, n3;      // Names for every layer on the stack
+    private boolean    inverse;
 
     final public int XYZ = 0;
     final public int Yxy = 1;
@@ -65,7 +66,7 @@ public class Color_Transforms implements PlugInFilter{
 		showAbout();
 		return DONE;
 	}
-        return DOES_ALL;
+        return DOES_RGB | DOES_32;
     }
 
     public void run(ImageProcessor ip) {
@@ -75,30 +76,48 @@ public class Color_Transforms implements PlugInFilter{
         if (gd.wasCanceled())
             return;
         int colourspace = gd.getNextChoiceIndex();
-	run(ip, colourspace);
+	run(imp, colourspace);
     }
 
-    public void run(ImageProcessor ip, int colourspace) {
+    public void run(ImagePlus imp, int colourspace) {
         int offset, i;
+	ImageProcessor ip = imp.getProcessor();
         width = ip.getWidth();
         height = ip.getHeight();
         size = width * height;
         c1 = new float[size];
         c2 = new float[size];
         c3 = new float[size];
-        rf = new float[size];
-        gf = new float[size];
-        bf = new float[size];
-        for (int row = 0; row < height; row++){
-            offset = row*width;
-            for (int col = 0; col < width; col++) {
-                i = offset + col;
-                int c = ip.getPixel(col, row);
-                rf[i] = ((c&0xff0000)>>16)/255f;    //R 0..1
-                gf[i] = ((c&0x00ff00)>>8)/255f;     //G 0..1
-                bf[i] =  (c&0x0000ff)/255f;         //B 0..1
-            }
-        }
+	if (imp.getStack().getSize() == 1) {
+		inverse = false;
+		if (!(ip instanceof ColorProcessor)) {
+			IJ.error("Need a color image or a stack of 3 gray images!");
+			return;
+		}
+		rf = new float[size];
+		gf = new float[size];
+		bf = new float[size];
+		for (int row = 0; row < height; row++){
+			offset = row*width;
+			for (int col = 0; col < width; col++) {
+				i = offset + col;
+				int c = ip.getPixel(col, row);
+				rf[i] = ((c&0xff0000)>>16)/255f;    //R 0..1
+				gf[i] = ((c&0x00ff00)>>8)/255f;     //G 0..1
+				bf[i] =  (c&0x0000ff)/255f;         //B 0..1
+			}
+		}
+	} else {
+		inverse = true;
+		if (imp.getStack().getSize() != 3 ||
+				!(ip instanceof FloatProcessor)) {
+			IJ.error("Need a color image or a stack of 3 gray images!");
+			return;
+		}
+		rf = (float[])imp.getStack().getProcessor(1).getPixelsCopy();
+		gf = (float[])imp.getStack().getProcessor(2).getPixelsCopy();
+		bf = (float[])imp.getStack().getProcessor(3).getPixelsCopy();
+	}
 
         switch (colourspace) {
 	case XYZ:
