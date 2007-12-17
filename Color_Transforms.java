@@ -254,9 +254,9 @@ public class Color_Transforms implements PlugInFilter{
 
     class XYZ extends Transform {
 	void transform(int q) {
-            rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4))).floatValue():rf[q]/12.92f;
-            gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4))).floatValue():gf[q]/12.92f;
-            bf[q] = (bf[q] > 0.04045f)?(new Double(Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4))).floatValue():bf[q]/12.92f;
+            rf[q] = (rf[q] > 0.04045f)?((float)Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4)):rf[q]/12.92f;
+            gf[q] = (gf[q] > 0.04045f)?((float)Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4)):gf[q]/12.92f;
+            bf[q] = (bf[q] > 0.04045f)?((float)Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4)):bf[q]/12.92f;
 
             rf[q] = rf[q] * 100f;
             gf[q] = gf[q] * 100f;
@@ -274,9 +274,9 @@ public class Color_Transforms implements PlugInFilter{
 
     class Yxy extends Transform {
 	void transform(int q) {
-            rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4))).floatValue():rf[q]/12.92f;
-            gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4))).floatValue():gf[q]/12.92f;
-            bf[q] = (bf[q] > 0.04045f)?(new Double(Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4))).floatValue():bf[q]/12.92f;
+            rf[q] = (rf[q] > 0.04045f)?((float)Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4)):rf[q]/12.92f;
+            gf[q] = (gf[q] > 0.04045f)?((float)Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4)):gf[q]/12.92f;
+            bf[q] = (bf[q] > 0.04045f)?((float)Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4)):bf[q]/12.92f;
 
             rf[q] = rf[q] * 100f;
             gf[q] = gf[q] * 100f;
@@ -327,9 +327,9 @@ public class Color_Transforms implements PlugInFilter{
             M = 0.1246f * rf[q] + 0.8138f * gf[q] + 0.0616f * bf[q];
             S = 0.0009f * rf[q] + 0.0602f * gf[q] + 0.9389f * bf[q];
 
-            L = new Double(Math.log(L)).floatValue();
-            M = new Double(Math.log(M)).floatValue();
-            S = new Double(Math.log(S)).floatValue();
+            L = (float)Math.log(L);
+            M = (float)Math.log(M);
+            S = (float)Math.log(S);
 
             A  = 13.8312f * L + 8.3394f * M + 0.4294f * S;
             C1 = 64.0000f * L - 64.000f * M + 0.0000f * S;
@@ -355,9 +355,9 @@ public class Color_Transforms implements PlugInFilter{
         float vnp = 0.4683f;
 
         void transform(int q) {
-            rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4))).floatValue():rf[q]/12.92f;
-            gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4))).floatValue():gf[q]/12.92f;
-            bf[q] = (bf[q] > 0.04045f)?(new Double(Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4))).floatValue():bf[q]/12.92f;
+            rf[q] = (rf[q] > 0.04045f)?((float)Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4)):rf[q]/12.92f;
+            gf[q] = (gf[q] > 0.04045f)?((float)Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4)):gf[q]/12.92f;
+            bf[q] = (bf[q] > 0.04045f)?((float)Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4)):bf[q]/12.92f;
 
             rf[q] = rf[q] * 100f;
             gf[q] = gf[q] * 100f;
@@ -372,7 +372,7 @@ public class Color_Transforms implements PlugInFilter{
             float f_yyn = Y / 100f;
 
             if (f_yyn > 0.008856f) {
-            f_yyn=new Double(Math.exp(Math.log(f_yyn)/3f)).floatValue();
+            f_yyn=(float)Math.exp(Math.log(f_yyn)/3f);
             } else {
             f_yyn = ((7.787f * f_yyn) + (16f/116f));
             }
@@ -393,9 +393,9 @@ public class Color_Transforms implements PlugInFilter{
     class Lab extends Transform {
         void transform(int q) {
             float l, a, b;
-            rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055f)/1.055f)*2.4f))).floatValue():rf[q]/12.92f;
-            gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055f)/1.055f)*2.4f))).floatValue():gf[q]/12.92f;
-            bf[q] = (bf[q] > 0.04045f)?(new Double(Math.exp(Math.log((bf[q]+0.055f)/1.055f)*2.4f))).floatValue():bf[q]/12.92f;
+            rf[q] = (rf[q] > 0.04045f)?((float)Math.exp(Math.log((rf[q]+0.055f)/1.055f)*2.4f)):rf[q]/12.92f;
+            gf[q] = (gf[q] > 0.04045f)?((float)Math.exp(Math.log((gf[q]+0.055f)/1.055f)*2.4f)):gf[q]/12.92f;
+            bf[q] = (bf[q] > 0.04045f)?((float)Math.exp(Math.log((bf[q]+0.055f)/1.055f)*2.4f)):bf[q]/12.92f;
 
             rf[q] = rf[q] * 100f;
             gf[q] = gf[q] * 100f;
@@ -410,17 +410,17 @@ public class Color_Transforms implements PlugInFilter{
 
             // XYZ to Lab
             if ( X > 0.008856f )
-                fX = (new Double(Math.exp(Math.log(X)/3f))).floatValue();
+                fX = ((float)Math.exp(Math.log(X)/3f));
             else
                 fX = ((7.787f * X) + (16f/116f));
 
             if ( Y > 0.008856f )
-            fY = (new Double(Math.exp(Math.log(Y)/3f))).floatValue();
+            fY = ((float)Math.exp(Math.log(Y)/3f));
             else
             fY = ((7.787f * Y) + (16f/116f));
 
             if ( Z > 0.008856f )
-            fZ =  (new Double(Math.exp(Math.log(Z)/3f))).floatValue();
+            fZ =  ((float)Math.exp(Math.log(Z)/3f));
             else
             fZ = ((7.787f * Z) + (16f/116f));
 
@@ -451,7 +451,7 @@ public class Color_Transforms implements PlugInFilter{
             float Y =  (rf[q] + gf[q] + bf[q])/3f;
             if(Y != 0f){
               u =  3f*(rf[q] - bf[q])/2f*Y;
-              v =  (new Double(Math.sqrt(3.0)).floatValue())*(2f * gf[q] - rf[q] - bf[q])/2f*Y;
+              v =  ((float)Math.sqrt(3.0))*(2f * gf[q] - rf[q] - bf[q])/2f*Y;
             }
             else{
               u =  0f;
@@ -590,9 +590,9 @@ public class Color_Transforms implements PlugInFilter{
 
         void transform(int q) {
             float L=0f, C=0f, H=0f;
-            rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4))).floatValue():rf[q]/12.92f;
-            gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4))).floatValue():gf[q]/12.92f;
-            bf[q] = (bf[q] > 0.04045f)?(new Double(Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4))).floatValue():bf[q]/12.92f;
+            rf[q] = (rf[q] > 0.04045f)?((float)Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4)):rf[q]/12.92f;
+            gf[q] = (gf[q] > 0.04045f)?((float)Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4)):gf[q]/12.92f;
+            bf[q] = (bf[q] > 0.04045f)?((float)Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4)):bf[q]/12.92f;
 
             rf[q] = rf[q] * 100f;
             gf[q] = gf[q] * 100f;
@@ -607,7 +607,7 @@ public class Color_Transforms implements PlugInFilter{
             float f_yyn = Y / 100f;
 
             if (f_yyn > 0.008856f) {
-            f_yyn=new Double(Math.exp(Math.log(f_yyn)/3f)).floatValue();
+            f_yyn=(float)Math.exp(Math.log(f_yyn)/3f);
             } else {
             f_yyn = ((7.787f * f_yyn) + (16f/116f));
             }
@@ -620,16 +620,16 @@ public class Color_Transforms implements PlugInFilter{
             float v = 13f  * l * (vp - vnp);
 
             L = l;
-            C = new Double(Math.sqrt((u*u)+(v*v))).floatValue();
+            C = (float)Math.sqrt((u*u)+(v*v));
 
             if ( u == 0 ){                //This is a gray, no chroma...
                 H =  0f;                   //LCH results = 0 ÷ 1
             }
             else{
-              if (u>=0f && v>=0f) H = new Double(Math.atan(v/u)).floatValue();
-              else if (u>=0f && v<0f) H = new Double(Math.atan(v/u) + Math.PI).floatValue();
-              else if (u<0f && v<0f) H = new Double(Math.atan(v/u) + Math.PI).floatValue();
-              else if (u<0f && v>=0f) H = new Double(Math.atan(v/u) + (2*Math.PI)).floatValue();
+              if (u>=0f && v>=0f) H = (float)Math.atan(v/u);
+              else if (u>=0f && v<0f) H = (float)(Math.atan(v/u) + Math.PI);
+              else if (u<0f && v<0f) H = (float)(Math.atan(v/u) + Math.PI);
+              else if (u<0f && v>=0f) H = (float)(Math.atan(v/u) + 2*Math.PI);
             }
             //IJ.write("u " + u + " v " + v + " atan " + H);
             c1[q] = L;
@@ -653,9 +653,9 @@ public class Color_Transforms implements PlugInFilter{
 
         void transform(int q) {
             float L=0f, S=0f, H=0f;
-            rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4))).floatValue():rf[q]/12.92f;
-            gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4))).floatValue():gf[q]/12.92f;
-            bf[q] = (bf[q] > 0.04045f)?(new Double(Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4))).floatValue():bf[q]/12.92f;
+            rf[q] = (rf[q] > 0.04045f)?((float)Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4)):rf[q]/12.92f;
+            gf[q] = (gf[q] > 0.04045f)?((float)Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4)):gf[q]/12.92f;
+            bf[q] = (bf[q] > 0.04045f)?((float)Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4)):bf[q]/12.92f;
 
             rf[q] = rf[q] * 100f;
             gf[q] = gf[q] * 100f;
@@ -670,7 +670,7 @@ public class Color_Transforms implements PlugInFilter{
             float f_yyn = Y / 100f;
 
             if (f_yyn > 0.008856f) {
-            f_yyn=new Double(Math.exp(Math.log(f_yyn)/3f)).floatValue();
+            f_yyn=(float)Math.exp(Math.log(f_yyn)/3f);
             } else {
             f_yyn = ((7.787f * f_yyn) + (16f/116f));
             }
@@ -683,16 +683,16 @@ public class Color_Transforms implements PlugInFilter{
             float v = 13f  * l * (vp - vnp);
 
             L = l;
-            S = (new Double(13*Math.sqrt(((u-up)*(u-up))+((v-vp)*(v-vp))))).floatValue();
+            S = (float)(13*Math.sqrt(((u-up)*(u-up))+((v-vp)*(v-vp))));
 
             if ( u == 0 ){                //This is a gray, no chroma...
                 H =  0f;                   //LCH results = 0 ÷ 1
             }
             else{
-              if (u>=0f && v>=0f) H = new Double(Math.atan(v/u)).floatValue();
-              else if (u>=0f && v<0f) H = new Double(Math.atan(v/u) + Math.PI).floatValue();
-              else if (u<0f && v<0f) H = new Double(Math.atan(v/u) + Math.PI).floatValue();
-              else if (u<0f && v>=0f) H = new Double(Math.atan(v/u) + (2*Math.PI)).floatValue();
+              if (u>=0f && v>=0f) H = (float)Math.atan(v/u);
+              else if (u>=0f && v<0f) H = (float)(Math.atan(v/u) + Math.PI);
+              else if (u<0f && v<0f) H = (float)(Math.atan(v/u) + Math.PI);
+              else if (u<0f && v>=0f) H = (float)(Math.atan(v/u) + 2*Math.PI);
             }
             c1[q] = L;
             c2[q] = S;
@@ -703,9 +703,9 @@ public class Color_Transforms implements PlugInFilter{
     class LCHLab extends Transform {
         void transform(int q) {
             float L=0f, C=0f, H=0f;
-            rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055f)/1.055f)*2.4f))).floatValue():rf[q]/12.92f;
-            gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055f)/1.055f)*2.4f))).floatValue():gf[q]/12.92f;
-            bf[q] = (bf[q] > 0.04045f)?(new Double(Math.exp(Math.log((bf[q]+0.055f)/1.055f)*2.4f))).floatValue():bf[q]/12.92f;
+            rf[q] = (rf[q] > 0.04045f)?((float)Math.exp(Math.log((rf[q]+0.055f)/1.055f)*2.4f)):rf[q]/12.92f;
+            gf[q] = (gf[q] > 0.04045f)?((float)Math.exp(Math.log((gf[q]+0.055f)/1.055f)*2.4f)):gf[q]/12.92f;
+            bf[q] = (bf[q] > 0.04045f)?((float)Math.exp(Math.log((bf[q]+0.055f)/1.055f)*2.4f)):bf[q]/12.92f;
 
             rf[q] = rf[q] * 100f;
             gf[q] = gf[q] * 100f;
@@ -719,17 +719,17 @@ public class Color_Transforms implements PlugInFilter{
 
             // XYZ to Lab
             if ( X > 0.008856f )
-                fX = (new Double(Math.exp(Math.log(X)/3f))).floatValue();
+                fX = ((float)Math.exp(Math.log(X)/3f));
             else
                 fX = ((7.787f * X) + (16f/116f));
 
             if ( Y > 0.008856f )
-            fY = (new Double(Math.exp(Math.log(Y)/3f))).floatValue();
+            fY = ((float)Math.exp(Math.log(Y)/3f));
             else
             fY = ((7.787f * Y) + (16f/116f));
 
             if ( Z > 0.008856f )
-            fZ =  (new Double(Math.exp(Math.log(Z)/3f))).floatValue();
+            fZ =  ((float)Math.exp(Math.log(Z)/3f));
             else
             fZ = ((7.787f * Z) + (16f/116f));
 
@@ -738,16 +738,16 @@ public class Color_Transforms implements PlugInFilter{
             float b = 200f * ( fY - fZ );
 
             L = l;
-            C = new Double(Math.sqrt((a*a)+(b*b))).floatValue();
+            C = (float)Math.sqrt((a*a)+(b*b));
 
             if ( a == 0f ){                //This is a gray, no chroma...
                 H =  0f;                   //LCH results = 0 ÷ 1
             }
             else{
-              if (a>=0f && b>=0f) H = new Double(Math.atan(b/a)).floatValue();
-              else if (a>=0f && b<0f) H = new Double(Math.atan(b/a) + Math.PI).floatValue();
-              else if (a<0f && b<0f) H = new Double(Math.atan(b/a) + Math.PI).floatValue();
-              else if (a<0f && b>=0f) H = new Double(Math.atan(b/a) + (2*Math.PI)).floatValue();
+              if (a>=0f && b>=0f) H = (float)Math.atan(b/a);
+              else if (a>=0f && b<0f) H = (float)(Math.atan(b/a) + Math.PI);
+              else if (a<0f && b<0f) H = (float)(Math.atan(b/a) + Math.PI);
+              else if (a<0f && b>=0f) H = (float)(Math.atan(b/a) + 2*Math.PI);
             }
 
             c1[q] = L;
