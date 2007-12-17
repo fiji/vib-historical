@@ -119,104 +119,112 @@ public class Color_Transforms implements PlugInFilter{
 		bf = (float[])imp.getStack().getProcessor(3).getPixelsCopy();
 	}
 
+	Transform transform = null;
         switch (colourspace) {
 	case XYZ:
             n1 = "X";
             n2 = "Y";
             n3 = "Z";
-            getXYZ();
+            transform = new XYZ();
 	    break;
         case Yxy:
             n1 = "Y";
             n2 = "x";
             n3 = "y";
-            getYxy();
+            transform = new Yxy();
 	    break;
         case YUV:
             n1 = "Y";
             n2 = "U";
             n3 = "V";
-            getYUV();
+            transform = new YUV();
 	    break;
         case YIQ:
             n1 = "Y";
             n2 = "I";
             n3 = "Q";
-            getYIQ();
+            transform = new YIQ();
 	    break;
         case AC1C2:
             n1 = "A";
             n2 = "C1";
             n3 = "C2";
-            getAC1C2();
+            transform = new AC1C2();
 	    break;
         case Luv:
             n1 = "L";
             n2 = "u";
             n3 = "v";
-            getLuv();
+            transform = new Luv();
 	    break;
         case Lab:
             n1 = "L";
             n2 = "a";
             n3 = "b";
-            getLab();
+            transform = new Lab();
 	    break;
         case I1I2I3:
             n1 = "I1";
             n2 = "I2";
             n3 = "I3";
-            getI1I2I3();
+            transform = new I1I2I3();
 	    break;
         case Yuv:
             n1 = "Y";
             n2 = "u";
             n3 = "v";
-            getYuv();
+            transform = new Yuv();
 	    break;
         case YQ1Q2:
             n1 = "Y";
             n2 = "Q1";
             n3 = "Q2";
-            getYQ1Q2();
+            transform = new YQ1Q2();
 	    break;
         case HSI:
             n1 = "I";
             n2 = "H";
             n3 = "S";
-            getHSI();
+            transform = new HSI();
 	    break;
         case HSV:
             n1 = "V";
             n2 = "H";
             n3 = "S";
-            getHSV();
+            transform = new HSV();
 	    break;
         case HSL:
             n1 = "L";
             n2 = "H";
             n3 = "S";
-            getHSL();
+            transform = new HSL();
 	    break;
         case LCHLuv:
             n1 = "L";
             n2 = "H";
             n3 = "C";
-            getLCHLuv();
+            transform = new LCHLuv();
 	    break;
         case LSHLuv:
             n1 = "L";
             n2 = "H";
             n3 = "S";
-            getLSHLuv();
+            transform = new LSHLuv();
 	    break;
         case LSHLab:
             n1 = "L";
             n2 = "H";
             n3 = "S";
-            getLCHLab();
+            transform = new LCHLab();
 	    break;
         }
+
+	if (transform == null) {
+		IJ.error("Cannot transform " + (inverse ? "inverse " : "")
+			+ colourspaces[colourspace]);
+		return;
+	}
+	transform.transform();
 
         title = imp.getTitle();
         sstack=new ImageStack(width,height); // Create new float stack for output
@@ -243,8 +251,17 @@ public class Color_Transforms implements PlugInFilter{
     }
 
 
-    public void getXYZ(){
-        for(int q=0; q<size; q++){
+    abstract class Transform {
+	abstract void transform(int q);
+
+	void transform() {
+		for (int q = 0; q < size; q++)
+			transform(q);
+	}
+    }
+
+    class XYZ extends Transform {
+	void transform(int q) {
             rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4))).floatValue():rf[q]/12.92f;
             gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4))).floatValue():gf[q]/12.92f;
             bf[q] = (bf[q] > 0.04045f)?(new Double(Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4))).floatValue():bf[q]/12.92f;
@@ -263,8 +280,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getYxy(){
-        for(int q=0; q<size; q++){
+    class Yxy extends Transform {
+	void transform(int q) {
             rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4))).floatValue():rf[q]/12.92f;
             gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4))).floatValue():gf[q]/12.92f;
             bf[q] = (bf[q] > 0.04045f)?(new Double(Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4))).floatValue():bf[q]/12.92f;
@@ -286,8 +303,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getYUV(){
-        for(int q=0; q<size; q++){
+    class YUV extends Transform {
+        void transform(int q) {
             float Y =  0.299f * rf[q] + 0.587f * gf[q] + 0.114f * bf[q];
             float U = -0.147f * rf[q] - 0.289f * gf[q] + 0.437f * bf[q];
             float V =  0.615f * rf[q] - 0.515f * gf[q] - 0.100f * bf[q];
@@ -298,8 +315,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getYIQ(){
-        for(int q=0; q<size; q++){
+    class YIQ extends Transform {
+	void transform(int q) {
             float Y = 0.299f * rf[q] + 0.587f * gf[q] + 0.114f * bf[q];
             float I = 0.596f * rf[q] - 0.274f * gf[q] - 0.322f * bf[q];
             float Q = 0.211f * rf[q] - 0.253f * gf[q] - 0.312f * bf[q];
@@ -310,8 +327,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getAC1C2(){
-        for(int q=0; q<size; q++){
+    class AC1C2 extends Transform {
+        void transform(int q) {
             float L, M, S;
             float A, C1, C2;
             L = 0.3634f * rf[q] + 0.6102f * gf[q] + 0.0264f * bf[q];
@@ -332,7 +349,7 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getLuv(){
+    class Luv extends Transform {
         /** Illuminant = D65 */
         //X = 95.047, Y = 100.0, Z = 108.883;
         float yn = 1f;
@@ -345,7 +362,7 @@ public class Color_Transforms implements PlugInFilter{
         //  vn = 9Y/(X + 15Y + 3Z)
         float vnp = 0.4683f;
 
-        for(int q=0; q<size; q++){
+        void transform(int q) {
             rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4))).floatValue():rf[q]/12.92f;
             gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4))).floatValue():gf[q]/12.92f;
             bf[q] = (bf[q] > 0.04045f)?(new Double(Math.exp(Math.log((bf[q]+0.055)/1.055)*2.4))).floatValue():bf[q]/12.92f;
@@ -381,8 +398,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getLab(){
-        for(int q=0; q<size; q++){
+    class Lab extends Transform {
+        void transform(int q) {
             float l, a, b;
             rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055f)/1.055f)*2.4f))).floatValue():rf[q]/12.92f;
             gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055f)/1.055f)*2.4f))).floatValue():gf[q]/12.92f;
@@ -425,8 +442,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getI1I2I3(){
-        for(int q=0; q<size; q++){
+    class I1I2I3 extends Transform {
+        void transform(int q) {
             float I1 =  (rf[q] + gf[q] + bf[q])/3f;
             float I2 =  (rf[q] - bf[q])/2f;
             float I3 =  (2f * gf[q] - rf[q] - bf[q])/4f;
@@ -436,8 +453,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getYuv(){
-        for(int q=0; q<size; q++){
+    class Yuv extends Transform {
+        void transform(int q) {
             float u, v;
             float Y =  (rf[q] + gf[q] + bf[q])/3f;
             if(Y != 0f){
@@ -454,8 +471,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getYQ1Q2(){
-        for(int q=0; q<size; q++){
+    class YQ1Q2 extends Transform {
+        void transform(int q) {
             float Y =  (rf[q] + gf[q] + bf[q])/3f;
             float Q1 = ((rf[q] + gf[q]) != 0f)?rf[q]/(rf[q] + gf[q]):0f;
             float Q2 = ((rf[q] + bf[q]) != 0f)?rf[q]/(rf[q] + bf[q]):0f;
@@ -465,8 +482,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getHSI(){
-        for(int q=0; q<size; q++){
+    class HSI extends Transform {
+        void transform(int q) {
             float var_Min = Math.min(rf[q], gf[q]); //Min. value of RGB
             var_Min = Math.min(var_Min, bf[q]);
             float var_Max = Math.max(rf[q], gf[q]); //Max. value of RGB
@@ -496,8 +513,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getHSL(){
-        for(int q=0; q<size; q++){
+    class HSL extends Transform {
+        void transform(int q) {
             float H=0, S=0, L=0;
             float var_Min = Math.min(rf[q], gf[q]); //Min. value of RGB
             var_Min = Math.min(var_Min, bf[q]);
@@ -532,8 +549,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getHSV(){                   // HSV_Stack Plugin (HSV colour space is also known as HSB where B means brightness)
-        for(int q=0; q<size; q++){          // http://www.easyrgb.com/
+    class HSV extends Transform {                   // HSV_Stack Plugin (HSV colour space is also known as HSB where B means brightness)
+        void transform(int q) {          // http://www.easyrgb.com/
             float H=0, S=0, V=0;
             float var_Min = Math.min(rf[q], gf[q]); //Min. value of RGB
             var_Min = Math.min(var_Min, bf[q]);
@@ -566,7 +583,7 @@ public class Color_Transforms implements PlugInFilter{
 
   }
 
-    public void getLCHLuv(){
+    class LCHLuv extends Transform {
         /** Illuminant = D65 */
         //X = 95.047, Y = 100.0, Z = 108.883;
         float yn = 1f;
@@ -579,7 +596,7 @@ public class Color_Transforms implements PlugInFilter{
         //  vn = 9Y/(X + 15Y + 3Z)
         float vnp = 0.4683f;
 
-        for(int q=0; q<size; q++){
+        void transform(int q) {
             float L=0f, C=0f, H=0f;
             rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4))).floatValue():rf[q]/12.92f;
             gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4))).floatValue():gf[q]/12.92f;
@@ -629,7 +646,7 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getLSHLuv(){
+    class LSHLuv extends Transform {
         /** Illuminant = D65 */
         //X = 95.047, Y = 100.0, Z = 108.883;
         float yn = 1f;
@@ -642,7 +659,7 @@ public class Color_Transforms implements PlugInFilter{
         //  vn = 9Y/(X + 15Y + 3Z)
         float vnp = 0.4683f;
 
-        for(int q=0; q<size; q++){
+        void transform(int q) {
             float L=0f, S=0f, H=0f;
             rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055)/1.055)*2.4))).floatValue():rf[q]/12.92f;
             gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055)/1.055)*2.4))).floatValue():gf[q]/12.92f;
@@ -691,8 +708,8 @@ public class Color_Transforms implements PlugInFilter{
         }
     }
 
-    public void getLCHLab(){
-        for(int q=0; q<size; q++){
+    class LCHLab extends Transform {
+        void transform(int q) {
             float L=0f, C=0f, H=0f;
             rf[q] = (rf[q] > 0.04045f)?(new Double(Math.exp(Math.log((rf[q]+0.055f)/1.055f)*2.4f))).floatValue():rf[q]/12.92f;
             gf[q] = (gf[q] > 0.04045f)?(new Double(Math.exp(Math.log((gf[q]+0.055f)/1.055f)*2.4f))).floatValue():gf[q]/12.92f;
@@ -746,10 +763,6 @@ public class Color_Transforms implements PlugInFilter{
             c3[q] = H;
         }
     }
-
-
-
-
 
   void showAbout() {
     IJ.showMessage("About Colour_transform...",
