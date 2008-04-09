@@ -1,0 +1,26 @@
+Server plan:
+
+   Two backend systems:
+
+       1 Java VM, running ImageJ jobs
+       Another server for normal processes
+
+
+
+
+
+
+Load a page.  If the page might require some job to generate data for it, 
+
+
+ that requires some job.  What happens?
+
+
+  - Insert into the jobs table some row with:
+
+       id, type (java or process), what_to_run, percent_done, last_estimated_completion_time, completed
+
+  - Start it.  The process / JVM gets passed the ID.
+
+
+  - 

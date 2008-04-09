@@ -58,9 +58,7 @@ import amira.AmiraParameters;
 
 public class Unpack_To_PNG implements PlugIn {
 
-	public Unpack_To_PNG( ) {
-		
-	}
+	boolean client = false;
 	
 	public void run( String pluginArguments ) {
 
@@ -100,6 +98,13 @@ public class Unpack_To_PNG implements PlugIn {
 			IJ.error("No macro parameter directory supplied");
 			return;
 		}	
+		
+		String clientString = Macro.getValue(
+			macroArguments,
+			"client",
+			null );
+		if( clientString != null )
+			client = true;
 		
 		ImagePlus [] imps = BatchOpener.open(
 			filename );
