@@ -58,62 +58,6 @@ public class Extract_Image_Properties implements PlugIn {
 		}
 	}
 
-/*
-	static String escapeStringForYAML( String s ) {
-                String result = s.replaceAll("\\\\","\\\\\\\\");
-                result = result.replaceAll("\\\"","\\\\\"");
-                return result;		
-	}
-
-
-	static String objectToYAML( Object o ) {
-		objectToYAML( o, 0 );
-	}
-
-	static String spaces( int n ) {
-		char [] s=new char[n];
-		for( int i = 0; i < n; ++i  )
-			s[i] = ' ';
-		return new String(s);
-	}
-
-	static String objectToYAML( Object o, int leadingSpaces ) {
-
-		// FIXME: This actually doesn't work in general.  We
-		// should just replace this with something like
-		// 
-
-		if( o instanceof String ) {
-			String s = (String)o;	
-			return "\""+escapeStringForYAML(key)+"\"";
-		} else if( o instanceof Integer ) {
-			Integer i = (Integer)o;
-			return ""+i;
-		} else if( o instanceof Long ) {
-			Long l = (Long)o;
-			return ""+l;
-		} else if( o instanceof Double ) {
-			Double d = (Double)o;
-			return ""+d;
-		} else if( o instanceof Float ) {
-			Float d = (Float)o;
-			return ""+d;
-		} else if( o instanceof Hashtable<String,Object> ) {
-			Hashtable<String,Object> h = (Hashtable<String,Object>)o;
-			String result = "";
-			for( Enumeration ke=properties.keys(); ke.hasMoreElements(); ) {
-				String key = (String)ke.nextElement();
-				String value = objectToYAML( h.get(key), 0 );
-				result += objectToYAML(key,0)
-			}
-		
-			result += "}\n":
-		}
-
-		return "";
-	}
-*/
-
 	boolean client = false;
 	
 	public void run( String pluginArguments ) {
