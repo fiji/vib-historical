@@ -38,7 +38,7 @@ all: $(CLASSES)
 show:
 	echo $(JAVAS)
 
-JUNIT4JAR=$(shell pwd)/junit-4.4.jar
+JUNIT4JAR=/usr/share/java/junit4.jar
 
 TESTCLASSES=distance.TestMutualInformation \
 	distance.TestEuclidean \
