@@ -6,62 +6,41 @@
 
   <target name="compile">
     <mkdir dir="build"/>
-    <javac srcdir="." destdir="build" debug="on">
+
+    <!-- Remove any files that need to be regenerated: -->
+    <depend srcdir="."
+	    destdir="build"
+	    cache="depcache"
+	    closure="yes">
+      <include name="**/*.java"/>
+      <excludesfile name="excludes"/>
       <classpath>
-        <pathelement location="../ImageJ/ij.jar"/>
-        <pathelement location="jzlib-1.0.7.jar"/>
-        <pathelement location="Quick3dApplet-1.0.8.jar"/>
+	<pathelement location="../ImageJA/ij.jar"/>
+	<pathelement location="/usr/share/java/jzlib.jar"/>
+	<pathelement location="/usr/share/java/junit4.jar"/>
+      </classpath>
+    </depend>
+
+    <!-- Compile all the Java files in src/ -->
+    <javac srcdir="." destdir="build">
+      <include name="**/*.java"/>
+      <excludesfile name="excludes"/>
+      <classpath>
+	<pathelement location="../ImageJA/ij.jar"/>
+	<pathelement location="/usr/share/java/jzlib.jar"/>
+	<pathelement location="/usr/share/java/junit4.jar"/>
       </classpath>
     </javac>
+
     <copy todir="build">
       <fileset dir=".">
 	<include name="**/*.png"/>
 	<exclude name="build/**"/>
       </fileset>
     </copy>
-    <copy file="LSM_Toolbox.jar" todir="build"/>
-    <copy file="jzlib-1.0.7.jar" todir="build"/>
-  </target>
 
-  <target name="run" depends="compile">
-    <java fork="true"
-          jar="../ImageJ/ij.jar"
-	  maxmemory="1024m">
-      <sysproperty key="plugins.dir" value="${basedir}/build"/>
-      <sysproperty key="j3d.noOffScreen" value="true"/>
-      <classpath>
-	<pathelement location="${basedir}/Quick3dApplet-1.0.8.jar"/>
-      </classpath>
-      <!-- <arg value="-eval"/> -->
-      <!-- <arg value="run('Quantile Based Normalization','');"/> -->
-      <!-- <arg value="/home/mark/tracing-examples/c061AG-cropped.tif"/> -->
-      <!-- <arg value="/home/mark/tracing-examples/embryo4_raw.pic"/> -->
-    </java>
-  </target>
+    <jar destfile="VIB_.jar" basedir="build"/>
 
-  <target name="profile" depends="compile" description="Profile Project">
-    <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
-
-    <nbprofiledirect>
-      <classpath>
-	<pathelement location="."/>
-        <pathelement location="jzlib-1.0.7.jar"/>
-	<pathelement location="Quick3dApplet-1.0.8.jar"/>               
-      </classpath>
-    </nbprofiledirect>
-
-    <java fork="true"
-          jar="../ImageJ/ij.jar"
-	  maxmemory="512m">
-      <jvmarg value="${profiler.info.jvmargs.agent}"/>
-      <sysproperty key="plugins.dir" value="build"/>
-      <classpath>
-	<pathelement location="."/>
-        <pathelement location="jzlib-1.0.7.jar"/>
-	<pathelement location="Quick3dApplet-1.0.8.jar"/>
-      </classpath>
-    </java>
-
-  </target>
+  </target>  
         
 </project>
