@@ -20,5 +20,5 @@ sed -e "s/double/float/g" \
     -e "s/[0-9][0-9]*\.[0-9][0-9]*/&f/g" \
     < math3d/FastMatrixN.java > math3d/FloatMatrixN.java
 
-javac -cp ../ImageJA/ij.jar:Jama-1.0.2.jar:Quick3dApplet-1.0.8.jar:jzlib-1.0.7.jar:junit-4.4.jar $(find . -name '*.java' | egrep -v _darcs) 
+javac -cp ../ImageJA/ij.jar:Jama-1.0.2.jar:Quick3dApplet-1.0.8.jar:jzlib-1.0.7.jar:junit-4.4.jar $(find . -name '*.java' | egrep -v _darcs)
 
