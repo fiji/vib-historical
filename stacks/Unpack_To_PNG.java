@@ -54,29 +54,61 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.ArrayList;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import amira.AmiraParameters;
 
 public class Unpack_To_PNG implements PlugIn {
 
 	boolean client = false;
+
+	void error( String message ) {
+		if (client)
+			throw new RuntimeException(message);
+		else
+			IJ.error(message);
+	}
 	
 	public void run( String pluginArguments ) {
 
 		String realArguments = null;
-
 		String macroArguments = Macro.getOptions();
 				
 		if( (macroArguments == null) || (macroArguments.equals("")) ) {
 
 			if( (pluginArguments == null) || (pluginArguments.equals("")) ) {
-				IJ.error("No parameters supplied either as macro options or a plugin argument.");
-				return;
+				throw new RuntimeException("No parameters supplied either as macro options or a plugin argument.");
 			} else {
 				realArguments = pluginArguments;
 			}
 
 		} else { 
 			realArguments = macroArguments;
+		}
+
+		System.out.println("realArguments are: "+realArguments);
+
+		String clientString = Macro.getValue(
+			realArguments,
+			"client",
+			null );
+		if( clientString != null )
+			client = true;
+
+		int scalePercent = 100;
+
+		String scaleString = Macro.getValue(
+			realArguments,
+			"scale",
+			null );
+		if( scaleString != null ) {
+			try {
+				scalePercent = Integer.parseInt(scaleString);
+			} catch( NumberFormatException e ) {
+				error("Malformed scaleString supplied: '"+scaleString+"'");
+				return;
+			}
 		}
 		
 		String filename = Macro.getValue(
@@ -85,32 +117,87 @@ public class Unpack_To_PNG implements PlugIn {
 			"");
 		
 		if( filename.equals("") ) {
-			IJ.error("No macro parameter filename supplied");
+			error("No macro parameter filename supplied");
 			return;
 		}
 		
 		String destinationDirectory = Macro.getValue(
-			macroArguments,
+			realArguments,
 			"directory",
 			"");
 		
 		if( destinationDirectory.equals("") ) {
-			IJ.error("No macro parameter directory supplied");
+			error("No macro parameter directory supplied");
 			return;
 		}	
+
+		String redChannel = Macro.getValue(
+			realArguments,
+			"r",
+			"" );
+		String greenChannel = Macro.getValue(
+			realArguments,
+			"g",
+			"" );
+		String blueChannel = Macro.getValue(
+			realArguments,
+			"b",
+			"" );
+
+		int redIsChannel = -1;
+		int greenIsChannel = -1;
+		int blueIsChannel = -1;
+
+		try {
+			if( redChannel.length() > 0 )
+				redIsChannel = Integer.parseInt(redChannel);
+			if( greenChannel.length() > 0 )
+				greenIsChannel = Integer.parseInt(greenChannel);
+			if( blueChannel.length() > 0 )
+				blueIsChannel = Integer.parseInt(blueChannel);
+		} catch(  NumberFormatException e ) {
+			error("One of the channel colour assignments was malformed: r=["+
+			      redChannel+"] g=["+
+			      greenChannel+"] b=["+
+			      blueChannel+"]");
+			return;
+		}
+
+
+		int sliceMin = 0;
+		int sliceMax = Integer.MAX_VALUE;
+
+		String sliceRange = Macro.getValue(
+			realArguments,
+			"slices",
+			"");
 		
-		String clientString = Macro.getValue(
-			macroArguments,
-			"client",
-			null );
-		if( clientString != null )
-			client = true;
-		
+		Pattern p = Pattern.compile("^([0-9]+)\\-([0-9]+)$");
+
+		if( sliceRange.length() > 0 ) {
+			Matcher m = p.matcher(sliceRange);
+			if( ! m.matches() ) {
+				error("The slice range was malformed: must look like: 3-15 (for example)");
+				return;
+			}
+			sliceMin = Integer.parseInt(m.group(1),10);
+			sliceMax = Integer.parseInt(m.group(2),10);
+			if( sliceMin >= sliceMax ) {
+				error("The maximum slice must be greater than the minimum slice");
+				return;
+			}
+		}
+
+		System.out.println("Extract slices from "+sliceMin+" to "+sliceMax);
+
+		// ------------------------------------------------------------------------
+		// Phew: now open the image:
+
 		ImagePlus [] imps = BatchOpener.open(
 			filename );
 
 		if( imps == null ) {
-			IJ.error("Couldn't open the file: "+filename);
+			error("Couldn't open the file: "+filename);
 			return;
 		}
 
@@ -121,7 +208,7 @@ public class Unpack_To_PNG implements PlugIn {
 			try {
 				unpackAmiraLabelFieldToPNGs(imps[0],destinationDirectory);
 			} catch( IOException e ) {
-				IJ.error( "There was an IOException while unpacking the label file: "+e);
+				error( "There was an IOException while unpacking the label file: "+e);
 			}
 			return;
 		}
@@ -250,8 +337,7 @@ public class Unpack_To_PNG implements PlugIn {
 			} else if( type == PathIterator.SEG_CLOSE ) {
 				break;
 			} else {
-				IJ.error("Unhandled PathIterator type: "+type );
-				return "";
+				throw new RuntimeException("Unhandled PathIterator type: "+type );
 			}
 		}
 		
@@ -276,7 +362,7 @@ public class Unpack_To_PNG implements PlugIn {
 
 		if( (labelFileImp.getType() != ImagePlus.GRAY8) &&
 		    (labelFileImp.getType() != ImagePlus.COLOR_256) ) {
-			IJ.error("The label file appeared not to be 8 bit (!)");
+			error("The label file appeared not to be 8 bit (!)");
 			return;
 		}
 
@@ -540,7 +626,7 @@ public class Unpack_To_PNG implements PlugIn {
 				bi = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_INDEXED, cm);
 			} else {
 				if( (lut == null) && (imp.getType() == ImagePlus.COLOR_256) ) {
-					IJ.error("createLut() returned null for a COLOR_256 image");
+					error("createLut() returned null for a COLOR_256 image");
 					return;
 				} 
 				bi = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
