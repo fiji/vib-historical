@@ -4,6 +4,7 @@ package server;
 
 import java.lang.reflect.Method;
 import java.util.Date;
+import java.io.*;
 
 import ij.IJ;
 
@@ -84,8 +85,13 @@ public class Job extends Thread {
 			try{
 				IJ.runMacro( macroExpression );
 			} catch( Throwable t ) {
+				final StringWriter w = new StringWriter();
+				final PrintWriter pw = new PrintWriter(w);
+				t.printStackTrace(pw);
+				pw.close();
 				errorMessage = t.toString();
 				jobServer.log(this,"IJ.runMacro(\" "+macroExpression+"\"); failed with: "+t);
+				jobServer.log(this,"Stack Trace: "+w.toString());
 				setStatus(FAILED);
 				return;
 			}
