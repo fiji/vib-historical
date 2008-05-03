@@ -178,15 +178,41 @@ public class Extract_Image_Properties implements PlugIn {
 
 		pw.print(d);
 		
-
-/*
-		for( Enumeration ke=properties.keys(); ke.hasMoreElements(); ) {
-			String key = (String)ke.nextElement();
-			String value = ""+properties.get(key);
-
-		}
-*/
 		pw.close();
+
+		// Now extract some thumbnails:
+
+		int maxThumbnailDimension = 180;
+
+		float scale;
+		if( width > height ) {
+			scale = (float)maxThumbnailDimension / width;
+		} else {
+			scale = (float)maxThumbnailDimension / height;			
+		}
+
+		int midSlice = depth / 2;
+
+		File thumbnailDirectory = new File( destinationDirectory +
+						    File.separator +
+						    "thumbnails" );
+
+		try {
+
+			thumbnailDirectory.mkdir();
+
+			for( int i = 0; i < imps.length; ++i ) {
+				Unpack.unpack( imps[i],
+					       i,
+					       imps[i].createLut(),
+					       scale,
+					       midSlice,
+					       midSlice,
+					       thumbnailDirectory.getAbsolutePath() );
+			}
+		} catch( IOException e ) {
+			throw new RuntimeException("Writing thumbnails failed: "+e);
+		}
 
 		// close all ImagePlus objects
 		
