@@ -142,11 +142,11 @@ public class Extract_Image_Properties implements PlugIn {
 		Calibration c = imps[0].getCalibration();
 
 		if( c != null ) {
-			properties.put( "sample-spacing-x:",      c.pixelWidth );
-			properties.put( "sample-spacing-y:",      c.pixelHeight );
-			properties.put( "sample-spacing-z:",      c.pixelDepth );
-			properties.put( "sample-spacing-unit:",   c.getUnit() );
-			properties.put( "sample-spacing-units: ", c.getUnits() );
+			properties.put( "sample-spacing-x",      c.pixelWidth );
+			properties.put( "sample-spacing-y",      c.pixelHeight );
+			properties.put( "sample-spacing-z",      c.pixelDepth );
+			properties.put( "sample-spacing-unit",   c.getUnit() );
+			properties.put( "sample-spacing-units",  c.getUnits() );
 		}
 
 		// Now write out the properties we've discovered as YAML:
