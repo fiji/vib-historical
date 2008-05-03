@@ -162,6 +162,27 @@ public class Job_Server implements PlugIn {
 			logStream.flush();
 		}
 	}
+
+	public static void finishDirectory( String directory ) {
+		File d = new File(directory);
+		if( ! d.isDirectory() ) {
+			throw new RuntimeException("finishDirectory() called with a non-directory: '"+directory+"'");
+		}
+		String completedFile = d.getAbsolutePath() + File.separator + ".completed";
+		String generatingFile = d.getAbsolutePath () + File.separator + ".generating";
+		try {
+			FileOutputStream fos = new FileOutputStream(completedFile);
+			fos.close();
+			File f = new File(generatingFile);
+			f.delete();
+		} catch( IOException e ) {
+			final StringWriter w = new StringWriter();
+			final PrintWriter pw = new PrintWriter(w);
+			e.printStackTrace(pw);
+			pw.close();
+			throw new RuntimeException(w.toString());
+		}
+	}
 	
 	public void run(String ignore) {
 		

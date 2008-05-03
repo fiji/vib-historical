@@ -39,6 +39,8 @@ import amira.AmiraParameters;
 import org.jvyaml.YAML;
 import org.jvyaml.YAMLConfig;
 
+import server.Job_Server;
+
 public class Extract_Image_Properties implements PlugIn {
 
 	static String typeToString(int type) {
@@ -191,5 +193,7 @@ public class Extract_Image_Properties implements PlugIn {
 		for( int i = 0; i < imps.length; ++i ) {
 			imps[i].close();
 		}
+
+		Job_Server.finishDirectory(destinationDirectory);
 	}
 }
