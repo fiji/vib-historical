@@ -84,6 +84,13 @@ public class Extract_Image_Properties implements PlugIn {
 		
 		if( filename.equals("") )
 			throw new RuntimeException("No macro parameter 'filename' supplied");
+
+
+		String original_filename = Macro.getValue(
+			realArguments,
+			"original",
+			"");
+		
 		
 		String destinationDirectory = Macro.getValue(
 			macroArguments,
@@ -128,6 +135,7 @@ public class Extract_Image_Properties implements PlugIn {
 		properties.put( "height",    height);
 		properties.put( "depth",     depth);
 		properties.put( "imagej-type", typeToString(imps[0].getType()) );
+		properties.put( "original-filename", original_filename );
 
 		Calibration c = imps[0].getCalibration();
 
