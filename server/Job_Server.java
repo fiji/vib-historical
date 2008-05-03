@@ -28,8 +28,9 @@ import ij.plugin.PlugIn;
          - The second field must be a macro expression, typically
            "run('Watever Plugin','example=foo');"
 
-         - A single line is returned which contains a single field:
-           the job ID specific to this server.
+         - A single line is returned which contains "started" in the
+           first, and in the second field the job ID specific to this
+           server.
 
      "query"
 
@@ -101,11 +102,14 @@ public class Job_Server implements PlugIn {
 	public final static String bindInterfaceIP = "127.0.0.1";
 	
 	public void startNextIfPossible() {
+		log( "startNextIfPossible()" );
 		synchronized(jobQueue) {
 			if( (jobQueue.size() > 0) && (currentlyRunningJobs < maxJobs) ) {
 				Job jobToRun = jobQueue.removeFirst();
+				log("Starting a new job "+jobToRun);
 				jobToRun.start();
 				++ currentlyRunningJobs;
+				log("New job was started (now "+currentlyRunningJobs+" running)");
 			} 
 		}
 	}
@@ -241,6 +245,8 @@ public class Job_Server implements PlugIn {
 					if( "start".equals(arguments[0]) ) {
 						
 						String macroExpression = arguments[1];
+
+						log("Going to create a job to run macro expression: "+macroExpression);
 						
 						Job newJob = new Job( this,
 								      macroExpression );
