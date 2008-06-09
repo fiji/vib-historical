@@ -269,6 +269,17 @@ public class InterpolatedImage {
 			return 0;
 		return getNoCheck(x, y, z);
 	}
+	
+	public int getNoInterpolPingPong(int x, int y, int z) {
+		if ( x < 0 || x >= w )
+			x = pingPong( x, w );
+		if ( y < 0 || y >= h )
+			y = pingPong( y, h );
+		if ( z < 0 || z >= d )
+			z = pingPong( z, d );
+		return getNoCheck(x, y, z);
+	}
+
 
 	final public byte getNearestByte(double x, double y, double z) {
 		int i = (int)Math.round(x);
@@ -399,6 +410,16 @@ public class InterpolatedImage {
 			return 0;
 		return getNoCheckFloat(x, y, z);
 	}
+	
+	public float getNoInterpolPingPongFloat(int x, int y, int z) {
+		if ( x < 0 || x >= w )
+			x = pingPong( x, w );
+		if ( y < 0 || y >= h )
+			y = pingPong( y, h );
+		if ( z < 0 || z >= d )
+			z = pingPong( z, d );
+		return getNoCheckFloat(x, y, z);
+	}
 
 	public void setFloat(int x, int y, int z, float value) {
 		if (x < 0 || y < 0 || z < 0 || x >= w || y >= h || z >= d)
@@ -442,6 +463,16 @@ public class InterpolatedImage {
 	public short getNoInterpolShort(int x, int y, int z) {
 		if (x < 0 || y < 0 || z < 0 || x >= w || y >= h || z >= d)
 			return 0;
+		return getNoCheckShort(x, y, z);
+	}
+	
+	public short getNoInterpolPingPongShort(int x, int y, int z) {
+		if ( x < 0 || x >= w )
+			x = pingPong( x, w );
+		if ( y < 0 || y >= h )
+			y = pingPong( y, h );
+		if ( z < 0 || z >= d )
+			z = pingPong( z, d );
 		return getNoCheckShort(x, y, z);
 	}
 	
@@ -523,6 +554,22 @@ public class InterpolatedImage {
 					break;
 			}
 		return res;
+	}
+	
+	/**
+	 * Return an unsigned integer that bounces in a ping pong manneris flipped in the range [0 ... mod - 1]
+	 *
+	 * @param a the value to be flipped
+	 * @param range the size of the range
+	 * @return a flipped in range like a ping pong ball
+	 */
+	private static final int pingPong( int a, int mod )
+	{
+		int p = 2 * mod;
+		if ( a < 0 ) a = p + a % p;
+		if ( a >= p ) a = a % p;
+		if ( a >= mod ) a = mod - a % mod - 1;
+		return a;
 	}
 }
 
