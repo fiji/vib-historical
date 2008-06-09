@@ -1028,6 +1028,19 @@ public class FastMatrix {
 			eps > (double)Math.abs(a23);
 	}
 	
+	public void transpose3x3()
+	{
+		double t = a01;
+		a01 = a10;
+		a10 = t;
+		t = a02;
+		a02 = a20;
+		a20 = t;
+		t = a12;
+		a12 = a21;
+		a21 = t;
+	}
+	
 	public String resultToString() {
 		return "" + x + " " + y + " " + z;
 	}
