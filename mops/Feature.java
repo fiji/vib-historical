@@ -41,7 +41,7 @@ public class Feature extends Point3d
 		this.scale = scale;
 	}
 	
-	/*
+	/**
 	 * Sum up the gaussian weighted derivative in a sigma-dependent
 	 * environment around the position of this feature. The result
 	 * is normalized and stored in <code>orientation</code>.

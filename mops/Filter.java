@@ -104,5 +104,59 @@ public class Filter {
     				it.i, it.j, it.k,
     				scale * ( src.getNoCheckFloat( it.i, it.j, it.k ) - min ) );
     }
+    
+    /**
+	 * Create a normalized 3d gaussian impulse with appropriate size with its
+	 * center slightly moved away from the middle.
+	 * 
+	 * @param offset 3d-offset vector
+	 * 
+	 * @return gaussian kernel addressed as [z][y][x]
+	 * 
+	 */
+	static public float[][][] create3DGaussianKernelOffset( float sigma, float[] offset, boolean normalize )
+	{
+		int size = 3;
+		float[][][] kernel;
+		if ( sigma == 0 )
+		{
+			kernel = new float[3][3][3];
+			kernel[1][ 1 ][1] = 1;
+		}
+		else
+		{
+			size = Math.max( 3, ( int )( 2 * Math.round( 3 * sigma ) + 1 ) );
+			float twoSqSigma = 2 * sigma * sigma;
+			kernel = new float[size][size][size];
+			float sum = 0;
+			for ( int z = 0; z < size; ++z )
+			{
+				float fz = ( float )( z - size / 2 ) - offset[ 2 ];
+				fz *= fz;
+				for ( int y = size - 1; y >= 0; --y )
+				{
+					float fy = ( float ) ( y - size / 2 ) - offset[ 1 ];
+					fy *= fy;
+					for ( int x = size - 1; x >= 0; --x )
+					{
+						float fx = ( float ) ( x - size / 2 ) - offset[ 0 ];
+						fx *= fx;
+						
+						kernel[ z ][ y ][ x ] = ( float )( Math.exp( -( fx + fy + fz ) / twoSqSigma ) );
+						
+						sum += kernel[ z ][ y ][ x ];
+					}
+				}
+			}
+			if ( normalize )
+			{
+				for ( float[][] a : kernel )
+					for ( float[] b : a )
+						for ( int i = 0; i < size; ++i )
+							b[ i ] /= sum;
+			}
+		}
+		return kernel;
+	}
 }
 

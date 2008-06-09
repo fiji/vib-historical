@@ -12,6 +12,8 @@ import vib.InterpolatedImage;
 
 public class Octave {
 
+	int steps;
+	
 	float[] sigma;
 	private float[] sigma_diff;
 	final float k;
@@ -25,7 +27,8 @@ public class Octave {
 
 	public Octave( InterpolatedImage image, float[] sigma, float[] sigma_diff )
 	{
-		k = ( float )Math.pow( 2.0, 1.0 / ( sigma.length - 3 ) );
+		steps = sigma.length - 3;
+		k = ( float )Math.pow( 2.0, 1.0 / ( steps ) );
 		this.sigma = sigma;
 		this.sigma_diff = sigma_diff;
 		img = new InterpolatedImage[ sigma.length ];
@@ -60,9 +63,9 @@ public class Octave {
 	}
 
 	public void dog() {
-		int steps = sigma_diff.length;
-		dog = new InterpolatedImage[steps - 1];
-		for(int i = 1; i < steps - 1; i++) {
+		int s = sigma_diff.length;
+		dog = new InterpolatedImage[s - 1];
+		for(int i = 1; i < s - 1; i++) {
 			img[ i ] = Filter.gauss(img[ 0 ], sigma_diff[i]);
 			dog[ i - 1 ] = Filter.sub( img[ i ], img[ i - 1 ] );
 		}

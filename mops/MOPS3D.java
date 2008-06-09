@@ -1,10 +1,10 @@
 package mops;
 
 /**
- * Multi-Scale Oriented Patches after \cite{BrownAl05}.
+ * Multi-Scale Oriented Patches after \cite{BrownAl05} for 3d images.
  * 
  * This implementation actually uses the DoG-detector as described by
- * \cite{Lowe04} and extracts MOPS-descriptors instead of SIFT-descriptors.
+ * \cite{Lowe04}.
  *  
  * 
  * BibTeX:
@@ -48,7 +48,7 @@ package mops;
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  * 
- * @author Stephan Saalfeld <saalfeld@mpi-cbg.de>
+ * @author Stephan Saalfeld <saalfeld@mpi-cbg.de> and Benjamin Schmid <Bene.Schmid@gmail.com>
  * @version 0.1b
  */
 
@@ -61,7 +61,11 @@ import java.util.Vector;
 import java.util.List;
 import java.util.HashMap;
 
+import Jama.EigenvalueDecomposition;
+import Jama.Matrix;
+
 import vib.InterpolatedImage;
+import vib.FastMatrix;
 
 public class MOPS3D
 {
@@ -155,6 +159,161 @@ public class MOPS3D
 	}
 	
 	/**
+	 * Sum up the gaussian weighted derivative in a sigma-dependent
+	 * environment around the position of this feature. The result
+	 * is normalized and stored in <code>orientation</code>.
+	 *
+	 * @param c location and scale of a feature candidate (x,y,z,si)
+	 * @param smoothed is expected to be an image with sigma = 4.5 * {@link #sigma}
+	 *   detected
+	 */
+	public FastMatrix extractOrientation(
+			float[] f,
+			float os = octaves[ 0 ].sigma[ 0 ] * ( float )Math.pow( 2.0f, f[ 3 ] / ( float )octaves[ 0 ].steps ),
+			InterpolatedImage octaveStep,
+			InterpolatedImage smoothed )
+	{
+		int ix = Math.round( f[ 0 ] );
+		int iy = Math.round( f[ 1 ] );
+		int iz = Math.round( f[ 2 ] );
+		
+		float v2 = 2 * smoothed.getNoCheck( ix, iy, iz );
+		
+		double[][] h = new double[ 3 ][ 3 ];
+		
+		h[ 0 ][ 0 ] =
+			smoothed.getNoCheck( ix + 1, iy, iz ) -
+			v2 +
+			smoothed.getNoCheck( ix - 1, iy, iz );
+		h[ 1 ][ 1 ] =
+			smoothed.getNoCheck( ix, iy + 1, iz ) -
+			v2 +
+			smoothed.getNoCheck( ix, iy - 1, iz );
+		h[ 2 ][ 2 ] =
+			smoothed.getNoCheck( ix, iy, iz + 1 ) -
+			v2 +
+			smoothed.getNoCheck( ix, iy, iz - 1 );
+		
+		h[ 0 ][ 1 ] = h[ 1 ][ 0 ] =
+			( smoothed.getNoCheck( ix + 1, iy + 1, iz ) -
+			  smoothed.getNoCheck( ix - 1, iy + 1, iz ) ) / 4 -
+			( smoothed.getNoCheck( ix + 1, iy - 1, iz ) -
+			  smoothed.getNoCheck( ix - 1, iy - 1, iz ) ) / 4;
+		h[ 0 ][ 2 ] = h[ 2 ][ 0 ] =
+			( smoothed.getNoCheck( ix + 1, iy, iz + 1 ) -
+			  smoothed.getNoCheck( ix - 1, iy, iz + 1 ) ) / 4 -
+			( smoothed.getNoCheck( ix + 1, iy, iz - 1 ) -
+			  smoothed.getNoCheck( ix - 1, iy, iz - 1 ) ) / 4;
+		h[ 1 ][ 2 ] = h[ 2 ][ 1 ] =
+			( smoothed.getNoCheck( ix, iy + 1, iz + 1 ) -
+			  smoothed.getNoCheck( ix, iy - 1, iz + 1 ) ) / 4 -
+			( smoothed.getNoCheck( ix, iy + 1, iz - 1 ) -
+			  smoothed.getNoCheck( ix, iy - 1, iz - 1 ) ) / 4;
+		
+		EigenvalueDecomposition evd =
+			new EigenvalueDecomposition( new Matrix( h ) );
+		
+		double[] ev = evd.getRealEigenvalues();
+		double[][] evect = evd.getV().getArray();
+		
+		
+		// Sort the eigenvalues by ascending size.
+		int i0 = 0;
+		int i1 = 1;
+		int i2 = 2;
+		
+		ev[ 0 ] = Math.abs( ev[ 0 ] );
+		ev[ 1 ] = Math.abs( ev[ 1 ] );
+		ev[ 2 ] = Math.abs( ev[ 2 ] );
+		
+		if ( ev[ i1 ] < ev[ i0 ] )
+		{
+			int temp = i0;
+			i0 = i1;
+			i1 = temp;
+		}
+		if ( ev[ i2 ] < ev[ i1 ] )
+		{
+			int temp = i1;
+			i1 = i2;
+			i2 = temp;
+			if ( ev[ i1 ] < ev[ i0 ] )
+			{
+				temp = i0;
+				i0 = i1;
+				i1 = temp;
+			}
+		}
+		
+		evect = new double[][]{
+				{ evect[ 0 ][ i2 ], evect[ 0 ][ i1 ], evect[ 0 ][ i0 ] },
+				{ evect[ 1 ][ i2 ], evect[ 1 ][ i1 ], evect[ 1 ][ i0 ] },
+				{ evect[ 2 ][ i2 ], evect[ 2 ][ i1 ], evect[ 2 ][ i0 ] } };
+		ev = new double[]{ ev[ i2 ], ev[ i1 ], ev[ i0 ] }; 
+		
+		float[][][] gauss_k = Filter.create3DGaussianKernelOffset( os, new float[]{ f[ 0 ] - ix, f[ 1 ] - iy, f[ 2 ] - iz }, true );
+		
+		int r = gauss_k.length / 2;
+		
+		float[] alpha = new float[ 2 ];
+		//float[] beta = new float[ 2 ];
+		float[] gamma = new float[ 2 ];
+		
+		for ( int z = 0; z < gauss_k.length; z++ ) {
+			int lz = iz - r + z;
+			for ( int y = 0; y < gauss_k.length; y++ ) {
+				int ly = iy - r + y;
+				for ( int x = 0; x < gauss_k.length; x++ ) {
+					int lx = ix - r + x;
+					
+					float vx = ( float )lx - f[ 0 ];
+					float vy = ( float )ly - f[ 1 ];
+					float vz = ( float )lz - f[ 2 ];
+					
+					int sAlpha = ( ( vx * evect[ 0 ][ 0 ] + vy * evect[ 1 ][ 0 ] + vz * evect[ 2 ][ 0 ] ) < 0 ) ? 0 : 1;
+					//int sBeta = ( ( vx * evect[ 0 ][ 1 ] + vy * evect[ 1 ][ 1 ] + vz * evect[ 2 ][ 1 ] ) < 0 ) ? 0 : 1;
+					int sGamma = ( ( vx * evect[ 0 ][ 2 ] + vy * evect[ 1 ][ 2 ] + vz * evect[ 2 ][ 2 ] ) < 0 ) ? 0 : 1;
+					
+					float val = octaveStep.getNoInterpolPingPongFloat( lx, ly, lz ) * gauss_k[ z ][ y ][ x ];
+					alpha[ sAlpha ] += val;
+					//alpha[ sBeta ] += val;
+					alpha[ sGamma ] += val;
+				}
+			}
+		}
+		
+		if ( alpha[ 0 ] < alpha[ 1 ] )
+		{
+			evect[ 0 ][ 0 ] = -evect[ 0 ][ 0 ];
+			evect[ 1 ][ 0 ] = -evect[ 1 ][ 0 ];
+			evect[ 2 ][ 0 ] = -evect[ 2 ][ 0 ];
+		}
+		if ( gamma[ 0 ] < gamma[ 1 ] )
+		{
+			evect[ 0 ][ 2 ] = -evect[ 0 ][ 2 ];
+			evect[ 1 ][ 2 ] = -evect[ 1 ][ 2 ];
+			evect[ 2 ][ 2 ] = -evect[ 2 ][ 2 ];
+		}
+		
+		float lAlpha = ( float )Math.sqrt( evect[ 0 ][ 0 ] * evect[ 0 ][ 0 ] + evect[ 1 ][ 0 ] * evect[ 1 ][ 0 ] + evect[ 2 ][ 0 ] * evect[ 2 ][ 0 ] );
+		float lGamma = ( float )Math.sqrt( evect[ 0 ][ 2 ] * evect[ 0 ][ 2 ] + evect[ 1 ][ 2 ] * evect[ 1 ][ 2 ] + evect[ 2 ][ 2 ] * evect[ 2 ][ 2 ] );
+		
+		evect[ 0 ][ 0 ] /= lAlpha;
+		evect[ 1 ][ 0 ] /= lAlpha;
+		evect[ 2 ][ 0 ] /= lAlpha;
+		
+		evect[ 0 ][ 2 ] /= lGamma;
+		evect[ 1 ][ 2 ] /= lGamma;
+		evect[ 2 ][ 2 ] /= lGamma;
+		
+		evect[ 0 ][ 1 ] = evect[ 1 ][ 0 ] * evect[ 2 ][ 2 ] - evect[ 2 ][ 0 ] * evect[ 1 ][ 2 ];
+		evect[ 1 ][ 1 ] = evect[ 2 ][ 0 ] * evect[ 0 ][ 2 ] - evect[ 0 ][ 0 ] * evect[ 2 ][ 2 ];
+		evect[ 2 ][ 1 ] = evect[ 0 ][ 0 ] * evect[ 1 ][ 2 ] - evect[ 1 ][ 0 ] * evect[ 0 ][ 2 ];
+		
+		return new FastMatrix(evect);
+	}
+	
+	/**
 	 * sample the scaled and rotated gradients in a region around the
 	 * features location, the regions size is defined by
 	 * FEATURE_DESCRIPTOR_WIDTH^2
@@ -166,59 +325,47 @@ public class MOPS3D
 	 * @param orientation orientation [-&pi; ... &pi;]
 	 */
 	private float[] createDescriptor(
-			float[] c,
-			int o,
-			float octave_sigma,
-			float orientation )
+			float[] f,
+			float os,
+			InterpolatedImage smoothed,
+			FastMatrix o )
 	{
-		// select the octave with SCALE*octave_sigma = octaves[ o+SCALE_LD2 ]
-		FloatArray2DScaleOctave octave = octaves[ o + O_SCALE_LD2 ];
-		FloatArray2D l = octave.getL( Math.round( c[ 2 ] ) );
+		float[] desc = new float[ fdWidth * fdWidth * fdWidth ];
 		
-		float[] desc = new float[ FEATURE_DESCRIPTOR_WIDTH * FEATURE_DESCRIPTOR_WIDTH ];
-		
-		float cos_o = ( float )Math.cos( orientation );
-		float sin_o = ( float )Math.sin( orientation );
-
-		// TODO this is for test
-		//---------------------------------------------------------------------
-		pattern = new FloatArray2D( FEATURE_DESCRIPTOR_WIDTH, FEATURE_DESCRIPTOR_WIDTH );
+		// transpose o for inverse rotation
+		o.transpose3x3();
 		
 		int i = 0;
 		float max = Float.MIN_VALUE;
 		float min = Float.MAX_VALUE;
 		
 		//! sample the region arround the keypoint location
-		for ( int y = FEATURE_DESCRIPTOR_WIDTH - 1; y >= 0; --y )
+		for ( int z = 0; z < fdWidth; ++z )
 		{
-			float ys =
-				( ( float )y - ( float )FEATURE_DESCRIPTOR_WIDTH / 2.0f + 0.5f ) * octave_sigma; //!< scale y around 0,0
-			for ( int x = FEATURE_DESCRIPTOR_WIDTH - 1; x >= 0; --x )
+			float zs =
+				( ( float )z - ( float )fdWidth / 2.0f + 0.5f ) * os * O_SCALE; //!< scale z around 0,0
+			for ( int y = 0; y < fdWidth; ++y )
 			{
-				float xs =
-					( ( float )x - ( float )FEATURE_DESCRIPTOR_WIDTH / 2.0f + 0.5f ) * octave_sigma; //!< scale x around 0,0
-				float yr = cos_o * ys + sin_o * xs; //!< rotate y around 0,0
-				float xr = cos_o * xs - sin_o * ys; //!< rotate x around 0,0
+				float ys =
+					( ( float )y - ( float )fdWidth / 2.0f + 0.5f ) * os * O_SCALE; //!< scale y around 0,0
+				for ( int x = 0; x < fdWidth; ++x )
+				{
+					float xs =
+						( ( float )x - ( float )fdWidth / 2.0f + 0.5f ) * os * O_SCALE; //!< scale x around 0,0
 
-				// translate ys to sample y position in the gradient image
-				int yg = Filter.flipInRange(
-						( int )( Math.round( yr + c[ 1 ] / O_SCALE ) ),
-						l.height );
-
-				// translate xs to sample x position in the gradient image
-				int xg = Filter.flipInRange(
-						( int )( Math.round( xr + c[ 0 ] / O_SCALE ) ),
-						l.width );
-
-				desc[ i ] = l.get( xg, yg );
-
-				// TODO this is for test
-				//---------------------------------------------------------------------
-				pattern.set( desc[ i ], x, y );
-				
-				if ( desc[ i ] > max ) max = desc[ i ];
-				else if ( desc[ i ] < min ) min = desc[ i ];
-				++i;
+					o.apply( xs, ys, zs );
+					
+					// translate
+					int zg = ( int )( Math.round( o.z + f[ 2 ] ) );
+					int yg = ( int )( Math.round( o.y + f[ 1 ] ) );
+					int xg = ( int )( Math.round( o.x + f[ 0 ] ) );
+	
+					desc[ i ] = smoothed.getNoInterpolPingPongFloat( xg, yg, zg );
+					
+					if ( desc[ i ] > max ) max = desc[ i ];
+					else if ( desc[ i ] < min ) min = desc[ i ];
+					++i;
+				}
 			}
 		}
 		
@@ -379,7 +526,7 @@ public class MOPS3D
 		return;
 	}
 
-	
+	float orientation
 	/**
 	 * detect features in the specified scale octave
 	 * 
@@ -475,7 +622,7 @@ public class MOPS3D
 			{
 				float d = f1.descriptorDistance( f2 );
 				//System.out.println( d );
-				if ( d < best_d )
+				if ( d < best_d )float orientation
 				{
 					second_best_d = best_d;
 					best_d = d;
@@ -503,7 +650,7 @@ public class MOPS3D
 			boolean amb = false;
 			PointMatch m = matches.get( i );
 			float[] m_p2 = m.getP2().getL(); 
-			for ( int j = i + 1; j < matches.size(); )
+			for ( int j = i + 1; j < matches.size(float orientation); )
 			{
 				PointMatch n = matches.get( j );
 				float[] n_p2 = n.getP2().getL(); 
