@@ -567,7 +567,7 @@ public class InterpolatedImage {
 	{
 		int p = 2 * mod;
 		if ( a < 0 ) a = p + a % p;
-		if ( a >= p ) a = a % p;
+		a = a % p;
 		if ( a >= mod ) a = mod - a % mod - 1;
 		return a;
 	}
