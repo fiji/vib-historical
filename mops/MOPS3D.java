@@ -59,6 +59,7 @@ import ij.measure.Calibration;
 
 import java.util.Vector;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import Jama.EigenvalueDecomposition;
@@ -85,6 +86,11 @@ public class MOPS3D
 	public Octave getOctave( int i ){ return octaves[ i ]; }
 	
 	/**
+	 * Difference of Gaussian detector
+	 */
+	private DoGDetector3D dog;
+	
+	/**
 	 * Constructor
 	 * 
 	 * @param feature_descriptor_size
@@ -94,6 +100,7 @@ public class MOPS3D
 	{
 		this.fdWidth = fdWidth; 
 		octaves = null;
+		dog = new DoGDetector3D();
 	}
 	
 	/**
@@ -119,12 +126,15 @@ public class MOPS3D
 		sigma[ 0 ] = initialSigma;
 		float[] sigmaDiff = new float[ steps + 3 ];
 		sigmaDiff[ 0 ] = 0.0f;
+		float[] smoothedSigmaDiff = new float[ steps + 3 ];
+		smoothedSigmaDiff[ 0 ] = ( float )Math.sqrt( O_SCALE * initialSigma * O_SCALE * initialSigma - initialSigma * initialSigma );
 		float[][] kernelDiff = new float[ steps + 3 ][];
 		
 		for ( int i = 1; i < steps + 3; ++i )
 		{
 			sigma[ i ] = initialSigma * ( float )Math.pow( 2.0f, ( float )i / ( float )steps );
 			sigmaDiff[ i ] = ( float )Math.sqrt( sigma[ i ] * sigma[ i ] - initialSigma * initialSigma );
+			smoothedSigmaDiff[ i ] = ( float )Math.sqrt( O_SCALE * sigma[ i ] * O_SCALE * sigma[ i ] - initialSigma * initialSigma );
 			
 			//kernelDiff[ i ] = Filter.createGaussianKernel( sigmaDiff[ i ], true );
 		}
@@ -150,7 +160,8 @@ public class MOPS3D
 			octaves[ i ] = new Octave(
 					src,
 					sigma,
-					sigmaDiff );
+					sigmaDiff,
+					smoothedSigmaDiff);
 			next = octaves[ i ].resample();
 			if ( src.getWidth() > maxSize || src.getHeight() > maxSize || src.getDepth() > maxSize )
 				octaves[ i ].clear();
@@ -169,7 +180,7 @@ public class MOPS3D
 	 */
 	public FastMatrix extractOrientation(
 			float[] f,
-			float os = octaves[ 0 ].sigma[ 0 ] * ( float )Math.pow( 2.0f, f[ 3 ] / ( float )octaves[ 0 ].steps ),
+			float os,
 			InterpolatedImage octaveStep,
 			InterpolatedImage smoothed )
 	{
@@ -318,6 +329,30 @@ public class MOPS3D
 	 * features location, the regions size is defined by
 	 * FEATURE_DESCRIPTOR_WIDTH^2
 	 * 
+	 * Illustration of the 2D case, which transfers to the 3D case:
+	 *
+	 *    patch after                     patch before
+	 *    rotation:                       rotation
+	 *
+	 *   +----------+        M^-1         +---..
+	 *   |          |    ------------>   /      ---..
+	 *   |     +----|    <------------  /            -+
+	 *   |          |         M        /      +..     /
+	 *   +----------+                 +---..     --. /
+	 *                                      ---..   /
+	 *                                           -+
+	 *  
+	 *  One wants to get the coordinates (and values) of the patch
+	 *  before rotation - those after the rotation are known, since
+	 *  mid point and edge length are known.
+	 *
+	 *  So each point coordinate - as is after rotation - is transformed
+	 *  by M^-1 (M being a rotational matrix).
+	 *
+	 *  The angle between the axes can be obtained by 
+	 *  the rotation matrix M by the axis-angle definition.
+	 *  
+	 * 
 	 * @param c candidate 0=>x, 1=>y, 2=>scale index
 	 * @param o octave index
 	 * @param octave_sigma sigma of the corresponding gaussian kernel with
@@ -378,174 +413,32 @@ public class MOPS3D
 	}
 	
 	/**
-	 * assign orientation to the given candidate, if more than one orientations
-	 * found, duplicate the feature for each orientation
-	 * 
-	 * estimate the feature descriptor for each of those candidates
-	 * 
-	 * @param c candidate 0=>x, 1=>y, 2=>scale index
-	 * @param o octave index
-	 * @param features finally contains all processed candidates
-	 */
-	void processCandidate(
-			float[] c,
-			int o,
-			Vector< Feature > features )
-	{
-		final int ORIENTATION_BINS = 36;
-		final float ORIENTATION_BIN_SIZE = 2.0f * ( float )Math.PI / ( float )ORIENTATION_BINS;
-		float[] histogram_bins = new float[ ORIENTATION_BINS ];
-		
-		int scale = ( int )Math.pow( 2, o );
-		
-		FloatArray2DScaleOctave octave = octaves[ o ];
-		
-		float octave_sigma = octave.SIGMA[ 0 ] * ( float )Math.pow( 2.0f, c[ 2 ] / ( float )octave.STEPS );
-				
-		// create a circular gaussian window with sigma 1.5 times that of the feature
-		FloatArray2D gaussianMask =
-			Filter.createGaussianKernelOffset(
-					octave_sigma * 1.5f,
-					c[ 0 ] - ( float )Math.floor( c[ 0 ] ),
-					c[ 1 ] - ( float )Math.floor( c[ 1 ] ),
-					false );
-		//FloatArrayToImagePlus( gaussianMask, "gaussianMask", 0, 0 ).show();
-		
-		// get the gradients in a region arround the keypoints location
-		FloatArray2D[] src = octave.getL1( Math.round( c[ 2 ] ) );
-		FloatArray2D[] gradientROI = new FloatArray2D[ 2 ];
-		gradientROI[ 0 ] = new FloatArray2D( gaussianMask.width, gaussianMask.width );
-		gradientROI[ 1 ] = new FloatArray2D( gaussianMask.width, gaussianMask.width );
-		
-		int half_size = gaussianMask.width / 2;
-		int p = gaussianMask.width * gaussianMask.width - 1;
-		for ( int yi = gaussianMask.width - 1; yi >= 0; --yi )
-		{
-			int ra_y = src[ 0 ].width * Math.max( 0, Math.min( src[ 0 ].height - 1, ( int )c[ 1 ] + yi - half_size ) );
-			int ra_x = ra_y + Math.min( ( int )c[ 0 ], src[ 0 ].width - 1 );
-
-			for ( int xi = gaussianMask.width - 1; xi >= 0; --xi )
-			{
-				int pt = Math.max( ra_y, Math.min( ra_y + src[ 0 ].width - 2, ra_x + xi - half_size ) );
-				gradientROI[ 0 ].data[ p ] = src[ 0 ].data[ pt ];
-				gradientROI[ 1 ].data[ p ] = src[ 1 ].data[ pt ];
-				--p;
-			}
-		}
-		
-		// and mask this region with the precalculated gaussion window
-		for ( int i = 0; i < gradientROI[ 0 ].data.length; ++i )
-		{
-			gradientROI[ 0 ].data[ i ] *= gaussianMask.data[ i ];
-		}
-		
-		// TODO this is for test
-		//---------------------------------------------------------------------
-		//ImageArrayConverter.FloatArrayToImagePlus( gradientROI[ 0 ], "gaussianMaskedGradientROI", 0, 0 ).show();
-		//ImageArrayConverter.FloatArrayToImagePlus( gradientROI[ 1 ], "gaussianMaskedGradientROI", 0, 0 ).show();
-
-		// build an orientation histogram of the region
-		for ( int i = 0; i < gradientROI[ 0 ].data.length; ++i )
-		{
-			int bin = Math.max( 0, ( int )( ( gradientROI[ 1 ].data[ i ] + Math.PI ) / ORIENTATION_BIN_SIZE ) );
-			histogram_bins[ bin ] += gradientROI[ 0 ].data[ i ];
-		}
-
-		// find the dominant orientation and interpolate it with respect to its two neighbours
-		int max_i = 0;
-		for ( int i = 0; i < ORIENTATION_BINS; ++i )
-		{
-			if ( histogram_bins[ i ] > histogram_bins[ max_i ] ) max_i = i;
-		}
-		
-		/*
-		 * Interpolate orientation.
-		 * Estimate the offset from center of the
-		 * parabolic extremum of the taylor series through env[1], derivatives
-		 * via central difference and laplace.
-		 */
-		float e0 = histogram_bins[ ( max_i + ORIENTATION_BINS - 1 ) % ORIENTATION_BINS ];
-		float e1 = histogram_bins[ max_i ];
-		float e2 = histogram_bins[ ( max_i + 1 ) % ORIENTATION_BINS ];
-		float offset = ( e0 - e2 ) / 2.0f / ( e0 - 2.0f * e1 + e2 );
-		float orientation = ( ( float )max_i + offset ) * ORIENTATION_BIN_SIZE - ( float )Math.PI;
-
-		// assign descriptor and add the Feature instance to the collection
-		features.addElement(
-				new Feature(
-						octave_sigma * scale,
-						orientation,
-						new float[]{ c[ 0 ] * scale, c[ 1 ] * scale },
-						//new float[]{ ( c[ 0 ] + 0.5f ) * scale - 0.5f, ( c[ 1 ] + 0.5f ) * scale - 0.5f },
-						createDescriptor( c, o, octave_sigma, orientation ) ) );
-		
-		// TODO this is for test
-		//---------------------------------------------------------------------
-		//ImageArrayConverter.FloatArrayToImagePlus( pattern, "test", 0f, 1.0f ).show();
-		
-		/**
-		 * check if there is another significant orientation ( > 80% max )
-		 * if there is one, duplicate the feature and 
-		 */
-		for ( int i = 0; i < ORIENTATION_BINS; ++i )
-		{
-			if (
-					i != max_i &&
-					( max_i + 1 ) % ORIENTATION_BINS != i &&
-					( max_i - 1 + ORIENTATION_BINS ) % ORIENTATION_BINS != i &&
-					histogram_bins[ i ] > 0.8 * histogram_bins[ max_i ] )
-			{
-				/**
-				 * interpolate orientation estimate the offset from center of
-				 * the parabolic extremum of the taylor series through env[1],
-				 * derivatives via central difference and laplace
-				 */
-				e0 = histogram_bins[ ( i + ORIENTATION_BINS - 1 ) % ORIENTATION_BINS ];
-				e1 = histogram_bins[ i ];
-				e2 = histogram_bins[ ( i + 1 ) % ORIENTATION_BINS ];
-
-				if ( e0 < e1 && e2 < e1 )
-				{
-					offset = ( e0 - e2 ) / 2.0f / ( e0 - 2.0f * e1 + e2 );
-					orientation = ( ( float )i + 0.5f + offset ) * ORIENTATION_BIN_SIZE - ( float )Math.PI;
-
-					features.addElement(
-							new Feature(
-									octave_sigma * scale,
-									orientation,
-									new float[]{ c[ 0 ] * scale, c[ 1 ] * scale },
-									//new float[]{ ( c[ 0 ] + 0.5f ) * scale - 0.5f, ( c[ 1 ] + 0.5f ) * scale - 0.5f },
-									createDescriptor( c, o, octave_sigma, orientation ) ) );
-					
-					// TODO this is for test
-					//---------------------------------------------------------------------
-					//ImageArrayConverter.FloatArrayToImagePlus( pattern, "test", 0f, 1.0f ).show();
-				}
-			}
-		}
-		return;
-	}
-
-	float orientation
-	/**
 	 * detect features in the specified scale octave
 	 * 
 	 * @param o octave index
 	 * 
 	 * @return detected features
 	 */
-	public Vector< Feature > runOctave( int o )
+	public List< Feature > runOctave( int o )
 	{
-		Vector< Feature > features = new Vector< Feature >();
+		int octScale = ( int )Math.pow( 2, o );
+		ArrayList< Feature > features = new ArrayList< Feature >();
 		Octave octave = octaves[ o ];
-		octave.build();
 		dog.run( octave );
-		Vector< float[] > candidates = dog.getCandidates();
-		for ( float[] c : candidates )
+		ArrayList< float[] > candidates = dog.getCandidates();
+		for ( float[] f : candidates )
 		{
-			this.processCandidate( c, o, features );
+			float os = octave.sigma[ 0 ] * ( float )Math.pow( 2.0f, f[ 3 ] / ( float )octave.steps );
+			float desc[] = createDescriptor(
+					f,
+					os,
+					octave.smoothed[ Math.round( f[ 3 ] ) ],
+					extractOrientation( f, os, octave.img[ Math.round( f[ 3 ] ) ], octave.smoothed[ Math.round( f[ 3 ] ) ] ) );
+			features.add(
+					new Feature( f[ 0 ] * octScale, f[ 1 ] * octScale, f[ 2 ] * octScale, os * octScale, desc ) );
 		}
-		//System.out.println( features.size() + " candidates processed in octave " + o );
+		
+		System.out.println( features.size() + " MOPSes extracted in octave " + o );
 		
 		return features;
 	}
@@ -557,44 +450,16 @@ public class MOPS3D
 	 * 
 	 * @return detected features
 	 */
-	public Vector< Feature > run()
+	public List< Feature > run()
 	{
-		Vector< Feature > features = new Vector< Feature >();
+		ArrayList< Feature > features = new ArrayList< Feature >();
 		for ( int o = 0; o < octaves.length; ++o )
 		{
-			if ( octaves[ o ].state == FloatArray2DScaleOctave.State.EMPTY ) continue;
-			octaves[ o ].build();
-		}
-		for ( int o = 0; o < octaves.length - O_SCALE_LD2; ++o )
-		{
-			if ( octaves[ o ].state == FloatArray2DScaleOctave.State.EMPTY ) continue;
-			Vector< Feature > more = runOctave( o );
+			if ( octaves[ o ].img == null ) continue;
+			List< Feature > more = runOctave( o );
 			features.addAll( more );
+			IJ.showProgress( o, octaves.length );
 		}
-		return features;
-	}
-	
-	/**
-	 * Detect features in all scale octaves.
-	 * 
-	 * Note that there are O_SCALE_LD2 more octaves needed for descriptor extraction. 
-	 * 
-	 * @return detected features
-	 */
-	public Vector< Feature > run( int max_size )
-	{
-		Vector< Feature > features = new Vector< Feature >();
-		for ( int o = 0; o < octaves.length; ++o )
-			if ( octaves[ o ].width <= max_size && octaves[ o ].height <= max_size )
-				octaves[ o ].build();
-		for ( int o = 0; o < octaves.length - O_SCALE_LD2; ++o )
-			if ( octaves[ o ].width <= max_size && octaves[ o ].height <= max_size )
-			{
-				Vector< Feature > more = runOctave( o );
-				features.addAll( more );
-			}
-		
-		//System.out.println( features.size() + " candidates processed in all octaves" );
 		return features;
 	}
 	
@@ -606,11 +471,11 @@ public class MOPS3D
 	 * 
 	 * @return matches
 	 */
-	public static Vector< PointMatch > createMatches(
+	public static List< PointMatch > createMatches(
 			List< Feature > fs1,
 			List< Feature > fs2 )
 	{
-		Vector< PointMatch > matches = new Vector< PointMatch >();
+		ArrayList< PointMatch > matches = new ArrayList< PointMatch >();
 		
 		for ( Feature f1 : fs1 )
 		{

@@ -46,9 +46,14 @@ public class DoGDetector3D
 		
 		this.octave = octave;
 		octave.dog();
+		
+		for ( int di = 1; di < octave.dog.length - 1; ++di )
+		{
+			detectCandidates( di );
+		}
 	}
 	
-	public void detectCandidates( int di )
+	private void detectCandidates( int di )
 	{
 		InterpolatedImage dog = octave.dog[ di ];
 		InterpolatedImage.Iterator it = dog.iterator( false, 1, 1, 1, dog.getWidth() - 2, dog.getHeight() - 2, dog.getDepth() - 2 );

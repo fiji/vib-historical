@@ -19,9 +19,10 @@ public class Feature extends Point3d
 	public static final int FD_WIDTH = 16;
 
 	/*
-	 * three-dimensional patch for at the position of this feature
+	 * descriptor
 	 */
-	private InterpolatedImage patch;
+	private float[] desc;
+	public float[] getDesc(){ return desc; }
 
 	/*
 	 * rotation matrix which aligns the patch in a way that
@@ -35,188 +36,15 @@ public class Feature extends Point3d
 	 */
 	private double scale;
 
-	Feature( double x, double y, double z, double scale )
+	Feature( double x, double y, double z, double scale, float[] desc )
 	{
 		super( x, y, z );
 		this.scale = scale;
+		this.desc = desc;
 	}
 	
-	/**
-	 * Sum up the gaussian weighted derivative in a sigma-dependent
-	 * environment around the position of this feature. The result
-	 * is normalized and stored in <code>orientation</code>.
-	 * 
-	 * @param smoothed is expected to be an image with sigma = 4.5 * {@link #sigma}
-	 *   detected
-	 */
-	public void extractOrientation(InterpolatedImage smoothed) {
-		Calibration cal = smoothed.getImage().getCalibration();
-		int ix = (int)(x / cal.pixelWidth);
-		int iy = (int)(y / cal.pixelHeight);
-		int iz = (int)(z / cal.pixelDepth);
-		
-		float v2 = 2 * smoothed.getNoInterpolFloat( ix, iy, iz );
-		
-		
-		double[][] h = new double[ 3 ][ 3 ];
-		
-		h[ 0 ][ 0 ] =
-			smoothed.getNoInterpolFloat( ix + 1, iy, iz ) -
-			v2 +
-			smoothed.getNoInterpolFloat( ix - 1, iy, iz );
-		h[ 1 ][ 1 ] =
-			smoothed.getNoInterpolFloat( ix, iy + 1, iz ) -
-			v2 +
-			smoothed.getNoInterpolFloat( ix, iy - 1, iz );
-		h[ 2 ][ 2 ] =
-			smoothed.getNoInterpolFloat( ix, iy, iz + 1 ) -
-			v2 +
-			smoothed.getNoInterpolFloat( ix, iy, iz - 1 );
-		
-		h[ 0 ][ 1 ] = h[ 1 ][ 0 ] =
-			( smoothed.getNoInterpolFloat( ix + 1, iy + 1, iz ) -
-			  smoothed.getNoInterpolFloat( ix - 1, iy + 1, iz ) ) / 4 -
-			( smoothed.getNoInterpolFloat( ix + 1, iy - 1, iz ) -
-			  smoothed.getNoInterpolFloat( ix - 1, iy - 1, iz ) ) / 4;
-		h[ 0 ][ 2 ] = h[ 2 ][ 0 ] =
-			( smoothed.getNoInterpolFloat( ix + 1, iy, iz + 1 ) -
-			  smoothed.getNoInterpolFloat( ix - 1, iy, iz + 1 ) ) / 4 -
-			( smoothed.getNoInterpolFloat( ix + 1, iy, iz - 1 ) -
-			  smoothed.getNoInterpolFloat( ix - 1, iy, iz - 1 ) ) / 4;
-		h[ 1 ][ 2 ] = h[ 2 ][ 1 ] =
-			( smoothed.getNoInterpolFloat( ix, iy + 1, iz + 1 ) -
-			  smoothed.getNoInterpolFloat( ix, iy - 1, iz + 1 ) ) / 4 -
-			( smoothed.getNoInterpolFloat( ix, iy + 1, iz - 1 ) -
-			  smoothed.getNoInterpolFloat( ix, iy - 1, iz - 1 ) ) / 4;
-		
-		EigenvalueDecomposition evd =
-			new EigenvalueDecomposition( new Matrix( h ) );
-		
-		double[] ev = evd.getRealEigenvalues();
-		double[][] evect = evd.getV().getArray();
-		
-		
-		// Sort the eigenvalues by ascending size.
-		int i0 = 0;
-		int i1 = 1;
-		int i2 = 2;
-		
-		ev[ 0 ] = Math.abs( ev[ 0 ] );
-		ev[ 1 ] = Math.abs( ev[ 1 ] );
-		ev[ 2 ] = Math.abs( ev[ 2 ] );
-		
-		if ( ev[ i1 ] < ev[ i0 ] )
-		{
-			int temp = i0;
-			i0 = i1;
-			i1 = temp;
-		}
-		if ( ev[ i2 ] < ev[ i1 ] )
-		{
-			int temp = i1;
-			i1 = i2;
-			i2 = temp;
-			if ( ev[ i1 ] < ev[ i0 ] )
-			{
-				temp = i0;
-				i0 = i1;
-				i1 = temp;
-			}
-		}
-		
-		
-		
-		double[][] sortedEigenvect = new double[ 3 ][ 3 ];
-		
-		int s = 0;
-		int l = 0;
-		
-		ev[ 0 ] = Math.abs(  ev[ 0 ] );
-		for ( int i = 1; i < ev.length; ++i )
-		{
-			ev[ i ] = Math.abs( ev[ i ] );
-			if ( ev[ i ] < ev[ s ] ) s = i;
-			if ( ev[ i ] > ev[ l ] ) l = i;
-		}
-		
-		
-			
 	
-		float[] gauss_k = create3DGaussianKernel(sigma);
-		int diam = (int)Math.ceil(5 * sigma);
-		if(diam % 2 == 0) diam++;
-		int r = diam / 2;
-		// TODO does this work if x-r < 0 etc ???
-		InterpolatedImage.Iterator it = 
-			smoothed.iterator(false, ix-r, iy-r, iz-r, ix+r, iy+r, iz+r);
-		// sum up the gradients weighted by the gaussian
-		// This is the steepest gradient direction
-		float[] o = new float[3];
-		for(int i = 0; i < gauss_k.length; i++) {
-			it.next();
-			float v = smoothed.getNoInterpolFloat(it.i, it.j, it.k);
-			float v1 = smoothed.getNoInterpolFloat(it.i-1, it.j, it.k);
-			float v2 = smoothed.getNoInterpolFloat(it.i, it.j-1, it.k);
-			float v3 = smoothed.getNoInterpolFloat(it.i, it.j, it.k-1);
-			float l = (float)Math.sqrt(
-				(v-v1)*(v-v1) + (v-v2)*(v-v2) + (v-v3)*(v-v3));
-			float w = gauss_k[i] * l;
-			o[0] += w * it.i;
-			o[1] += w * it.j;
-			o[2] += w * it.k;
-		}
-		normalize(o);
-		// find two vectors perpendicular to o (and to each other)
-		float[] o1 = new float[] {o[1], -o[0], 0};
-		// avoid the null vector
-		if(o[0] == 0 && o[1] == 0)
-			o1[0] = 0; o1[1] = -o[2]; o1[2] = o[1];
-		normalize(o1);
-		float[] o2 = new float[] {o[1]*o1[2] - o[2]*o1[1],
-			o[2]*o1[0] - o[0]*o1[2], o[0]*o1[1] - o[1]*o1[0]};
-		normalize(o2);
-
-		gauss_k = create3DGaussianKernel(sigma);
-		for(int ny = -r; ny <= +r; ny++) {
-			for(int nx = -r; nx <= +r; nx++) {
-// 				w = gaussk
-			}
-		}
-	}
-
-	private void normalize(float[] v) {
-		float c = (float)Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-		for(int i = 0; i < v.length; i++)
-			v[i] /= c;
-	}
-
-
-	/*
-	 * Illustration of the 2D case, which transfers to the 3D case:
-	 *
-	 *    patch after                     patch before
-	 *    rotation:                       rotation
-	 *
-	 *   +----------+        M^-1         +---..
-	 *   |          |    ------------>   /      ---..
-	 *   |     +----|    <------------  /            -+
-	 *   |          |         M        /      +..     /
-	 *   +----------+                 +---..     --. /
-	 *                                      ---..   /
-	 *                                           -+
-	 *  
-	 *  One wants to get the coordinates (and values) of the patch
-	 *  before rotation - those after the rotation are known, since
-	 *  mid point and edge length are known.
-	 *
-	 *  So each point coordinate - as is after rotation - is transformed
-	 *  by M^-1 (M being a rotational matrix).
-	 *
-	 *  The angle between the axes can be obtained by 
-	 *  the rotation matrix M by the axis-angle definition.
-	 */
-	public void extractPatch(InterpolatedImage ii) {}
-
+	
 	public double featureDistance(Feature other) {
 		return -1;
 	}
