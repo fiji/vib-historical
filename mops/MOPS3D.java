@@ -153,6 +153,8 @@ public class MOPS3D
 		}
 		octaves = new Octave[ o ];
 		
+		System.out.println( minSize + " " + o );
+		
 		InterpolatedImage next;
 		
 		for ( int i = 0; i < octaves.length; ++i )
