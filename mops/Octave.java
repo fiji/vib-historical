@@ -20,6 +20,8 @@ public class Octave {
 	final float k;
 
 	InterpolatedImage[] img;
+	public InterpolatedImage[] getImg(){ return img; }
+	
 	InterpolatedImage[] dog;
 	InterpolatedImage[] smoothed;
 	

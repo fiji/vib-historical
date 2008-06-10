@@ -354,7 +354,7 @@ public class MOPS3D
 	 *  
 	 * 
 	 * @param c candidate 0=>x, 1=>y, 2=>scale index
-	 * @param o octave index
+	 * @param a octave index
 	 * @param octave_sigma sigma of the corresponding gaussian kernel with
 	 *   respect to the scale octave
 	 * @param orientation orientation [-&pi; ... &pi;]
@@ -368,7 +368,8 @@ public class MOPS3D
 		float[] desc = new float[ fdWidth * fdWidth * fdWidth ];
 		
 		// transpose o for inverse rotation
-		o.transpose3x3();
+		FastMatrix a = new FastMatrix( o );
+		a.transpose3x3();
 		
 		int i = 0;
 		float max = Float.MIN_VALUE;
@@ -388,12 +389,12 @@ public class MOPS3D
 					float xs =
 						( ( float )x - ( float )fdWidth / 2.0f + 0.5f ) * os * O_SCALE; //!< scale x around 0,0
 
-					o.apply( xs, ys, zs );
+					a.apply( xs, ys, zs );
 					
 					// translate
-					int zg = ( int )( Math.round( o.z + f[ 2 ] ) );
-					int yg = ( int )( Math.round( o.y + f[ 1 ] ) );
-					int xg = ( int )( Math.round( o.x + f[ 0 ] ) );
+					int zg = ( int )( Math.round( a.z + f[ 2 ] ) );
+					int yg = ( int )( Math.round( a.y + f[ 1 ] ) );
+					int xg = ( int )( Math.round( a.x + f[ 0 ] ) );
 	
 					desc[ i ] = smoothed.getNoInterpolPingPongFloat( xg, yg, zg );
 					
@@ -415,30 +416,35 @@ public class MOPS3D
 	/**
 	 * detect features in the specified scale octave
 	 * 
-	 * @param o octave index
+	 * @param oi octave index
 	 * 
 	 * @return detected features
 	 */
-	public List< Feature > runOctave( int o )
+	public List< Feature > runOctave( int oi )
 	{
-		int octScale = ( int )Math.pow( 2, o );
+		int octScale = ( int )Math.pow( 2, oi );
 		ArrayList< Feature > features = new ArrayList< Feature >();
-		Octave octave = octaves[ o ];
+		Octave octave = octaves[ oi ];
 		dog.run( octave );
 		ArrayList< float[] > candidates = dog.getCandidates();
 		for ( float[] f : candidates )
 		{
 			float os = octave.sigma[ 0 ] * ( float )Math.pow( 2.0f, f[ 3 ] / ( float )octave.steps );
+			FastMatrix o = extractOrientation(
+					f,
+					os,
+					octave.img[ Math.round( f[ 3 ] ) ],
+					octave.smoothed[ Math.round( f[ 3 ] ) ] );
 			float desc[] = createDescriptor(
 					f,
 					os,
 					octave.smoothed[ Math.round( f[ 3 ] ) ],
-					extractOrientation( f, os, octave.img[ Math.round( f[ 3 ] ) ], octave.smoothed[ Math.round( f[ 3 ] ) ] ) );
+					o );
 			features.add(
-					new Feature( f[ 0 ] * octScale, f[ 1 ] * octScale, f[ 2 ] * octScale, os * octScale, desc ) );
+					new Feature( f[ 0 ] * octScale, f[ 1 ] * octScale, f[ 2 ] * octScale, os * octScale, o, desc ) );
 		}
 		
-		System.out.println( features.size() + " MOPSes extracted in octave " + o );
+		System.out.println( features.size() + " MOPSes extracted in octave " + oi );
 		
 		return features;
 	}
@@ -453,12 +459,16 @@ public class MOPS3D
 	public List< Feature > run()
 	{
 		ArrayList< Feature > features = new ArrayList< Feature >();
-		for ( int o = 0; o < octaves.length; ++o )
+		for ( int oi = 0; oi < octaves.length; ++oi )
 		{
-			if ( octaves[ o ].img == null ) continue;
-			List< Feature > more = runOctave( o );
+			if ( octaves[ oi ].img == null ) continue;
+			List< Feature > more = runOctave( oi );
 			features.addAll( more );
-			IJ.showProgress( o, octaves.length );
+			
+			// free memory for processing the next octave
+			octaves[ oi ].clear();
+			
+			IJ.showProgress( oi, octaves.length );
 		}
 		return features;
 	}
@@ -471,286 +481,286 @@ public class MOPS3D
 	 * 
 	 * @return matches
 	 */
-	public static List< PointMatch > createMatches(
-			List< Feature > fs1,
-			List< Feature > fs2 )
-	{
-		ArrayList< PointMatch > matches = new ArrayList< PointMatch >();
-		
-		for ( Feature f1 : fs1 )
-		{
-			Feature best = null;
-			float best_d = Float.MAX_VALUE;
-			float second_best_d = Float.MAX_VALUE;
-			
-			for ( Feature f2 : fs2 )
-			{
-				float d = f1.descriptorDistance( f2 );
-				//System.out.println( d );
-				if ( d < best_d )float orientation
-				{
-					second_best_d = best_d;
-					best_d = d;
-					best = f2;
-				}
-				else if ( d < second_best_d )
-					second_best_d = d;
-			}
-			//if ( best != null && second_best_d < Float.MAX_VALUE && best_d / second_best_d < 0.92 )
-			if ( best != null )
-				matches.addElement(
-						new PointMatch(
-								new Point(
-										new float[] { f1.location[ 0 ], f1.location[ 1 ] } ),
-								new Point(
-										new float[] { best.location[ 0 ], best.location[ 1 ] } ),
-								( f1.scale + best.scale ) / 2.0f ) );
-			else
-				System.out.println( "No match found." );
-		}
-		
-		// now remove ambiguous matches
-		for ( int i = 0; i < matches.size(); )
-		{
-			boolean amb = false;
-			PointMatch m = matches.get( i );
-			float[] m_p2 = m.getP2().getL(); 
-			for ( int j = i + 1; j < matches.size(float orientation); )
-			{
-				PointMatch n = matches.get( j );
-				float[] n_p2 = n.getP2().getL(); 
-				if ( m_p2[ 0 ] == n_p2[ 0 ] && m_p2[ 1 ] == n_p2[ 1 ] )
-				{
-					amb = true;
-					matches.removeElementAt( j );
-				}
-				else ++j;
-			}
-			if ( amb )
-				matches.removeElementAt( i );
-			else ++i;
-		}
-		return matches;
-	}
-	
-	/**
-	 * Identify corresponding features.
-	 * Fill a HashMap that stores the Features for each positive PointMatch.
-	 * 
-	 * @param fs1 feature collection from set 1
-	 * @param fs2 feature collection from set 2
-	 * 
-	 * @return matches
-	 */
-	public static Vector< PointMatch > createMatches(
-			List< Feature > fs1,
-			List< Feature > fs2,
-			HashMap< Point, Feature > m1,
-			HashMap< Point, Feature > m2 )
-	{
-		Vector< PointMatch > matches = new Vector< PointMatch >();
-		
-		for ( Feature f1 : fs1 )
-		{
-			Feature best = null;
-			float best_d = Float.MAX_VALUE;
-			float second_best_d = Float.MAX_VALUE;
-			
-			for ( Feature f2 : fs2 )
-			{
-				float d = f1.descriptorDistance( f2 );
-				//System.out.println( d );
-				if ( d < best_d )
-				{
-					second_best_d = best_d;
-					best_d = d;
-					best = f2;
-				}
-				else if ( d < second_best_d )
-					second_best_d = d;
-			}
-			//if ( best != null && second_best_d < Float.MAX_VALUE && best_d / second_best_d < 0.92 )
-			if ( best != null )
-			{
-				Point p1 = new Point( new float[] { f1.location[ 0 ], f1.location[ 1 ] } );
-				Point p2 = new Point( new float[] { best.location[ 0 ], best.location[ 1 ] } );
-						
-				matches.addElement(	new PointMatch( p1,	p2,	( f1.scale + best.scale ) / 2.0f ) );
-				
-				m1.put( p1, f1 );
-				m2.put( p2, best );
-			}
-			else
-				System.out.println( "No match found." );
-		}
-		
-		// now remove ambiguous matches
-		for ( int i = 0; i < matches.size(); )
-		{
-			boolean amb = false;
-			PointMatch m = matches.get( i );
-			float[] m_p2 = m.getP2().getL(); 
-			for ( int j = i + 1; j < matches.size(); )
-			{
-				PointMatch n = matches.get( j );
-				float[] n_p2 = n.getP2().getL(); 
-				if ( m_p2[ 0 ] == n_p2[ 0 ] && m_p2[ 1 ] == n_p2[ 1 ] )
-				{
-					m1.remove( n.getP1() );
-					m2.remove( n.getP2() );
-					amb = true;
-					matches.removeElementAt( j );
-				}
-				else ++j;
-			}
-			if ( amb )
-			{
-				matches.removeElementAt( i );
-				m1.remove( m.getP1() );
-				m2.remove( m.getP2() );
-			}
-			else ++i;
-		}
-		return matches;
-	}
-	
-	
-	/**
-	 * identify corresponding features using spatial constraints
-	 * 
-	 * @param fs1 feature collection from set 1 sorted by decreasing size
-	 * @param fs2 feature collection from set 2 sorted by decreasing size
-	 * @param max_sd maximal difference in size (ratio max/min)
-	 * @param model transformation model to be applied to fs2
-	 * @param max_id maximal distance in image space ($\sqrt{x^2+y^2}$)
-	 * 
-	 * @return matches
-	 * 
-	 * TODO implement the spatial constraints
-	 */
-	public static Vector< PointMatch > createMatches(
-			List< Feature > fs1,
-			List< Feature > fs2,
-			float max_sd,
-			Model model,
-			float max_id )
-	{
-		Vector< PointMatch > matches = new Vector< PointMatch >();
-		float min_sd = 1.0f / max_sd;
-		
-		int size = fs2.size();
-		int size_1 = size - 1;
-		
-		for ( Feature f1 : fs1 )
-		{
-			Feature best = null;
-			float best_d = Float.MAX_VALUE;
-			float second_best_d = Float.MAX_VALUE;
-			
-			int first = 0;
-			int last = size_1;
-			int s = size / 2 + size % 2;
-			if ( max_sd < Float.MAX_VALUE )
-			{
-				while ( s > 1 )
-				{
-					Feature f2 = fs2.get( last );
-					if ( f2.scale / f1.scale < min_sd ) last = Math.max( 0, last - s );
-					else last = Math.min( size_1, last + s );
-					f2 = fs2.get( first );
-					if ( f2.scale / f1.scale < max_sd ) first = Math.max( 0, first - s );
-					else first = Math.min( size_1, first + s );
-					s = s / 2 + s % 2;
-				}
-				//System.out.println( "first = " + first + ", last = " + last + ", first.scale = " + fs2.get( first ).scale + ", last.scale = " + fs2.get( last ).scale + ", this.scale = " + f1.scale );
-			}
-			
-			//for ( Feature f2 : fs2 )
-			
-			for ( int i = first; i <= last; ++i )
-			{
-				Feature f2 = fs2.get( i );
-				float d = f1.descriptorDistance( f2 );
-				if ( d < best_d )
-				{
-					second_best_d = best_d;
-					best_d = d;
-					best = f2;
-				}
-				else if ( d < second_best_d )
-					second_best_d = d;
-			}
-			if ( best != null && second_best_d < Float.MAX_VALUE && best_d / second_best_d < 0.92 )
-				// not weighted
+//	public static List< PointMatch > createMatches(
+//			List< Feature > fs1,
+//			List< Feature > fs2 )
+//	{
+//		ArrayList< PointMatch > matches = new ArrayList< PointMatch >();
+//		
+//		for ( Feature f1 : fs1 )
+//		{
+//			Feature best = null;
+//			float best_d = Float.MAX_VALUE;
+//			float second_best_d = Float.MAX_VALUE;
+//			
+//			for ( Feature f2 : fs2 )
+//			{
+//				float d = f1.descriptorDistance( f2 );
+//				//System.out.println( d );
+//				if ( d < best_d )float orientation
+//				{
+//					second_best_d = best_d;
+//					best_d = d;
+//					best = f2;
+//				}
+//				else if ( d < second_best_d )
+//					second_best_d = d;
+//			}
+//			//if ( best != null && second_best_d < Float.MAX_VALUE && best_d / second_best_d < 0.92 )
+//			if ( best != null )
 //				matches.addElement(
 //						new PointMatch(
 //								new Point(
 //										new float[] { f1.location[ 0 ], f1.location[ 1 ] } ),
 //								new Point(
-//										new float[] { best.location[ 0 ], best.location[ 1 ] } ) ) );
-				// weighted with the features scale
-				matches.addElement(
-						new PointMatch(
-								new Point(
-										new float[] { f1.location[ 0 ], f1.location[ 1 ] } ),
-								new Point(
-										new float[] { best.location[ 0 ], best.location[ 1 ] } ),
-								( f1.scale + best.scale ) / 2.0f ) );
-		}
-		// now remove ambiguous matches
-		for ( int i = 0; i < matches.size(); )
-		{
-			boolean amb = false;
-			PointMatch m = matches.get( i );
-			float[] m_p2 = m.getP2().getL(); 
-			for ( int j = i + 1; j < matches.size(); )
-			{
-				PointMatch n = matches.get( j );
-				float[] n_p2 = n.getP2().getL(); 
-				if ( m_p2[ 0 ] == n_p2[ 0 ] && m_p2[ 1 ] == n_p2[ 1 ] )
-				{
-					amb = true;
-					//System.out.println( "removing ambiguous match at " + j );
-					matches.removeElementAt( j );
-				}
-				else ++j;
-			}
-			if ( amb )
-			{
-				//System.out.println( "removing ambiguous match at " + i );
-				matches.removeElementAt( i );
-			}
-			else ++i;
-		}
-		return matches;
-	}
-	
-	/**
-	 * get a histogram of feature sizes
-	 * 
-	 * @param rs
-	 */
-	public static float[] featureSizeHistogram(
-			Vector< Feature > features,
-			float min,
-			float max,
-			int bins )
-	{
-		System.out.print( "estimating feature size histogram ..." );
-		int num_features = features.size();
-		float h[] = new float[ bins ];
-		int hb[] = new int[ bins ];
-		
-		for ( Feature f : features )
-		{
-			int bin = ( int )Math.max( 0, Math.min( bins - 1, ( int )( Math.log( f.scale ) / Math.log( 2.0 ) * 28.0f ) ) );
-			++hb[ bin ];
-		}
-		for ( int i = 0; i < bins; ++i )
-		{
-			h[ i ] = ( float )hb[ i ] / ( float )num_features;
-		}
-		System.out.println( " done" );
-		return h;
-	}
+//										new float[] { best.location[ 0 ], best.location[ 1 ] } ),
+//								( f1.scale + best.scale ) / 2.0f ) );
+//			else
+//				System.out.println( "No match found." );
+//		}
+//		
+//		// now remove ambiguous matches
+//		for ( int i = 0; i < matches.size(); )
+//		{
+//			boolean amb = false;
+//			PointMatch m = matches.get( i );
+//			float[] m_p2 = m.getP2().getL(); 
+//			for ( int j = i + 1; j < matches.size(float orientation); )
+//			{
+//				PointMatch n = matches.get( j );
+//				float[] n_p2 = n.getP2().getL(); 
+//				if ( m_p2[ 0 ] == n_p2[ 0 ] && m_p2[ 1 ] == n_p2[ 1 ] )
+//				{
+//					amb = true;
+//					matches.removeElementAt( j );
+//				}
+//				else ++j;
+//			}
+//			if ( amb )
+//				matches.removeElementAt( i );
+//			else ++i;
+//		}
+//		return matches;
+//	}
+//	
+//	/**
+//	 * Identify corresponding features.
+//	 * Fill a HashMap that stores the Features for each positive PointMatch.
+//	 * 
+//	 * @param fs1 feature collection from set 1
+//	 * @param fs2 feature collection from set 2
+//	 * 
+//	 * @return matches
+//	 */
+//	public static Vector< PointMatch > createMatches(
+//			List< Feature > fs1,
+//			List< Feature > fs2,
+//			HashMap< Point, Feature > m1,
+//			HashMap< Point, Feature > m2 )
+//	{
+//		Vector< PointMatch > matches = new Vector< PointMatch >();
+//		
+//		for ( Feature f1 : fs1 )
+//		{
+//			Feature best = null;
+//			float best_d = Float.MAX_VALUE;
+//			float second_best_d = Float.MAX_VALUE;
+//			
+//			for ( Feature f2 : fs2 )
+//			{
+//				float d = f1.descriptorDistance( f2 );
+//				//System.out.println( d );
+//				if ( d < best_d )
+//				{
+//					second_best_d = best_d;
+//					best_d = d;
+//					best = f2;
+//				}
+//				else if ( d < second_best_d )
+//					second_best_d = d;
+//			}
+//			//if ( best != null && second_best_d < Float.MAX_VALUE && best_d / second_best_d < 0.92 )
+//			if ( best != null )
+//			{
+//				Point p1 = new Point( new float[] { f1.location[ 0 ], f1.location[ 1 ] } );
+//				Point p2 = new Point( new float[] { best.location[ 0 ], best.location[ 1 ] } );
+//						
+//				matches.addElement(	new PointMatch( p1,	p2,	( f1.scale + best.scale ) / 2.0f ) );
+//				
+//				m1.put( p1, f1 );
+//				m2.put( p2, best );
+//			}
+//			else
+//				System.out.println( "No match found." );
+//		}
+//		
+//		// now remove ambiguous matches
+//		for ( int i = 0; i < matches.size(); )
+//		{
+//			boolean amb = false;
+//			PointMatch m = matches.get( i );
+//			float[] m_p2 = m.getP2().getL(); 
+//			for ( int j = i + 1; j < matches.size(); )
+//			{
+//				PointMatch n = matches.get( j );
+//				float[] n_p2 = n.getP2().getL(); 
+//				if ( m_p2[ 0 ] == n_p2[ 0 ] && m_p2[ 1 ] == n_p2[ 1 ] )
+//				{
+//					m1.remove( n.getP1() );
+//					m2.remove( n.getP2() );
+//					amb = true;
+//					matches.removeElementAt( j );
+//				}
+//				else ++j;
+//			}
+//			if ( amb )
+//			{
+//				matches.removeElementAt( i );
+//				m1.remove( m.getP1() );
+//				m2.remove( m.getP2() );
+//			}
+//			else ++i;
+//		}
+//		return matches;
+//	}
+//	
+//	
+//	/**
+//	 * identify corresponding features using spatial constraints
+//	 * 
+//	 * @param fs1 feature collection from set 1 sorted by decreasing size
+//	 * @param fs2 feature collection from set 2 sorted by decreasing size
+//	 * @param max_sd maximal difference in size (ratio max/min)
+//	 * @param model transformation model to be applied to fs2
+//	 * @param max_id maximal distance in image space ($\sqrt{x^2+y^2}$)
+//	 * 
+//	 * @return matches
+//	 * 
+//	 * TODO implement the spatial constraints
+//	 */
+//	public static Vector< PointMatch > createMatches(
+//			List< Feature > fs1,
+//			List< Feature > fs2,
+//			float max_sd,
+//			Model model,
+//			float max_id )
+//	{
+//		Vector< PointMatch > matches = new Vector< PointMatch >();
+//		float min_sd = 1.0f / max_sd;
+//		
+//		int size = fs2.size();
+//		int size_1 = size - 1;
+//		
+//		for ( Feature f1 : fs1 )
+//		{
+//			Feature best = null;
+//			float best_d = Float.MAX_VALUE;
+//			float second_best_d = Float.MAX_VALUE;
+//			
+//			int first = 0;
+//			int last = size_1;
+//			int s = size / 2 + size % 2;
+//			if ( max_sd < Float.MAX_VALUE )
+//			{
+//				while ( s > 1 )
+//				{
+//					Feature f2 = fs2.get( last );
+//					if ( f2.scale / f1.scale < min_sd ) last = Math.max( 0, last - s );
+//					else last = Math.min( size_1, last + s );
+//					f2 = fs2.get( first );
+//					if ( f2.scale / f1.scale < max_sd ) first = Math.max( 0, first - s );
+//					else first = Math.min( size_1, first + s );
+//					s = s / 2 + s % 2;
+//				}
+//				//System.out.println( "first = " + first + ", last = " + last + ", first.scale = " + fs2.get( first ).scale + ", last.scale = " + fs2.get( last ).scale + ", this.scale = " + f1.scale );
+//			}
+//			
+//			//for ( Feature f2 : fs2 )
+//			
+//			for ( int i = first; i <= last; ++i )
+//			{
+//				Feature f2 = fs2.get( i );
+//				float d = f1.descriptorDistance( f2 );
+//				if ( d < best_d )
+//				{
+//					second_best_d = best_d;
+//					best_d = d;
+//					best = f2;
+//				}
+//				else if ( d < second_best_d )
+//					second_best_d = d;
+//			}
+//			if ( best != null && second_best_d < Float.MAX_VALUE && best_d / second_best_d < 0.92 )
+//				// not weighted
+////				matches.addElement(
+////						new PointMatch(
+////								new Point(
+////										new float[] { f1.location[ 0 ], f1.location[ 1 ] } ),
+////								new Point(
+////										new float[] { best.location[ 0 ], best.location[ 1 ] } ) ) );
+//				// weighted with the features scale
+//				matches.addElement(
+//						new PointMatch(
+//								new Point(
+//										new float[] { f1.location[ 0 ], f1.location[ 1 ] } ),
+//								new Point(
+//										new float[] { best.location[ 0 ], best.location[ 1 ] } ),
+//								( f1.scale + best.scale ) / 2.0f ) );
+//		}
+//		// now remove ambiguous matches
+//		for ( int i = 0; i < matches.size(); )
+//		{
+//			boolean amb = false;
+//			PointMatch m = matches.get( i );
+//			float[] m_p2 = m.getP2().getL(); 
+//			for ( int j = i + 1; j < matches.size(); )
+//			{
+//				PointMatch n = matches.get( j );
+//				float[] n_p2 = n.getP2().getL(); 
+//				if ( m_p2[ 0 ] == n_p2[ 0 ] && m_p2[ 1 ] == n_p2[ 1 ] )
+//				{
+//					amb = true;
+//					//System.out.println( "removing ambiguous match at " + j );
+//					matches.removeElementAt( j );
+//				}
+//				else ++j;
+//			}
+//			if ( amb )
+//			{
+//				//System.out.println( "removing ambiguous match at " + i );
+//				matches.removeElementAt( i );
+//			}
+//			else ++i;
+//		}
+//		return matches;
+//	}
+//	
+//	/**
+//	 * get a histogram of feature sizes
+//	 * 
+//	 * @param rs
+//	 */
+//	public static float[] featureSizeHistogram(
+//			Vector< Feature > features,
+//			float min,
+//			float max,
+//			int bins )
+//	{
+//		System.out.print( "estimating feature size histogram ..." );
+//		int num_features = features.size();
+//		float h[] = new float[ bins ];
+//		int hb[] = new int[ bins ];
+//		
+//		for ( Feature f : features )
+//		{
+//			int bin = ( int )Math.max( 0, Math.min( bins - 1, ( int )( Math.log( f.scale ) / Math.log( 2.0 ) * 28.0f ) ) );
+//			++hb[ bin ];
+//		}
+//		for ( int i = 0; i < bins; ++i )
+//		{
+//			h[ i ] = ( float )hb[ i ] / ( float )num_features;
+//		}
+//		System.out.println( " done" );
+//		return h;
+//	}
 }

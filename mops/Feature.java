@@ -36,11 +36,12 @@ public class Feature extends Point3d
 	 */
 	private double scale;
 
-	Feature( double x, double y, double z, double scale, float[] desc )
+	Feature( double x, double y, double z, double scale, FastMatrix a, float[] desc )
 	{
 		super( x, y, z );
 		this.scale = scale;
 		this.desc = desc;
+		this.orientation = a;
 	}
 	
 	
