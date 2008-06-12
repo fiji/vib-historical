@@ -6,6 +6,7 @@ import vib.BenesNamedPoint;
 import vib.PointList;
 import vib.InterpolatedImage;
 import vib.FastMatrix;
+import vib.Resample_;
 
 import mops.Feature;
 import mops.MOPS3D;
@@ -46,6 +47,7 @@ import java.awt.event.ActionListener;
 public class MOPS3D_Test implements PlugIn
 {
 
+	public static final int DESC_WIDTH = 32;
 	public static final float MAX_EPSILON = 100.0f;
 	public static final float MIN_INLIER_RATIO = 0.05f;
  	public static final float ROD = 1;
@@ -89,7 +91,6 @@ public class MOPS3D_Test implements PlugIn
 		this.model_org = new InterpolatedImage(model).cloneImage().getImage();
 		this.templ_org = new InterpolatedImage(templ).cloneImage().getImage();
 
-		
 		PointList tFeatures = extractFeatures(templ);
 		PointList mFeatures = extractFeatures(model);
 
@@ -174,18 +175,17 @@ public class MOPS3D_Test implements PlugIn
 		img.getImage().show();
 		
 		// Initialize MOPS
-		int descWidth = 16;
-		MOPS3D mops = new MOPS3D( descWidth );
-System.out.println("Initializing ... ");
+		MOPS3D mops = new MOPS3D( DESC_WIDTH );
+		println("Initializing ... ");
 		mops.init( img, 3, 1.6f, 32, 1024 );
 		
 		Octave[] octaves = mops.getOctaves();
 		PointList featurelist = new PointList();
-System.out.println( "Processing " + octaves.length + " octaves:" );
+		println( "Processing " + octaves.length + " octaves:" );
 		for ( int oi = 0; oi < octaves.length; ++oi ) {
-System.out.println("Processing octave " + oi);
+		println("Processing octave " + oi);
 			if ( octaves[ oi ].getImg()[ 0 ] == null ) {
-System.out.println( "Skipping empty octave." );
+				println( "Skipping empty octave." );
 				continue;
 			}
 			List< Feature > features = mops.runOctave( oi );
@@ -214,6 +214,10 @@ System.out.println( "Skipping empty octave." );
 		return featurelist;
 	}
 
+	private void println(String s) {
+		IJ.write(s + "\n");
+	}
+
 	/*
 	 * Show feature list in 3D viewer
 	 */
@@ -225,9 +229,6 @@ System.out.println( "Skipping empty octave." );
 		Image3DMenubar menu_m = univ_m.getMenuBar();
 		final Content c_m = univ_m.addVoltex(
 			model_org, null, "model", 0, new boolean[] {true, true, true}, 2);
-// ImagePlus tmp = new InterpolatedImage(model_org).cloneImage().getImage();
-// tmp.setTitle("added to viewer");
-// tmp.show();
 		// fill model point list with model features
 		final PointList pl_m = c_m.getPointList();
 		for(BenesNamedPoint bnp : mFeatures)
@@ -259,6 +260,8 @@ System.out.println( "Skipping empty octave." );
 					Feature fm = (Feature)pl_m.get(name);
 					c_m.setFeature(fm);
 					c_t.setFeature(ft);
+					pl_t.highlight(ft);
+					pl_m.highlight(fm);
 				}
 			});
 			panel.add(b);
