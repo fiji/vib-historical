@@ -14,6 +14,13 @@ public class Reslice_Z implements PlugInFilter {
 	private Calibration cal;
 	private int w, h;
 
+	public Reslice_Z(ImagePlus image) {
+		this.image = image;
+		this.cal = image.getCalibration();
+		w = image.getWidth();
+		h = image.getHeight();
+	}
+
 	public void run(ImageProcessor ip) {
 		w = image.getWidth();
 		h = image.getHeight();
