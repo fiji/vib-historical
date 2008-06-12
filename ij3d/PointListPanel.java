@@ -17,6 +17,8 @@ import ij.plugin.PlugIn;
 import vib.BenesNamedPoint;
 import vib.PointList;
 
+import mops.Feature;
+
 import java.awt.Component;
 import java.text.DecimalFormat;
 import java.awt.Font;
@@ -47,6 +49,7 @@ public class PointListPanel extends Panel
 	private BenesNamedPoint current;
 	private DecimalFormat df = new DecimalFormat("00.000");
 	private String header;
+	private ActionListener listener;
 	
 	public PointListPanel(String header, PointList points) {
 
@@ -62,6 +65,14 @@ public class PointListPanel extends Panel
 
 		updatePointsPanel();
 	}
+
+	public void setActionListener(ActionListener a) {
+		this.listener = a;
+	}
+
+	public BenesNamedPoint getCurrent() {
+		return current;
+	}
 	
 	private PopupMenu createPopup(){
 		PopupMenu popup = new PopupMenu();
@@ -75,6 +86,9 @@ public class PointListPanel extends Panel
 		mi.addActionListener(this);
 		popup.add(mi);
 		mi = new MenuItem("Remove");
+		mi.addActionListener(this);
+		popup.add(mi);
+		mi = new MenuItem("Show descriptor");
 		mi.addActionListener(this);
 		popup.add(mi);
 		return popup;
@@ -196,6 +210,8 @@ public class PointListPanel extends Panel
 	}
 
 	public void actionPerformed(ActionEvent e) {
+		if(listener != null)
+			listener.actionPerformed(e);
 		String command = e.getActionCommand();
 		if (command.equals("Rename")){
 			renamePoint(current);
@@ -205,6 +221,15 @@ public class PointListPanel extends Panel
 			up(current);
 		} else if(command.equals("Down")) {
 			down(current);
+		} else if(command.equals("Show descriptor")) {
+			if(!(current instanceof Feature) || 
+				((Feature)current).getDesc() == null) {
+				IJ.error("Selected point does not " +
+					"have a local descriptor");
+				return;
+			}
+			((Feature)current).extractDescriptor()
+				.getImage().show();
 		}
 	}
 
