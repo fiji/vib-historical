@@ -10,6 +10,12 @@ public class Filter {
 					ii.getImage(), true, sig, false));
 	}
 
+	public static InterpolatedImage gauss(InterpolatedImage ii,
+		float sigX, float sigY, float sigZ) {
+		return new InterpolatedImage(Smooth_.smooth(
+			ii.getImage(), true, sigX, sigY, sigZ, false));
+	}
+
 	/**
 	 * subtract i2 from i1
 	 * The images must have the same size; this is not checked.
@@ -78,34 +84,34 @@ public class Filter {
 			}
 		}
 	}
-	
+
 	/**
-     * In place enhance all values of an InterPolatedImage to fill the given range.
-     * 
-     * @param src source
-     * @param scale defines the range 
-     */
-    public static final void enhance( InterpolatedImage src, float scale )
-    {
-    	float min = src.getNoCheckFloat( 0, 0, 0 );
-    	float max = min;
-    	InterpolatedImage.Iterator it = src.iterator();
-    	it.next();
-    	while ( it.next() != null )
-    	{
-    		float v = src.getNoCheckFloat( it.i, it.j, it.k );
-    		if ( v < min ) min = v;
-    		else if ( v > max ) max = v;
-    	}
-    	scale /= ( max - min );
-    	it = src.iterator();
-    	while ( it.next() != null )
-    		src.setFloat(
-    				it.i, it.j, it.k,
-    				scale * ( src.getNoCheckFloat( it.i, it.j, it.k ) - min ) );
-    }
-    
-    /**
+	 * In place enhance all values of an InterPolatedImage to fill the given range.
+	 * 
+	 * @param src source
+	 * @param scale defines the range 
+	 */
+	public static final void enhance( InterpolatedImage src, float scale )
+	{
+		float min = src.getNoCheckFloat( 0, 0, 0 );
+		float max = min;
+		InterpolatedImage.Iterator it = src.iterator();
+		it.next();
+		while ( it.next() != null )
+		{
+			float v = src.getNoCheckFloat( it.i, it.j, it.k );
+			if ( v < min ) min = v;
+			else if ( v > max ) max = v;
+		}
+		scale /= ( max - min );
+		it = src.iterator();
+		while ( it.next() != null )
+			src.setFloat(
+				it.i, it.j, it.k,
+				scale * ( src.getNoCheckFloat( it.i, it.j, it.k ) - min ) );
+	}
+
+	/**
 	 * Create a normalized 3d gaussian impulse with appropriate size with its
 	 * center slightly moved away from the middle.
 	 * 
