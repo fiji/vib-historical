@@ -20,7 +20,14 @@ public class JacobiDouble {
 		for(int i=0;i<matrix.length;i++) {
 			for(int j=i+1;j<matrix.length;j++)
 				if(!isSmallComparedTo(Math.abs(matrix[i][j]-matrix[j][i]),matrix[i][j]))
-					throw new RuntimeException("Matrix is not symmetric!");
+// 					throw new RuntimeException("Matrix is not symmetric!");
+					System.out.println("matrix is not symmetric");
+					for(int k = 0; k < matrix.length; k++) {
+						for(int l = 0; l < matrix[k].length; l++) {
+							System.out.print(matrix[k][l] + "\t");
+						}
+						System.out.println();
+					}
 		}
 		eigenmatrix=new double[matrix.length][matrix.length];
 		eigenvalues=new double[matrix.length];
