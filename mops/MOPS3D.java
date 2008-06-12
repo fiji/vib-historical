@@ -160,13 +160,10 @@ public class MOPS3D
 		}
 		octaves = new Octave[ o ];
 		
-		System.out.println("Going to build octave of length " + o + ": minSize = " + minSize);
-		
 		InterpolatedImage next;
 		
 		for ( int i = 0; i < octaves.length; ++i )
 		{
-			src.getImage().show();
 			octaves[ i ] = new Octave(
 					src,
 					sigma,
@@ -634,7 +631,6 @@ public class MOPS3D
 			for (int j = 0; j < n2; j++) {
 				Feature f2 = (Feature)fs2.get(j);
 				float d = f1.descriptorDistance( f2 );
-				//System.out.println( d );
 				if ( d < best_d )
 				{
 					second_best_d = best_d;
