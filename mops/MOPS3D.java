@@ -78,7 +78,7 @@ import mpicbg.models.Point;
 
 public class MOPS3D
 {
-	final int O_SCALE = 1;
+	final int O_SCALE = 2;
 // 	final int O_SCALE_LD2 = 2;
 	
 	/**

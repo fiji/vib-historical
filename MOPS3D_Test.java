@@ -51,8 +51,8 @@ public class MOPS3D_Test implements PlugIn
  	public static final float ROD = 1;
 // 	public static final float ROD = 0.92f;
 
-	private ImagePlus templ;
-	private ImagePlus model;
+	private ImagePlus templ, templ_org;
+	private ImagePlus model, model_org;
 	
 	private FastMatrix bestRigid;
 	public FastMatrix getBestRigid() { return bestRigid; }
@@ -62,6 +62,8 @@ public class MOPS3D_Test implements PlugIn
 	public MOPS3D_Test(ImagePlus templ, ImagePlus model) {
 		this.templ = templ;
 		this.model = model;
+		this.model_org = new InterpolatedImage(model).cloneImage().getImage();
+		this.templ_org = new InterpolatedImage(templ).cloneImage().getImage();
 	}
 	
 	public void run( String arg ) {
@@ -84,6 +86,8 @@ public class MOPS3D_Test implements PlugIn
 
 		templ = WindowManager.getImage(gd.getNextChoice());
 		model = WindowManager.getImage(gd.getNextChoice());
+		this.model_org = new InterpolatedImage(model).cloneImage().getImage();
+		this.templ_org = new InterpolatedImage(templ).cloneImage().getImage();
 
 		
 		PointList tFeatures = extractFeatures(templ);
@@ -219,7 +223,11 @@ System.out.println( "Skipping empty octave." );
 		univ_m.show();
 		// add model
 		Image3DMenubar menu_m = univ_m.getMenuBar();
-		final Content c_m = menu_m.addContent(model, Content.VOLUME);
+		final Content c_m = univ_m.addVoltex(
+			model_org, null, "model", 0, new boolean[] {true, true, true}, 2);
+// ImagePlus tmp = new InterpolatedImage(model_org).cloneImage().getImage();
+// tmp.setTitle("added to viewer");
+// tmp.show();
 		// fill model point list with model features
 		final PointList pl_m = c_m.getPointList();
 		for(BenesNamedPoint bnp : mFeatures)
@@ -231,7 +239,8 @@ System.out.println( "Skipping empty octave." );
 		univ_t.show();
 		// add template
 		Image3DMenubar menu_t = univ_t.getMenuBar();
-		final Content c_t = menu_t.addContent(templ, Content.VOLUME);
+		final Content c_t = univ_t.addVoltex(
+			templ_org, null, "template", 0, new boolean[] {true, true, true}, 2);
 		// fill model point list with model features
 		final PointList pl_t = c_t.getPointList();
 		for(BenesNamedPoint bnp : tFeatures)
@@ -260,7 +269,7 @@ System.out.println( "Skipping empty octave." );
 		Panel pp = new Panel();
 		pp.add(scroll);
 		gd.addPanel(pp);
-		gd.setModal(true);
+		gd.setModal(false);
 		gd.showDialog();
 	}
 }
