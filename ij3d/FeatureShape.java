@@ -19,6 +19,7 @@ public class FeatureShape extends BranchGroup {
 	private Point3d[] vertices;
 
 	public FeatureShape() {
+		setCapability(BranchGroup.ALLOW_DETACH);
 		shape = new Shape3D();
 		shape.setCapability(Shape3D.ALLOW_GEOMETRY_WRITE);
 		shape.setAppearance(initAppearance());
