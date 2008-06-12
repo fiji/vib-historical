@@ -120,9 +120,9 @@ math3d/Eigensystem2x2Float.java: math3d/Eigensystem2x2Double.java
 FibonacciHeapInt.java: FibonacciHeap.java Makefile
 	sed -e "s/FibonacciHeap/FibonacciHeapInt/g" -e "s/ implements Comparable//" -e "s/Comparable/int/g" -e "s/\.compareTo(\([^)]*\))/- \1/g" -e "s/Object other/int other/g" -e "s/heap.add(p, p);/heap.add((int)prios[i], new Double((int)prios[i]));/" -e "s/Node(null/Node(0/" < $< > $@
 
-VIB_compat.jar: SOURCES=$(filter-out $(FILTEROUT), $(filter-out $(wildcard vib/transforms/*.java vib/oldregistration/*.java landmarks/*.java process3d/*.java tracing/*.java oldsegmenters/*.java client/*.java features/*.java Compute_Curvatures.java), $(JAVAS))) vib/segment/icons/*.png
+VIB_compat.jar: SOURCES=$(filter-out $(FILTEROUT), $(filter-out $(wildcard vib/transforms/*.java vib/oldregistration/*.java landmarks/*.java process3d/*.java tracing/*.java oldsegmenters/*.java client/*.java features/*.java Compute_Curvatures.java), $(JAVAS))) vib/segment/icons/*.png view4d/icons/*.png
 
-VIB_.jar: SOURCES=$(filter-out $(FILTEROUT), $(filter-out $(wildcard vib/transforms/*.java vib/oldregistration/*.java landmarks/*.java tracing/*.java oldsegmenters/*.java client/*.java util/Bookstein_FromMarkers.java), $(JAVAS))) vib/segment/icons/*.png $(TRACERSOURCES)
+VIB_.jar: SOURCES=$(filter-out $(FILTEROUT), $(filter-out $(wildcard vib/transforms/*.java vib/oldregistration/*.java landmarks/*.java tracing/*.java oldsegmenters/*.java client/*.java util/Bookstein_FromMarkers.java), $(JAVAS))) vib/segment/icons/*.png view4d/icons/*.png $(TRACERSOURCES)
 
 Segmentation_Editor_compat.jar: SOURCES=amira/*.java \
 	vib/InterpolatedImage.java math3d/Point3d.java \
