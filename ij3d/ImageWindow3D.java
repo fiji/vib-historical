@@ -103,6 +103,10 @@ public class ImageWindow3D extends ImageWindow implements UniverseListener,
 		show();
 	}
 
+	public DefaultUniverse getUniverse() {
+		return universe;
+	}
+
 	public boolean close() {
 		boolean b = super.close();
 		universe.removeUniverseListener(this);
