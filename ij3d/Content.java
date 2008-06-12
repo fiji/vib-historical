@@ -7,6 +7,7 @@ import ij.process.ByteProcessor;
 import ij.io.FileInfo;
 import ij.io.OpenDialog;
 
+import mops.Feature;
 import vib.PointList;
 import vib.BenesNamedPoint;
 import isosurface.IsoShape;
@@ -14,6 +15,8 @@ import isosurface.MeshGroup;
 import voltex.VoltexGroup;
 import orthoslice.OrthoGroup;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.IndexColorModel;
 import java.util.BitSet;
 import java.util.List;
@@ -46,12 +49,14 @@ public class Content extends BranchGroup implements UniverseListener {
 	private boolean coordVisible = true;
 	protected boolean selected = false;
 	private boolean showPL = false;
+	private boolean showFeature = false;
 
 	// entries
 	private ContentNode contentNode = null;
 	private BoundingBox bb = null;
 	private CoordinateSystem cs = null; 
 	private PointListShape pointlist = null;
+	private FeatureShape feature = null;
 
 	// scene graph entries
 	private Switch bbSwitch;
@@ -69,6 +74,7 @@ public class Content extends BranchGroup implements UniverseListener {
 	public static final int BB = 1;
 	public static final int CS = 2;
 	public static final int PL = 3;
+	public static final int FE = 4;
 
 	public static final int VOLUME = 0;
 	public static final int ORTHO = 1;
@@ -97,6 +103,26 @@ public class Content extends BranchGroup implements UniverseListener {
 		bbSwitch.setCapability(Switch.ALLOW_CHILDREN_WRITE);
 		bbSwitch.setCapability(Switch.ALLOW_CHILDREN_EXTEND);
 		localRotate.addChild(bbSwitch);
+
+		pointlist = new PointListShape(name);
+		feature = new FeatureShape();
+
+		pointlist.getPanel().setActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				BenesNamedPoint current = pointlist.getPanel().getCurrent();
+				if(current == null) return;
+				if(e.getActionCommand().equals("Show descriptor")) {
+					if(!(current instanceof Feature) || 
+						((Feature)current).getDesc() == null) {
+						IJ.error("Selected point does not " +
+							"have a local descriptor(Content.java)");
+						return;
+					}
+					setFeature((Feature)current);
+					showFeature(true);
+				}
+			}
+		});
 	}
 
 	public void displayAs(int type) {
@@ -129,10 +155,12 @@ public class Content extends BranchGroup implements UniverseListener {
 
 		// create point list and add it to the switch
 		// only create the point list when it does not exist already
-		if(pointlist == null)
-			pointlist = new PointListShape(name);
 		pointlist.setPickable(false);
 		bbSwitch.addChild(pointlist);
+
+		// create feature shape and and add it to the switch
+		feature.setPickable(false);
+		bbSwitch.addChild(feature);
 
 
 		// initialize child mask of the switch
@@ -140,6 +168,7 @@ public class Content extends BranchGroup implements UniverseListener {
 		whichChild.set(CS, coordVisible);
 		whichChild.set(CO, visible);
 		whichChild.set(PL, showPL);
+		whichChild.set(FE, showFeature);
 		bbSwitch.setChildMask(whichChild);
 
 		// update type
@@ -169,16 +198,19 @@ public class Content extends BranchGroup implements UniverseListener {
 		bbSwitch.addChild(cs);
 
 		// create point list and add it to the switch
-		pointlist = new PointListShape(name);
 		pointlist.setPickable(false);
 		bbSwitch.addChild(pointlist);
 
+		// create feature shape and and add it to the switch
+		feature.setPickable(false);
+		bbSwitch.addChild(feature);
 
 		// initialize child mask of the switch
 		whichChild.set(BB, selected);
 		whichChild.set(CS, coordVisible);
 		whichChild.set(CO, visible);
 		whichChild.set(PL, showPL);
+		whichChild.set(FE, showFeature);
 		bbSwitch.setChildMask(whichChild);
 
 		// update type
@@ -212,10 +244,24 @@ public class Content extends BranchGroup implements UniverseListener {
 		whichChild.set(CS, b);
 		bbSwitch.setChildMask(whichChild);
 	}
+
+	public void showFeature(boolean b) {
+		whichChild.set(FE, b);
+		bbSwitch.setChildMask(whichChild);
+	}
 	
 	public void setSelected(boolean selected) {
 		this.selected = selected;
 		showBoundingBox(selected);
+	}
+
+	/* ************************************************************
+	 * feature box
+	 *
+	 * ***********************************************************/
+	public void setFeature(Feature f) {
+		feature.setFeature(f);
+		showFeature(true);
 	}
 
 	/* ************************************************************
