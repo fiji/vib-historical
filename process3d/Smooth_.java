@@ -43,6 +43,12 @@ public class Smooth_ implements PlugInFilter {
 
 	public static ImagePlus smooth(ImagePlus image, boolean useGaussian, 
 					float sigma, boolean useCalibration) {
+		return smooth(image, useGaussian, 
+				sigma, sigma, sigma, useCalibration);
+	}
+
+	public static ImagePlus smooth(ImagePlus image, boolean useGaussian, 
+			float sX, float sY, float sZ, boolean useCalibration) {
 
 		int type = image.getType();
 
@@ -50,15 +56,15 @@ public class Smooth_ implements PlugInFilter {
 
 		float pixelW = !useCalibration ? 1.0f
 					: (float)Math.abs(calib.pixelWidth);
-		float[] H_x = createKernel(sigma, pixelW, useGaussian);
+		float[] H_x = createKernel(sX, pixelW, useGaussian);
 
 		pixelW = !useCalibration ? 1.0f
 					: (float)Math.abs(calib.pixelHeight);
-		float[] H_y = createKernel(sigma, pixelW, useGaussian);
+		float[] H_y = createKernel(sY, pixelW, useGaussian);
 
 		pixelW = !useCalibration ? 1.0f
 					: (float)Math.abs(calib.pixelDepth);
-		float[] H_z = createKernel(sigma, pixelW, useGaussian);
+		float[] H_z = createKernel(sZ, pixelW, useGaussian);
 
 		ImageStack stack = Convolve_3d.
 					convolve(image,H_x,H_y,H_z).getStack();
