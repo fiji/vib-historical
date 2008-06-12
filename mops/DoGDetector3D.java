@@ -37,6 +37,7 @@ public class DoGDetector3D
 	
 	public void run( Octave octave )
 	{
+		candidates.clear();
 		// scale the minimal contrast threshold proposed in Lowe (2004, p. 11) with respect
 		// to the step size of the scale octave (see Lowe 2004, p. 6) 
 		//minContrast = 0.03f * ( ( float )Math.pow( 2.0, 1.0 / ( sigma.length - 3 ) ) - 1.0f );
@@ -52,9 +53,11 @@ public class DoGDetector3D
 			detectCandidates( di );
 		}
 	}
+
 	
 	private void detectCandidates( int di )
 	{
+System.out.println("Detect candidates");
 		InterpolatedImage dog = octave.dog[ di ];
 		InterpolatedImage.Iterator it = dog.iterator( false, 1, 1, 1, dog.getWidth() - 2, dog.getHeight() - 2, dog.getDepth() - 2 );
 		Calibration c = dog.getImage().getCalibration();
@@ -123,11 +126,16 @@ I:		while(it.next() != null) {
 				v = dogc.getNoCheckFloat( xi, yi, zi );
 				
 		    	
+try {
 				// derive at (x, y, i) by center of difference
 				d[ 0 ] = ( dogc.getNoInterpolFloat( xi + 1, yi, zi ) - dogc.getNoInterpolFloat( xi - 1, yi, zi ) ) / 2; 
 				d[ 1 ] = ( dogc.getNoInterpolFloat( xi, yi + 1, zi ) - dogc.getNoInterpolFloat( xi, yi - 1, zi ) ) / 2; 
 				d[ 2 ] = ( dogc.getNoInterpolFloat( xi, yi, zi + 1 ) - dogc.getNoInterpolFloat( xi, yi, zi - 1 ) ) / 2;
 				d[ 3 ] = ( dogp1.getNoInterpolFloat( xi, yi, zi ) - dogm1.getNoInterpolFloat( xi, yi, zi ) ) / 2;
+} catch(Exception e) {
+System.out.println("dogc = " + dogc + " dogm1 = " + dogm1 + " dogp1 = " + dogp1 + " current = " + si);
+}
+
 				
 				h[ 0 ][ 0 ] =
 					dogc.getNoInterpolFloat( xi + 1, yi, zi ) -

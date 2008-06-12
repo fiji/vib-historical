@@ -3,26 +3,25 @@ package mops;
 import process3d.Smooth_;
 import vib.InterpolatedImage;
 import vib.FastMatrix;
+import vib.BenesNamedPoint;
 import Jama.EigenvalueDecomposition;
 import Jama.Matrix;
 
-import math3d.Point3d;
+import javax.vecmath.Point3d;
 
 import ij.measure.Calibration;
+import ij.gui.NewImage;
 
-public class Feature extends Point3d
+public class Feature extends BenesNamedPoint
 {
-	/*
-	 * Feature descriptor width. For simplicity, assume a 
-	 * cubic descriptor for the moment.
-	 */
-	public static final int FD_WIDTH = 16;
-
 	/*
 	 * descriptor
 	 */
 	private float[] desc;
 	public float[] getDesc(){ return desc; }
+
+	// Just for debuggin
+	public Point3d[] vertices = new Point3d[8];
 
 	/*
 	 * rotation matrix which aligns the patch in a way that
@@ -30,24 +29,46 @@ public class Feature extends Point3d
 	 * 2nd steepest is in y direction.
 	 */
 	private FastMatrix orientation = null;
+	public FastMatrix getOrientation() { return orientation; }
 	
 	/**
 	 * scale = sigma of the feature relative to the octave
 	 */
 	private double scale;
+	public double getScale() {return scale;}
 
 	Feature( double x, double y, double z, double scale, FastMatrix a, float[] desc )
 	{
-		super( x, y, z );
+		super( "point", x, y, z );
 		this.scale = scale;
 		this.desc = desc;
 		this.orientation = a;
 	}
 	
-	
-	
-	public double featureDistance(Feature other) {
-		return -1;
+	public float descriptorDistance(Feature other) {
+		float d = 0;
+		for(int i = 0; i < desc.length; i++) {
+			float a = desc[i] - other.desc[i];
+			d += a * a;
+		}
+		return (float)Math.sqrt(d);
+	}
+
+	/*
+	 * Creates an InterpolatedImage from the local descriptor
+	 * of this feature.
+	 */
+	public InterpolatedImage extractDescriptor() {
+		int fdWidth = (int)Math.round(Math.pow(desc.length, 1.0/3));
+		InterpolatedImage ret = new InterpolatedImage(
+			NewImage.createFloatImage(
+				"descriptor", fdWidth, fdWidth, fdWidth, NewImage.FILL_BLACK));
+		InterpolatedImage.Iterator it = ret.iterator();
+		int i = 0;
+		while(it.next() != null) {
+			ret.setFloat(it.i, it.j, it.k, desc[i++]);
+		}
+		return ret;
 	}
 
 	/*

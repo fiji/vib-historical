@@ -26,8 +26,8 @@ public class Octave {
 	InterpolatedImage[] smoothed;
 	
 	final public int getWidth(){ return img[ 0 ].getWidth(); }
-	final public int getHeight(){ return img[ 0 ].getWidth(); }
-	final public int getDepth(){ return img[ 0 ].getWidth(); }
+	final public int getHeight(){ return img[ 0 ].getHeight(); }
+	final public int getDepth(){ return img[ 0 ].getDepth(); }
 
 	public Octave( InterpolatedImage image, float[] sigma, float[] sigma_diff, float[] smoothedSigma_diff )
 	{
@@ -38,8 +38,7 @@ public class Octave {
 		this.smoothedSigma_diff = smoothedSigma_diff;
 		img = new InterpolatedImage[ sigma.length ];
 		img[ 0 ] = image;
-		img[ img.length - 1 ] = Filter.gauss(
-			img[ 0 ], sigma_diff[sigma_diff.length - 1]);
+		img[ steps ] = Filter.gauss(img[ 0 ], sigma_diff[steps]);
 	}
 	
 	public InterpolatedImage resample()
@@ -61,9 +60,9 @@ public class Octave {
 		for ( int z = 0; z < d; z++ )
 			for ( int y = 0; y < h; y++ )
 				for ( int x = 0; x < w; x++)
-					tmp.setFloat( x, y, z, img[ img.length - 1 ].getNoCheckFloat(
+					tmp.setFloat( x, y, z, img[ steps ].getNoCheckFloat(
 						x*2, y*2, z*2 ) );
-		
+
 		return tmp;
 	}
 
@@ -72,9 +71,11 @@ public class Octave {
 		dog = new InterpolatedImage[s - 1];
 		smoothed = new InterpolatedImage[ s ];
 		smoothed[ 0 ] = Filter.gauss(img[ 0 ], smoothedSigma_diff[0]);
-		for(int i = 1; i < s - 1; i++) {
-			img[ i ] = Filter.gauss(img[ 0 ], sigma_diff[i]);
+		for(int i = 1; i < s; i++) {
+			if(i != steps)
+				img[ i ] = Filter.gauss(img[ 0 ], sigma_diff[i]);
 			dog[ i - 1 ] = Filter.sub( img[ i ], img[ i - 1 ] );
+System.out.println("calculating dog[" + (i-1) + "]");
 			smoothed[ i ] = Filter.gauss(img[ 0 ], smoothedSigma_diff[i]);
 		}
 	}
