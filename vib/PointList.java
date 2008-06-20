@@ -13,6 +13,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -74,6 +76,11 @@ public class PointList implements Iterable<BenesNamedPoint>{
 		int size = points.size();
 		points.remove(i);
 		points.add((i + 1) % size, point);
+		fireReordered();
+	}
+
+	public void sort(Comparator comp) {
+		Collections.sort(points, comp);
 		fireReordered();
 	}
 
