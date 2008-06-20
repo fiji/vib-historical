@@ -1,5 +1,6 @@
 package mops;
 
+import ij.IJ;
 import ij.measure.Calibration;
 
 import java.util.ArrayList;
@@ -14,7 +15,8 @@ import vib.InterpolatedImage;
 public class DoGDetector3D
 {
 	private float minContrast; 
-	private final float maxCurvatureRatio = 10;
+//  	private final float maxCurvatureRatio = 10;
+	private final float maxCurvatureRatio = 5;
 	
 	Octave octave;
 	
@@ -43,7 +45,8 @@ public class DoGDetector3D
 		//minContrast = 0.03f * ( ( float )Math.pow( 2.0, 1.0 / ( sigma.length - 3 ) ) - 1.0f );
 		
 		// less restrictive contrast filter
-		minContrast = 0.025f * ( octave.k - 1.0f );
+// 		minContrast = 0.025f * ( octave.k - 1.0f );
+		minContrast = 0.1f * (octave.k - 1.0f);
 		
 		this.octave = octave;
 		octave.dog();
@@ -57,7 +60,7 @@ public class DoGDetector3D
 	
 	private void detectCandidates( int di )
 	{
-System.out.println("Detect candidates");
+		IJ.write("Detect candidates\n");
 		InterpolatedImage dog = octave.dog[ di ];
 		InterpolatedImage.Iterator it = dog.iterator( false, 1, 1, 1, dog.getWidth() - 2, dog.getHeight() - 2, dog.getDepth() - 2 );
 		Calibration c = dog.getImage().getCalibration();

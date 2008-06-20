@@ -54,6 +54,14 @@ public class Feature extends BenesNamedPoint
 		return (float)Math.sqrt(d);
 	}
 
+	public float spatialDistance(Feature other) {
+		float d = 0;
+		float dx = (float)(other.x - x);
+		float dy = (float)(other.y - y);
+		float dz = (float)(other.z - z);
+		return (float)Math.sqrt(dx*dx + dy*dy + dz*dz);
+	}
+
 	/*
 	 * Creates an InterpolatedImage from the local descriptor
 	 * of this feature.

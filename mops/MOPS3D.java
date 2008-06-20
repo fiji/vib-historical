@@ -60,6 +60,7 @@ import ij.measure.Calibration;
 
 import java.util.Vector;
 import java.util.List;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -272,9 +273,9 @@ public class MOPS3D
 
 		float[][][] gauss_k = Filter.create3DGaussianKernelOffset(
 			os, new float[]{ f[ 0 ] - ix, f[ 1 ] - iy, f[ 2 ] - iz }, true );
-		
+
 		int r = gauss_k.length / 2;
-		
+
 		float[] alpha = new float[ 2 ];
 // 		float[] beta = new float[ 2 ];
 		float[] gamma = new float[ 2 ];
@@ -607,7 +608,75 @@ public class MOPS3D
 		}
 		return matches;
 	}
-	
+
+	public static List< FeatureMatch > createMatches2(
+			PointList fs1, // model
+			PointList fs2) { // templ
+
+		List<FeatureMatch> matches = new ArrayList<FeatureMatch>();
+		int perc = fs2.size() / 5;
+
+		for(int i = 0; i < fs1.size(); i++) {
+			final Feature f1 = (Feature)fs1.get(i);
+			// sort fs2 according to distance to f1
+			fs2.sort(new Comparator<Feature>() {
+				public int compare(Feature feat1, Feature feat2) {
+					float d = feat1.spatialDistance(f1) -
+						feat2.spatialDistance(f1);
+					if(d < 0) return -1;
+					if(d == 0) return 0;
+					else return 1;
+				}
+			});
+			// test the best candidates within a spatial environment
+			// for the best descriptor match
+			float min = Float.MAX_VALUE;
+			int bestInd = -1;
+			for(int j = 0; j < fs2.size(); j++) {
+				Feature f2 = (Feature)fs2.get(j);
+				if(f2.spatialDistance(f1) > 50)
+					break;
+				float d = f2.descriptorDistance(f1);
+				if(d < min) {
+					min = d;
+					bestInd = j;
+				}
+			}
+
+			if(bestInd == -1)
+				continue;
+
+			Feature f2 = (Feature)fs2.get(bestInd);
+			
+			FeatureMatch fm = new FeatureMatch(f1, f2, "Match_" + i);
+			matches.add(fm);
+
+		}
+
+		// now remove ambiguous matches
+		A: for ( int i = matches.size() - 1; i >= 0; i--) {
+			FeatureMatch m = matches.get( i );
+			for ( int j = i - 1; j >= 0; j--) {
+				FeatureMatch n = matches.get( j );
+				if(m.feature1 == n.feature1 || m.feature2 == n.feature2) {
+// 					if(m.distance < n.distance) {
+// 						matches.remove(n);
+// 						i--;
+// 					} else {
+// 						matches.remove(m);
+// 						continue A;
+// 					}
+					matches.remove(m);
+					matches.remove(n);
+					i--;
+					continue A;
+				}
+			}
+		}
+
+		return matches;
+	}
+
 	/**
 	 * Identify corresponding features
 	 * 

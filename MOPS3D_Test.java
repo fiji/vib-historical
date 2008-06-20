@@ -1,10 +1,13 @@
 import java.util.HashMap;
 import java.util.List;
+import java.util.Collections;
 import java.util.ArrayList;
 
 import vib.BenesNamedPoint;
 import vib.PointList;
 import vib.InterpolatedImage;
+import vib.TransformedImage;
+import vib.RigidRegistration_;
 import vib.FastMatrix;
 import vib.Resample_;
 
@@ -13,10 +16,12 @@ import mops.MOPS3D;
 import mops.Filter;
 import mops.Octave;
 import mops.RigidModel3D;
+import mops.FeatureMatch;
 
 import ij.gui.GUI;
 import ij.gui.GenericDialog;
 import ij.IJ;
+import ij.Macro;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.process.StackConverter;
@@ -47,7 +52,7 @@ import java.awt.event.ActionListener;
 public class MOPS3D_Test implements PlugIn
 {
 
-	public static final int DESC_WIDTH = 32;
+	public static final int DESC_WIDTH = 16;
 	public static final float MAX_EPSILON = 100.0f;
 	public static final float MIN_INLIER_RATIO = 0.05f;
  	public static final float ROD = 1;
@@ -88,32 +93,53 @@ public class MOPS3D_Test implements PlugIn
 
 		templ = WindowManager.getImage(gd.getNextChoice());
 		model = WindowManager.getImage(gd.getNextChoice());
+
+
+		/*
+		 * Roughly align via rigid registration
+		 */
+		TransformedImage trans = new TransformedImage(templ, model);
+		trans.measure = new distance.Euclidean();
+
+		FastMatrix globalRigid = new RigidRegistration_()
+			.rigidRegistration(trans, "", "", -1, -1,
+				false, 4, 3, 1,
+				1, false, false, false, null);
+		trans.setTransformation(globalRigid);
+		model = trans.getTransformed();
+
+
+
+
 		this.model_org = new InterpolatedImage(model).cloneImage().getImage();
 		this.templ_org = new InterpolatedImage(templ).cloneImage().getImage();
 
 		PointList tFeatures = extractFeatures(templ);
 		PointList mFeatures = extractFeatures(model);
 
-		HashMap<Point, Feature> tmap = new HashMap<Point, Feature> ();
-		HashMap<Point, Feature> mmap = new HashMap<Point, Feature> ();
+// 		HashMap<Point, Feature> tmap = new HashMap<Point, Feature> ();
+// 		HashMap<Point, Feature> mmap = new HashMap<Point, Feature> ();
 
-		List<PointMatch> candidates = 
-			MOPS3D.createMatches(mFeatures, tFeatures, ROD, mmap, tmap);
+		List<FeatureMatch> candidates = MOPS3D.createMatches2(
+				mFeatures, tFeatures);
 
-		// now fill new PointLists with the inliers
-		PointList tInliers = new PointList();
-		PointList mInliers = new PointList();
-		for(int i = 0; i < candidates.size(); i++) {
-			PointMatch match = candidates.get(i);
-			Feature fm = mmap.get(match.getP1());
-			mInliers.add(fm);
-			mInliers.rename(fm, "Point" + i);
-			Feature ft = tmap.get(match.getP2());
-			tInliers.add(ft);
-			tInliers.rename(ft, "Point" + i);
-		}
-		visualizeMatches(mInliers, tInliers);
+		Collections.sort(candidates);
 
+// 		// now fill new PointLists with the inliers
+// 		PointList tInliers = new PointList();
+// 		PointList mInliers = new PointList();
+// 		for(int i = 0; i < candidates.size(); i++) {
+// 			PointMatch match = candidates.get(i);
+// 			Feature fm = mmap.get(match.getP1());
+// 			mInliers.add(fm);
+// 			mInliers.rename(fm, "Point" + i);
+// 			Feature ft = tmap.get(match.getP2());
+// 			tInliers.add(ft);
+// 			tInliers.rename(ft, "Point" + i);
+// 		}
+// 		visualizeMatches(mInliers, tInliers);
+
+		visualizeMatches(candidates);
 
 		// filter matches
 // 		List<PointMatch> inliers = new ArrayList< PointMatch >();
@@ -183,16 +209,17 @@ public class MOPS3D_Test implements PlugIn
 		PointList featurelist = new PointList();
 		println( "Processing " + octaves.length + " octaves:" );
 		for ( int oi = 0; oi < octaves.length; ++oi ) {
-		println("Processing octave " + oi);
+			println("Processing octave " + oi);
 			if ( octaves[ oi ].getImg()[ 0 ] == null ) {
 				println( "Skipping empty octave." );
 				continue;
 			}
 			List< Feature > features = mops.runOctave( oi );
+			println("Found " + features.size() + " in octave " + oi);
 			for ( Feature f : features )
 				featurelist.add(f);
 			
-			octaves[ oi ].getImg()[ 0 ].getImage().show();
+// 			octaves[ oi ].getImg()[ 0 ].getImage().show();
 			
 			// free memory for processing the next octave
 			octaves[ oi ].clear();
@@ -221,7 +248,7 @@ public class MOPS3D_Test implements PlugIn
 	/*
 	 * Show feature list in 3D viewer
 	 */
-	public void visualizeMatches(PointList mFeatures, PointList tFeatures) {
+	public void visualizeMatches(final List<FeatureMatch> matches) {
 		// create model universe
 		Image3DUniverse univ_m = new Image3DUniverse(512, 512);
 		univ_m.show();
@@ -229,11 +256,6 @@ public class MOPS3D_Test implements PlugIn
 		Image3DMenubar menu_m = univ_m.getMenuBar();
 		final Content c_m = univ_m.addVoltex(
 			model_org, null, "model", 0, new boolean[] {true, true, true}, 2);
-		// fill model point list with model features
-		final PointList pl_m = c_m.getPointList();
-		for(BenesNamedPoint bnp : mFeatures)
-			pl_m.add((Feature)bnp);
-		c_m.showPointList(true);
 
 		// create template universe
 		Image3DUniverse univ_t = new Image3DUniverse(512, 512);
@@ -242,22 +264,32 @@ public class MOPS3D_Test implements PlugIn
 		Image3DMenubar menu_t = univ_t.getMenuBar();
 		final Content c_t = univ_t.addVoltex(
 			templ_org, null, "template", 0, new boolean[] {true, true, true}, 2);
-		// fill model point list with model features
+
+
+
+		// fill point lists with model and template features
+		final PointList pl_m = c_m.getPointList();
 		final PointList pl_t = c_t.getPointList();
-		for(BenesNamedPoint bnp : tFeatures)
-			pl_t.add((Feature)bnp);
+		for(FeatureMatch fm : matches) {
+			pl_m.add(fm.feature1);
+			pl_t.add(fm.feature2);
+		}
+		c_m.showPointList(true);
 		c_t.showPointList(true);
+
 
 		// Create a panel box which allows to automatically show in
 		// both universes the corresponding features
-		Panel panel = new Panel(new GridLayout(tFeatures.size(), 1));
-		for(BenesNamedPoint bnp : tFeatures) {
-			Button b = new Button(bnp.getName());
+		Panel panel = new Panel(new GridLayout(matches.size(), 1));
+		int i = 0;
+		for(final FeatureMatch fm : matches) {
+			final int n = i++;
+			Button b = new Button("Match_" + n);
 			b.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					String name = e.getActionCommand();
-					Feature ft = (Feature)pl_t.get(name);
-					Feature fm = (Feature)pl_m.get(name);
+					FeatureMatch m = matches.get(n);
+					Feature ft = m.feature2;
+					Feature fm = m.feature1;
 					c_m.setFeature(fm);
 					c_t.setFeature(ft);
 					pl_t.highlight(ft);
@@ -268,6 +300,7 @@ public class MOPS3D_Test implements PlugIn
 		}
 		ScrollPane scroll = new ScrollPane();
 		scroll.add(panel);
+		Macro.setOptions(null);
 		GenericDialog gd = new GenericDialog("Show point correspondences");
 		Panel pp = new Panel();
 		pp.add(scroll);

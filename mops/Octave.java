@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 import ij.ImagePlus;
+import ij.IJ;
 import ij.ImageStack;
 import ij.gui.NewImage;
 import ij.measure.Calibration;
@@ -75,7 +76,7 @@ public class Octave {
 			if(i != steps)
 				img[ i ] = Filter.gauss(img[ 0 ], sigma_diff[i]);
 			dog[ i - 1 ] = Filter.sub( img[ i ], img[ i - 1 ] );
-System.out.println("calculating dog[" + (i-1) + "]");
+			IJ.write("calculating dog[" + (i-1) + "]\n");
 			smoothed[ i ] = Filter.gauss(img[ 0 ], smoothedSigma_diff[i]);
 		}
 	}
