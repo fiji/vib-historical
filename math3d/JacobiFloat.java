@@ -6,6 +6,8 @@
 
 package math3d;
 
+import java.io.*;
+
 public class JacobiFloat {
 	private float[][] matrix;
 	private float[][] eigenmatrix;
@@ -26,7 +28,18 @@ public class JacobiFloat {
 		eigenvalues=new float[matrix.length];
 		this.maxSweeps=maxSweeps;
 		perform();
+        if (matrix.length == 3) {
+            try {
+                BufferedWriter out = new BufferedWriter(new FileWriter("timing-float.txt",true));
+                out.write(""+sweepsDone+"\n");
+                out.close();
+            } catch( IOException e ) {
+                System.out.println("Got IOException: "+e);
+            }
+        }
 	}
+
+    int sweepsDone;
 
 	/** returns the eigenvectors as an array,
 	    such that result[0] is the first vector */
@@ -90,8 +103,10 @@ public class JacobiFloat {
 		for(int sweeps=0;sweeps<maxSweeps;sweeps++) {
 			float sum=offDiagonalSum();
 			// This should be the normal way out
-			if(sum==0.0f)
+			if(sum==0.0) {
+                sweepsDone = sweeps;
 				return;
+            }
 
 			float thresh=0;
 			if(sweeps<3)
@@ -142,6 +157,7 @@ public class JacobiFloat {
 				z[p]=0;
 			}
 		}
+        sweepsDone = maxSweeps;
 	}
 
 	public static String toString(float[] floatArray) {

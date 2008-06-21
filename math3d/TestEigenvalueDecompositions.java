@@ -20,7 +20,7 @@ import java.util.Random;
 
 public class TestEigenvalueDecompositions {
 
-	boolean printTimings = false;
+	boolean printTimings = true;
 
 	ArrayList<TestMatrixAndResultDouble> realSymmetricTestCases2x2Double;
 	ArrayList<TestMatrixAndResultFloat> realSymmetricTestCases2x2Float;
@@ -181,7 +181,7 @@ public class TestEigenvalueDecompositions {
 		// (and assume that the Jama version is correct!)
 
 		Random r = new Random(123456789);
-		for( int i = 0; i < 2000; ++i ) {
+		for( int i = 0; i < 200000; ++i ) {
 			double [] m = new double[9];
 			m[0] = r.nextDouble();
 			m[1] = m[3] = r.nextDouble();
@@ -385,6 +385,24 @@ public class TestEigenvalueDecompositions {
 		}
 
 		if (printTimings) System.out.println("testJacobiDoubleAgain: "+(System.currentTimeMillis()-startTime)/1000.0);
+	}
+
+	@Test
+	public void test3x3JacobiFloatAgain() {
+
+		long startTime = System.currentTimeMillis();
+
+		for( Iterator<TestMatrixAndResultFloat> i = realSymmetricTestCases3x3Float.iterator();
+		     i.hasNext(); ) {
+
+			TestMatrixAndResultFloat mr = i.next();
+
+			JacobiFloat jc=new JacobiFloat(mr.m,50);
+			float [] result = jc.getEigenValues();
+			mr.checkEvalues(result);
+		}
+
+		if (printTimings) System.out.println("testJacobiFloatAgain: "+(System.currentTimeMillis()-startTime)/1000.0);
 	}
 
 	@Test
