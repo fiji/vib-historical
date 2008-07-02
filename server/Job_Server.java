@@ -190,6 +190,8 @@ public class Job_Server implements PlugIn {
 	
 	public void run(String ignore) {
 		
+		System.out.println("Entering the run method of server.Job_Server");
+
 		logStream = null;
 		try {
 			logStream = new PrintStream(logFilename);
@@ -240,6 +242,14 @@ public class Job_Server implements PlugIn {
 			
 				String [] arguments = nextLine.split("\\t");
 				
+/*
+				log("Got arguments:");
+				for( int i = 0; i < arguments.length;++i ) {
+					log(arguments[i]);
+				}
+				log("End of arguments.");
+*/
+
 				if( arguments.length >= 2 ) {
 				
 					if( "start".equals(arguments[0]) ) {
@@ -266,6 +276,7 @@ public class Job_Server implements PlugIn {
 							startNextIfPossible( );
 						}
 						
+						log("Java job ID will be: "+jobID);
 						out.println("started\t"+jobID);
 					
 					} else if( "query".equals(arguments[0]) ) {
@@ -276,7 +287,10 @@ public class Job_Server implements PlugIn {
 						try {
 							jobID = Integer.parseInt(jobIDString);
 						} catch( NumberFormatException nfe ) {
+							log("Malformed jobIDString: "+jobIDString);
 							out.println("unknown\tJob ID '"+jobIDString+"' not found");
+							clientSocket.close();
+							continue;
 						}
 						
 						Job j=null;
@@ -284,8 +298,10 @@ public class Job_Server implements PlugIn {
 						try {
 							j = allJobs.get(jobID);
 						} catch( IndexOutOfBoundsException e ) {
+							log("Couldn't find job ID: "+jobID);
 							out.println("unknown\tJob ID '"+jobIDString+"' not found");
 							clientSocket.close();
+							continue;
 						}						
 						
 						int status=j.getStatus();
@@ -336,7 +352,7 @@ public class Job_Server implements PlugIn {
 						
 			
 		}
-		
+
 	}
 	
 }
