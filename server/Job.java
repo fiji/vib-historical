@@ -93,6 +93,7 @@ public class Job extends Thread {
 				jobServer.log(this,"IJ.runMacro(\" "+macroExpression+"\"); failed with: "+t);
 				jobServer.log(this,"Stack Trace: "+w.toString());
 				setStatus(FAILED);
+				jobServer.jobCompleted(this);
 				return;
 			}
 			endedAt = new Date();
