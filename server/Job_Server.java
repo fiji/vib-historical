@@ -187,6 +187,25 @@ public class Job_Server implements PlugIn {
 			throw new RuntimeException(w.toString());
 		}
 	}
+
+	public static void updateProgressInDirectory( String directory, float proportionDone ) {
+		File d = new File(directory);
+		if( ! d.isDirectory() ) {
+			throw new RuntimeException("updateProgressInDirectory() called with a non-directory: '"+directory+"'");
+		}
+		String progressFile = d.getAbsolutePath() + File.separator + ".progress";
+		try {
+			PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(progressFile),"UTF-8"));
+			pw.print(""+proportionDone);
+			pw.close();
+		} catch( IOException e ) {
+			final StringWriter w = new StringWriter();
+			final PrintWriter pw = new PrintWriter(w);
+			e.printStackTrace(pw);
+			pw.close();
+			throw new RuntimeException(w.toString());
+		}
+	}
 	
 	public void run(String ignore) {
 		
