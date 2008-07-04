@@ -106,16 +106,26 @@ public class Unpack {
 				toWriteHeight = ip.getHeight();
 			}
 
-			if( lut == null ) {
-				bi = new BufferedImage(toWriteWidth, toWriteHeight, BufferedImage.TYPE_BYTE_GRAY);
+			int bitDepth = imagePlus.getBitDepth();
+
+			if( bitDepth == 8 ) {
+
+				if( lut == null ) {
+					bi = new BufferedImage(toWriteWidth, toWriteHeight, BufferedImage.TYPE_BYTE_GRAY);
+				} else {
+					int size = lut.getMapSize();
+					byte [] reds = lut.getReds();
+					byte [] greens = lut.getGreens();
+					byte [] blues = lut.getBlues();
+					IndexColorModel cm = null;
+					cm = new IndexColorModel(8,size,reds,greens,blues);
+					bi = new BufferedImage(toWriteWidth, toWriteHeight, BufferedImage.TYPE_BYTE_INDEXED, cm);
+				}
+
 			} else {
-				int size = lut.getMapSize();
-				byte [] reds = lut.getReds();
-				byte [] greens = lut.getGreens();
-				byte [] blues = lut.getBlues();
-				IndexColorModel cm = null;
-				cm = new IndexColorModel(8,size,reds,greens,blues);
-				bi = new BufferedImage(toWriteWidth, toWriteHeight, BufferedImage.TYPE_BYTE_INDEXED, cm);
+
+				bi = new BufferedImage(toWriteWidth, toWriteHeight, BufferedImage.TYPE_INT_RGB );
+
 			}
 
 			Graphics2D g = (Graphics2D)bi.getGraphics();
@@ -126,4 +136,3 @@ public class Unpack {
 		}
 	}
 }
-
