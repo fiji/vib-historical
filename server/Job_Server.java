@@ -25,46 +25,46 @@ import ij.plugin.PlugIn;
 
      "start":
 
-         - The second field must be a macro expression, typically
-           "run('Watever Plugin','example=foo');"
+	 - The second field must be a macro expression, typically
+	   "run('Watever Plugin','example=foo');"
 
-         - A single line is returned which contains "started" in the
-           first, and in the second field the job ID specific to this
-           server.
+	 - A single line is returned which contains "started" in the
+	   first, and in the second field the job ID specific to this
+	   server.
 
      "query"
 
-         - The second field must a job ID
+	 - The second field must a job ID
 
-         - A single line is returned.  This describes the status of
-           the job.  The first field might be:
+	 - A single line is returned.  This describes the status of
+	   the job.  The first field might be:
 
-             "finished":
-                  - There are no more fields: the job finished
-                    successfully.
+	     "finished":
+		  - There are no more fields: the job finished
+		    successfully.
 
-             "failed":
-                  - The job failed.  There will be one extra field,
-                    with a short error message.
+	     "failed":
+		  - The job failed.  There will be one extra field,
+		    with a short error message.
 
-             "working":
-                  - The job is still in progress.  The first field
-                    will be the ISO 8601 timestamp when it started.
-                    The second field will be either empty or contain a
-                    string representation of a floating point number
-                    describing the proportion of the way through the
-                    operation that we're at.  The third fild, if not
-                    empty, will be an estimate of the time at which
-                    the job will finish.
+	     "working":
+		  - The job is still in progress.  The first field
+		    will be the ISO 8601 timestamp when it started.
+		    The second field will be either empty or contain a
+		    string representation of a floating point number
+		    describing the proportion of the way through the
+		    operation that we're at.  The third fild, if not
+		    empty, will be an estimate of the time at which
+		    the job will finish.
 
-             "queued":
-                  - The jobs is still queued, and hasn't been started
-                    yet.  The second field incidates the number of
-                    jobs ahead of this one in the queue, or -1 in the
-                    case where it has been started very recently.
+	     "queued":
+		  - The jobs is still queued, and hasn't been started
+		    yet.  The second field incidates the number of
+		    jobs ahead of this one in the queue, or -1 in the
+		    case where it has been started very recently.
 
-             "unknown":
-                  - The job ID was unknown
+	     "unknown":
+		  - The job ID was unknown
 
    If the command is unknown, has the wrong number of arguments or
    some other error occurs, then "error\t<ERROR-MESSAGE" is returned.
@@ -89,26 +89,26 @@ import ij.plugin.PlugIn;
  */
 
 public class Job_Server implements PlugIn {
-	
-	static private final String logFilename = "/tmp/job-server.log";    
-	
+
+	static private final String logFilename = "/tmp/job-server.log";
+
 	Hashtable<Thread,Job> threadToJob;
-	
+
 	public static final int maxJobs = 2;
-	
+
 	/* We also use the jobQueue object to synchronize on; that
 	   also protects currentlyRunningJobs... */
-	
+
 	private static LinkedList<Job> jobQueue;
 	private int currentlyRunningJobs = 0;
-	
+
 	/* The allJobs object just records all jobs ever submitted to this
 	   server. */
 	private static ArrayList<Job> allJobs;
-	
+
 	public final static int tcpPort = 2061;
 	public final static String bindInterfaceIP = "127.0.0.1";
-	
+
 	public void startNextIfPossible() {
 		log( "startNextIfPossible()" );
 		synchronized(jobQueue) {
@@ -118,19 +118,19 @@ public class Job_Server implements PlugIn {
 				jobToRun.start();
 				++ currentlyRunningJobs;
 				log("New job was started (now "+currentlyRunningJobs+" running)");
-			} 
+			}
 		}
 	}
-	
+
 	public void jobCompleted( Job j ) {
 		synchronized(jobQueue) {
 			-- currentlyRunningJobs;
 			startNextIfPossible();
 		}
 	}
-	
+
 	private PrintStream logStream;
-	
+
 	public void log( Job job, Exception e ) {
 		String message = "";
 		if( job != null )
@@ -141,7 +141,7 @@ public class Job_Server implements PlugIn {
 			logStream.flush();
 		}
 	}
-	
+
 	public void log( String s ) {
 		log( null, s );
 	}
@@ -152,7 +152,7 @@ public class Job_Server implements PlugIn {
 	    was created when the job started...
 	 */
 	public static boolean setJobProportionDone( float proportionDone ) {
-	
+
 		Thread currentThread = Thread.currentThread();
 		Job job = null;
 		try {
@@ -163,7 +163,7 @@ public class Job_Server implements PlugIn {
 		job.setProportionDone( proportionDone );
 		return true;
 	}
-	
+
 	public void log( Job job, String s ) {
 		String message = "";
 		if( job != null )
@@ -214,9 +214,9 @@ public class Job_Server implements PlugIn {
 			throw new RuntimeException(w.toString());
 		}
 	}
-	
+
 	public void run(String ignore) {
-		
+
 		System.out.println("Entering the run method of server.Job_Server");
 
 		logStream = null;
@@ -226,12 +226,12 @@ public class Job_Server implements PlugIn {
 			System.out.println("Couldn't open log file.");
 			System.exit(-1);
 		}
-		
+
 		jobQueue = new LinkedList<Job>();
 		allJobs = new ArrayList<Job>();
-		
+
 		InetAddress bindAddress = null;
-		
+
 		try {
 			bindAddress = InetAddress.getByName(bindInterfaceIP);
 		} catch( UnknownHostException e ) {
@@ -239,36 +239,36 @@ public class Job_Server implements PlugIn {
 			System.exit(-1);
 		}
 		ServerSocket serverSocket = null;
-		
+
 		try {
 			serverSocket = new ServerSocket(tcpPort,32,bindAddress);
 		} catch (IOException e) {
 			System.out.println("Could not listen on port: "+tcpPort);
 			System.exit(-1);
 		}
-		
+
 		for(;;) {
-			
+
 			Socket clientSocket = null;
 			BufferedReader in = null;
 			PrintStream out = null;
 
-			try {				
-				
+			try {
+
 				clientSocket = serverSocket.accept();
-				
+
 				log( "Accepted connection "+clientSocket );
-				
+
 				in = new BufferedReader(
 					new InputStreamReader(
 						clientSocket.getInputStream()));
-				
+
 				out = new PrintStream( clientSocket.getOutputStream() );
-			
+
 				String nextLine = in.readLine();
-			
+
 				String [] arguments = nextLine.split("\\t");
-				
+
 /*
 				log("Got arguments:");
 				for( int i = 0; i < arguments.length;++i ) {
@@ -278,59 +278,59 @@ public class Job_Server implements PlugIn {
 */
 
 				if( arguments.length >= 2 ) {
-				
+
 					if( "start".equals(arguments[0]) ) {
-						
+
 						String macroExpression = arguments[1];
 
 						log("Going to create a job to run macro expression: "+macroExpression);
-						
+
 						Job newJob = new Job( this,
 								      macroExpression );
-						
+
 						newJob.setStatus(Job.QUEUED);
-					
+
 						int jobID = -1;
 						synchronized ( allJobs ) {
 							jobID = allJobs.size( );
 							allJobs.add( newJob );
 						}
-						
+
 						newJob.setJobID( jobID );
-						
+
 						synchronized( jobQueue ) {
 							jobQueue.addLast(newJob);
 							startNextIfPossible( );
 						}
-						
+
 						log("Java job ID will be: "+jobID);
-						out.println("started\t"+jobID);
-					
+						out.print("started\t"+jobID+"\r\n");
+
 					} else if( "query".equals(arguments[0]) ) {
-						
+
 						String jobIDString = arguments[1];
 						int jobID = -1;
-						
+
 						try {
 							jobID = Integer.parseInt(jobIDString);
 						} catch( NumberFormatException nfe ) {
 							log("Malformed jobIDString: "+jobIDString);
-							out.println("unknown\tJob ID '"+jobIDString+"' not found");
+							out.print("unknown\tJob ID '"+jobIDString+"' not found\r\n");
 							clientSocket.close();
 							continue;
 						}
-						
+
 						Job j=null;
-						
+
 						try {
 							j = allJobs.get(jobID);
 						} catch( IndexOutOfBoundsException e ) {
 							log("Couldn't find job ID: "+jobID);
-							out.println("unknown\tJob ID '"+jobIDString+"' not found");
+							out.print("unknown\tJob ID '"+jobIDString+"' not found\r\n");
 							clientSocket.close();
 							continue;
-						}						
-						
+						}
+
 						int status=j.getStatus();
 						if( status == Job.WORKING ) {
 							String p="";
@@ -338,14 +338,14 @@ public class Job_Server implements PlugIn {
 							if( proportionDone >= 0 ) {
 								p = "" + proportionDone;
 							}
-							out.println("unknown\t"+p+"\r\n");
+							out.print("working\t"+p+"\r\n");
 						} else if( status == Job.FAILED ) {
 							String errorMessage = j.getErrorMessage();
 							if( errorMessage == null )
 								errorMessage = "";
-							out.println("failed\t"+errorMessage+"\r\n");
+							out.print("failed\t"+errorMessage+"\r\n");
 						} else if( status == Job.FINISHED ) {
-							out.println("finished\r\n");
+							out.print("finished\r\n");
 						} else if( status == Job.QUEUED ) {
 							int placeInQueue = -1;
 							// FIXME: this is potentially a performance bottleneck:
@@ -356,30 +356,30 @@ public class Job_Server implements PlugIn {
 										placeInQueue = i;
 								}
 							}
-							out.println("queued\t"+placeInQueue+"\r\n");
+							out.print("queued\t"+placeInQueue+"\r\n");
 						} else {
-							out.println("error\tUnknown job status found: "+status);
+							out.print("error\tUnknown job status found: "+status+"\r\n");
 						}
-						
-						
-					} else {                        
-						out.println("error\tUnknown action "+arguments[0]+"\r\n");                        
+
+
+					} else {
+						out.print("error\tUnknown action "+arguments[0]+"\r\n");
 					}
-					
+
 				} else {
-					out.println("error\tNot enough arguments (only "+arguments.length+")\r\n");
+					out.print("error\tNot enough arguments (only "+arguments.length+")\r\n");
 				}
-			
+
 				clientSocket.close();
 
 			} catch( IOException e ) {
 				System.out.println("There was an IOException with connection "+clientSocket+ ": "+e);
 				continue;
 			}
-						
-			
+
+
 		}
 
 	}
-	
+
 }
