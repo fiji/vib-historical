@@ -73,10 +73,18 @@ import ij.plugin.PlugIn;
 
 /* Start the server with a command like:
 
-     xvfb-run java -Xmx1024m ../ImageJ/ij.jar -eval 'run("Job Server","");'
+       xvfb-run java -Xmx1024m ../ImageJ/ij.jar -eval 'run("Job Server","");'
 
    ... where the parameter to -Xmx is some sensible amount of memory
    given the real memory contraints of your computer.
+
+   Alternatively, using fiji's --headless option, you can do:
+
+      ./fiji --headless server.txt
+
+   ... where server.txt just containst the line:
+
+      run("Job Server","");
 
  */
 
