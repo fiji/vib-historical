@@ -9,7 +9,8 @@ import ij.IJ;
 import java.text.*;
 import java.util.Locale;
 import ij.plugin.PlugIn;
-
+import util.BatchOpener;
+import ij.Macro;
 
 public class MIPDriver extends Thread implements PlugIn
 {
@@ -73,6 +74,108 @@ public class MIPDriver extends Thread implements PlugIn
 		rot = rotangle;
 		this.ist = ist;
 		plugin = true;
+
+	}
+
+	/* This is the PlugIn interface.  We only care about this
+	 * being able to parse one set of options here:
+
+	      input    =>  this.inputDir
+	      output   =>  this.outputFileName
+	      mip      =>  this.mipType
+	      zscale   =>  this.zScale
+
+
+	   Example call:
+
+	      java -Xmx1024 -jar ij.jar -eval "run('MIP Driver', 'input=[foo.lsm] output=[/var/tmp/foo/] mip=rt zscale=1.2');"
+
+	*/
+
+	public void run( String argument ) {
+
+		String options = Macro.getOptions();
+
+		String inputFilename = Macro.getValue( options, "input", "" );
+		if( inputFilename.equals("") )
+			throw new RuntimeException( "No input filename supplied for MIPDriver");
+
+		String outputFilenameBasename = Macro.getValue( options, "output", "" );
+		if( outputFilenameBasename.equals("") )
+			throw new RuntimeException( "No output filename basename supplied for MIPDriver");
+
+		String mipTypeSupplied = Macro.getValue( options, "mip", "" );
+		if( mipTypeSupplied.equals( "" ) )
+			throw new RuntimeException( "No MIP type supplied");
+
+		if (mipTypeSupplied.equals("ray"))
+			mipType = RAYCASTING;
+		else if ( mipTypeSupplied.equals("splat") )
+			mipType = SPLATTING;
+		else if ( mipTypeSupplied.equals("rt") )
+			mipType = REALTIME;
+		else {
+			throw new RuntimeException( "Unknown MIP type supplied" );
+		}
+
+		String zScaleSupplied = Macro.getValue( options, "zscale", "" );
+		if( zScaleSupplied.equals("") )
+			throw new RuntimeException( "No Z scale supplied" );
+
+		try {
+			zScale = Float.parseFloat( zScaleSupplied );
+		} catch( NumberFormatException nfe ) {
+			throw new RuntimeException( "Malformed Z scale supplied: " + zScaleSupplied );
+		}
+
+		// Now set the other parameters we need:
+		resx = resy = 0;
+		interpolationType = MIP.TRILINEAR;
+		scale = 1;
+		rayCastInc = 0.5f;
+		dmip = false;
+		threshold = 255;
+		nImages = 1;
+		animx = animy = animz = 0.0f;
+
+		plugin = false;
+
+		rot = new Matrix4f();
+
+		ImagePlus [] images = BatchOpener.open( inputFilename );
+
+		if( images == null || images.length < 1 )
+			throw new RuntimeException( "Couldn't open the input file " + inputFilename );
+
+		for( int i = 0; i < images.length; ++i ) {
+
+			MIPImageStack ist = new MIPImageStack( images[i].getStack() );
+
+			if( mipType != REALTIME )
+				throw new RuntimeException( "Only mipType == REALTIME makes sense" );
+
+			if ( zScale != 1.0f )
+				ist.zScale(zScale);
+
+			Discard d = new Discard( ist );
+			d.discardNN();
+
+			RealTimeMIP r = d.calculate(Discard.FRONTMAIN, Discard.UPPER);
+
+			DecimalFormat f2 = new DecimalFormat("00");
+			String outputFilename = outputFilenameBasename + File.separator + "projection-" + f2.format(i) + ".rt";
+
+			try {
+				System.out.print("Writing file: " + outputFileName );
+				ObjectOutputStream oos = new ObjectOutputStream( new FileOutputStream( outputFileName ) );
+				System.out.println(" : DONE");
+				oos.writeObject( r );
+				oos.close();
+			} catch( IOException e ) {
+				throw new RuntimeException( "Got an IOException when writing to " + outputFileName );
+			}
+
+		}
 
 	}
 
