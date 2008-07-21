@@ -1,3 +1,5 @@
+/* -*- mode: java; c-basic-offset: 8; indent-tabs-mode: t; tab-width: 8 -*- */
+
 package mipj;
 
 import java.awt.*;
@@ -8,13 +10,11 @@ public class Terminator extends WindowAdapter
 
 	private MIPMainWindow w;
 
-	public Terminator( MIPMainWindow w )
-	{
+	public Terminator( MIPMainWindow w ) {
 		this.w = w;
 	}
 
-	public void windowClosing(WindowEvent e)
-	{
+	public void windowClosing(WindowEvent e) {
 		w.closeRT();
 		w.dispose();
 	}

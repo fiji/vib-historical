@@ -1,3 +1,5 @@
+/* -*- mode: java; c-basic-offset: 8; indent-tabs-mode: t; tab-width: 8 -*- */
+
 package mipj;
 
 import java.io.*;
@@ -18,11 +20,11 @@ public class RealTimeMIP implements Serializable
 
 	int width, height, depth;
 
-	/** Creates a RealTimeMIP structure from a list of pointers to indicate values 1-255 within
-	a list of positions. Also requires width, height and depth of dataset. */
+	/** Creates a RealTimeMIP structure from a list of pointers to
+	    indicate values 1-255 within a list of positions. Also
+	    requires width, height and depth of dataset. */
 
-	public RealTimeMIP( int[] pointers, int[] pos, int width, int height, int depth )
-	{
+	public RealTimeMIP( int[] pointers, int[] pos, int width, int height, int depth ) {
 		valuePointer = pointers;
 		position = pos;
 		this.width = width;
@@ -33,14 +35,16 @@ public class RealTimeMIP implements Serializable
 		mis = null;
 	}
 
-	public int getX(){ return width; }
-	public int getY(){ return height; }
-
+	public int getX() {
+		return width;
+	}
+	public int getY() {
+		return height;
+	}
 
 	/** Pack three integer values into a single integer (2047, 2047, 1023) */
 
-	public static int encode( int x, int y, int z )
-	{
+	public static int encode( int x, int y, int z ) {
 		return ((x<<21) | (y<<10) | z );
 	}
 
@@ -62,66 +66,62 @@ public class RealTimeMIP implements Serializable
 
 	/** Draw image onto buffer and then to screen */
 
-	public void drawImage(Graphics gfx, Matrix4f rot, int threshold, int posx, int posy)
-	{
+	public void drawImage(Graphics gfx, Matrix4f rot, int threshold, int posx, int posy) {
 
-			float hw, hh, hd;
-			hw = ( (float) width / 2.0f );
-			hh = ( (float) height / 2.0f );
-			hd = ( (float) depth / 2.0f );
-			float hw5, hh5, hd5;
-			hw5 = hw + 0.5f;
-			hh5 = hh + 0.5f;
+		float hw, hh, hd;
+		hw = ( (float) width / 2.0f );
+		hh = ( (float) height / 2.0f );
+		hd = ( (float) depth / 2.0f );
+		float hw5, hh5, hd5;
+		hw5 = hw + 0.5f;
+		hh5 = hh + 0.5f;
 
-			if ( buf == null )
-				buf = new byte[width*height];
-			else
-				Arrays.fill( buf, (byte)0 );
+		if ( buf == null )
+			buf = new byte[width*height];
+		else
+			Arrays.fill( buf, (byte)0 );
 
-			if ( icm == null )
-				makeColourModel();
+		if ( icm == null )
+			makeColourModel();
 
-			if ( mis == null )
-			{
-				mis = new MemoryImageSource(width, height, icm, buf, 0,  width);
-				mis.setAnimated(true);
-				mis.setFullBufferUpdates(true);
-				img = Toolkit.getDefaultToolkit().createImage(mis);
-			}
+		if ( mis == null ) {
+			mis = new MemoryImageSource(width, height, icm, buf, 0,  width);
+			mis.setAnimated(true);
+			mis.setFullBufferUpdates(true);
+			img = Toolkit.getDefaultToolkit().createImage(mis);
+		}
 
-			for( int i = threshold ; i < 255 ; ++i ) // 0 is actually colour 1, so 254 is 255
-			{
+		for( int i = threshold ; i < 255 ; ++i ) { // 0 is actually colour 1, so 254 is 255
 
-				int grey = i + 1;
+			int grey = i + 1;
 
-				Vector3f pos = new Vector3f(  );
+			Vector3f pos = new Vector3f(  );
 
-				for ( int element = valuePointer[i] ; element < valuePointer[i+1] ; element++)
-				{
+			for ( int element = valuePointer[i] ; element < valuePointer[i+1] ; element++) {
 
-					int x = ( position[element] >>> 21 );
-					int y = ( ( position[element] >> 10 ) & 0x7FF );
-					int z = ( position[element] & 0x3FF );
+				int x = ( position[element] >>> 21 );
+				int y = ( ( position[element] >> 10 ) & 0x7FF );
+				int z = ( position[element] & 0x3FF );
 
-					pos.x = ((float)(x) - (hw));
-					pos.y = ((float)(y) - (hh));
-					pos.z = ((float)(z) - (hd));
+				pos.x = ((float)(x) - (hw));
+				pos.y = ((float)(y) - (hh));
+				pos.z = ((float)(z) - (hd));
 
-					rot.transform( pos );
+				rot.transform( pos );
 
-					int ix = (int) (pos.x + hw5);
-					int iy = (int) (pos.y + hh5);
+				int ix = (int) (pos.x + hw5);
+				int iy = (int) (pos.y + hh5);
 
-					if (ix >= 0 && ix < width && iy >= 0 && iy < height)
-						buf[ix+(width*iy)] = (byte)grey;
-
-				}
+				if (ix >= 0 && ix < width && iy >= 0 && iy < height)
+					buf[ix+(width*iy)] = (byte)grey;
 
 			}
 
-			mis.newPixels();
+		}
 
-			gfx.drawImage( img, posx, posy, null );
+		mis.newPixels();
+
+		gfx.drawImage( img, posx, posy, null );
 
 	}
 
@@ -136,21 +136,19 @@ public class RealTimeMIP implements Serializable
 		hd = depth >> 1;
 
 
-		for( int i = 0 ; i < 255 ; ++i )
-		{
+		for( int i = 0 ; i < 255 ; ++i ) {
 
 			gfx.setColor( new Color( i, i, i ) );
 
-			for ( int element = valuePointer[i] ; element < valuePointer[i+1] ; element++)
-			{
+			for ( int element = valuePointer[i] ; element < valuePointer[i+1] ; element++) {
 
 				int x = ( position[element] >>> 21 );
 				int y = ( ( position[element] >> 10 ) & 0x7FF );
 				int z = ( position[element] & 0x3FF );
 
 				Vector3f pos = new Vector3f( (float) (x - (hw)),
-											 (float) (y - (hh)),
-											 (float) (z - (hd)) );
+							     (float) (y - (hh)),
+							     (float) (z - (hd)) );
 
 				rot.transform( pos );
 
@@ -160,8 +158,7 @@ public class RealTimeMIP implements Serializable
 				ix += (hw);
 				iy += (hh);
 
-				if (ix >= 0 && ix < width && iy >= 0 && iy < height)
-				{
+				if (ix >= 0 && ix < width && iy >= 0 && iy < height) {
 					gfx.drawRect(ix, iy, 0, 0);
 				}
 
@@ -185,19 +182,17 @@ public class RealTimeMIP implements Serializable
 
 		byte[] buffer = new byte[256*256];
 
-		for( int i = 0 ; i < 255 ; ++i )
-		{
+		for( int i = 0 ; i < 255 ; ++i ) {
 
-			for ( int element = valuePointer[i] ; element < valuePointer[i+1] ; element++)
-			{
+			for ( int element = valuePointer[i] ; element < valuePointer[i+1] ; element++) {
 
 				int x = ( position[element] >>> 21 );
 				int y = ( ( position[element] >> 10 ) & 0x7FF );
 				int z = ( position[element] & 0x3FF );
 
 				Vector3f pos = new Vector3f( (float) (x - (hw)),
-											 (float) (y - (hh)),
-											 (float) (z - (hd)) );
+							     (float) (y - (hh)),
+							     (float) (z - (hd)) );
 
 				rot.transform( pos );
 
@@ -229,11 +224,9 @@ public class RealTimeMIP implements Serializable
 
 		System.out.println(System.currentTimeMillis());
 
-		for( int i = 0 ; i < 255 ; ++i )
-		{
+		for( int i = 0 ; i < 255 ; ++i ) {
 
-			for ( int element = valuePointer[i] ; element < valuePointer[i+1] ; element++)
-			{
+			for ( int element = valuePointer[i] ; element < valuePointer[i+1] ; element++) {
 				int x = ( position[element] >>> 21 );
 				int y = ( ( position[element] >> 10 ) & 0x7FF );
 				buffer[x + (width*y)] = (byte)i;

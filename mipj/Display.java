@@ -1,3 +1,5 @@
+/* -*- mode: java; c-basic-offset: 8; indent-tabs-mode: t; tab-width: 8 -*- */
+
 package mipj;
 
 import java.awt.*;
@@ -5,21 +7,20 @@ import java.awt.event.*;
 import ij.IJ;
 
 public class Display
-extends Frame
-implements MouseMotionListener, MouseListener
+	extends Frame
+	implements MouseMotionListener, MouseListener
 {
 
-	 RealTimeMIP mip[];
-	 Panel pan;
-	 Matrix4f mat;
+	RealTimeMIP mip[];
+	Panel pan;
+	Matrix4f mat;
 
-	 float rotx, roty;
-	 MouseEvent from;
+	float rotx, roty;
+	MouseEvent from;
 
-	 int topLeftX, topLeftY;
+	int topLeftX, topLeftY;
 
-	 public Display(int x, int y, RealTimeMIP mip[], MIPMainWindow mmw )
-	 {
+	public Display(int x, int y, RealTimeMIP mip[], MIPMainWindow mmw ) {
 
 		super("Real-Time View");
 
@@ -44,77 +45,72 @@ implements MouseMotionListener, MouseListener
 
 		setSize( x + xlen, y + ylen );
 
-     }
+	}
 
-	public Matrix4f getRot()
-	{
+	public Matrix4f getRot() {
 		return mat;
 	}
 
-     public void update(Graphics g)
-     {
-            paint(g);
-     }
+	public void update(Graphics g) {
+		paint(g);
+	}
 
-     public void paint(Graphics gfx)
-     {
+	public void paint(Graphics gfx) {
 
-		 mat.rotByY( MIP.ONEDEGREE * -roty );
+		mat.rotByY( MIP.ONEDEGREE * -roty );
 
-		 mat.rotByX( MIP.ONEDEGREE * rotx );
+		mat.rotByX( MIP.ONEDEGREE * rotx );
 
-		 //float[] f = m.getEuler();
+		//float[] f = m.getEuler();
 
-		 //System.out.print( f[0] + " " + f[1] + " " + f[2] + "            \r");
+		//System.out.print( f[0] + " " + f[1] + " " + f[2] + "            \r");
 
-		 mip[0].drawImage( gfx, mat, 0, topLeftX, topLeftY );
+		mip[0].drawImage( gfx, mat, 0, topLeftX, topLeftY );
 
 		roty = 0.0f;
 		rotx = 0.0f;
 
-	 }
+	}
 
 	// MOUSE HANDLERS
 
-    public void mouseMoved(MouseEvent e) {
-    }
+	public void mouseMoved(MouseEvent e) {
+	}
 
-    public void mouseDragged(MouseEvent e) {
-       // change the picture to display
+	public void mouseDragged(MouseEvent e) {
+		// change the picture to display
 
-	   rotx = (e.getY() - from.getY());
+		rotx = (e.getY() - from.getY());
 
-	   roty = (e.getX() - from.getX());
+		roty = (e.getX() - from.getX());
 
-	   from = e;
+		from = e;
 
-	   repaint();
+		repaint();
 
-    }
+	}
 
-    public void mousePressed(MouseEvent e) {
+	public void mousePressed(MouseEvent e) {
 		from = e;//System.out.println(e);
-    }
+	}
 
-    public void mouseReleased(MouseEvent e) {
-    }
+	public void mouseReleased(MouseEvent e) {
+	}
 
-    public void mouseEntered(MouseEvent e) {//System.out.println(e);
-    }
+	public void mouseEntered(MouseEvent e) {//System.out.println(e);
+	}
 
-    public void mouseExited(MouseEvent e) {//System.out.println(e);
-    }
+	public void mouseExited(MouseEvent e) {//System.out.println(e);
+	}
 
 	public void mouseClicked(MouseEvent e) {//System.out.println(e);
 	}
 
-	public static void main(String[] args)
-	{
-		  //Display gui = new Display();
+	public static void main(String[] args) {
+		//Display gui = new Display();
 	}
 
 }
-
 
 class Terminate extends WindowAdapter
 {
@@ -122,16 +118,13 @@ class Terminate extends WindowAdapter
 	private Window w;
 	private MIPMainWindow mmw;
 
-	public Terminate( Window w, MIPMainWindow mmw)
-	{
+	public Terminate( Window w, MIPMainWindow mmw) {
 		this.w = w;
 		this.mmw = mmw;
 	}
 
-	public void windowClosing(WindowEvent e)
-	{
-		if (IJ.getApplet() == null )
-		{
+	public void windowClosing(WindowEvent e) {
+		if (IJ.getApplet() == null ) {
 			mmw.closeRT();
 			w.dispose();
 		}

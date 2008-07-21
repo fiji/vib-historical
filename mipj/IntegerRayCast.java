@@ -1,3 +1,5 @@
+/* -*- mode: java; c-basic-offset: 8; indent-tabs-mode: t; tab-width: 8 -*- */
+
 package mipj;
 
 public class IntegerRayCast
@@ -8,8 +10,7 @@ public class IntegerRayCast
 	private int incx, incy, incz, fracy, fracx, fracz;
 	private int traceby;
 
-	public IntegerRayCast( int start[], int end[] )
-	{
+	public IntegerRayCast( int start[], int end[] ) {
 
 		pos = new int[3];
 
@@ -23,46 +24,36 @@ public class IntegerRayCast
 		dy = end[1] - start[1];    // steps vertically
 		dz = end[2] - start[2];    // steps into
 
-		if (dy < 0)
-		{
+		if (dy < 0) {
 			dy = -dy;    // then the line's going down the way
 			incy = -1;
-		}
-		else
+		} else
 			incy = 1;  // going upwards
 
-		if (dx < 0)
-		{
+		if (dx < 0) {
 			dx = -dx;  // line going left
 			incx = -1;
-		}
-		else
+		} else
 			incx = 1;  // line going right
 
-		if (dz < 0)
-		{
+		if (dz < 0) {
 			dz = -dz;
 			incz = -1;
-		}
-		else
+		} else
 			incz = 1;
 
-		if (dx > dy && dx > dz) // tracing along x axis
-		{
+		if (dx > dy && dx > dz) { // tracing along x axis
+
 			fracy = (dy<<1) - (dx);
 			fracz = (dz<<1) - (dx);
 			traceby = 0;
-		}
-		else if ( dy > dx && dy > dz)
-		{
+		} else if ( dy > dx && dy > dz) {
 
 			fracx = (dx<<1) - (dy);
 			fracz = (dz<<1) - (dy);
 			traceby = 1;
 
-		}
-		else
-		{
+		} else {
 			fracx = (dx<<1) - (dz);
 			fracy = (dy<<1) - (dz);
 			traceby = 2;
@@ -74,19 +65,16 @@ public class IntegerRayCast
 
 	}
 
-	public int[] next()
-	{
+	public int[] next() {
 
-		if ( traceby == 0 ) // x
-		{
-			if (fracy >= 0)
-			{
+		if ( traceby == 0 ) { // x
+
+			if (fracy >= 0) {
 				pos[1] += incy;
 				fracy -= dx;
 			}
 
-			if (fracz >= 0)
-			{
+			if (fracz >= 0) {
 				pos[2] += incz;
 				fracz -= dx;
 			}
@@ -95,17 +83,14 @@ public class IntegerRayCast
 			fracz += dz;
 			pos[0] += incx;
 
-		}
-		else if ( traceby == 1 ) //y
-		{
-			if (fracx >= 0)
-			{
+		} else if ( traceby == 1 ) { //y
+
+			if (fracx >= 0) {
 				pos[0] += incx;
 				fracx -= dy;
 			}
 
-			if (fracz >= 0)
-			{
+			if (fracz >= 0) {
 				pos[2] += incz;
 				fracz -= dy;
 			}
@@ -113,17 +98,14 @@ public class IntegerRayCast
 			fracx += dx;
 			fracz += dz;
 			pos[1] += incy;
-		}
-		else // z
-		{
-			if (fracx >= 0)
-			{
+		} else { // z
+
+			if (fracx >= 0) {
 				pos[0] += incx;
 				fracx -= dz;
 			}
 
-			if (fracy >= 0)
-			{
+			if (fracy >= 0) {
 				pos[1] += incy;
 				fracz -= dz;
 			}
@@ -137,8 +119,7 @@ public class IntegerRayCast
 
 	}
 
-	public int[] getSteps()
-	{
+	public int[] getSteps() {
 		int[] answer = new int[3];
 		answer[0] = incx;
 		answer[1] = incy;
@@ -146,22 +127,16 @@ public class IntegerRayCast
 		return answer;
 	}
 
-	public byte[] createTemplate()
-	{
+	public byte[] createTemplate() {
 
 		int length;
 
 
-		if ( traceby == 0 )
-		{
+		if ( traceby == 0 ) {
 			length = dx >> 1;
-		}
-		else if ( traceby == 1 )
-		{
+		} else if ( traceby == 1 ) {
 			length = dy >> 1;
-		}
-		else
-		{
+		} else {
 			length = dz >> 1;
 		}
 
@@ -171,8 +146,7 @@ public class IntegerRayCast
 
 		int x,y,z;
 
-		for( int i = 0 ; i < length ; ++i )
-		{
+		for( int i = 0 ; i < length ; ++i ) {
 
 			x = pos[0];
 			y = pos[1];
@@ -180,18 +154,15 @@ public class IntegerRayCast
 
 			int[] step = next();
 
-			if ( (step[0] - x) != 0 )
-			{
+			if ( (step[0] - x) != 0 ) {
 				answer[i] |= 0x01;
 				//System.out.println("x step");
 			}
-			if ( (step[1] - y) != 0 )
-			{
+			if ( (step[1] - y) != 0 ) {
 				answer[i] |= 0x02;
 				//System.out.println("y step");
 			}
-			if ( (step[2] - z) != 0 )
-			{
+			if ( (step[2] - z) != 0 ) {
 				answer[i] |= 0x04;
 				//System.out.println("z step");
 			}
@@ -204,8 +175,7 @@ public class IntegerRayCast
 
 	}
 
-	public static void main(String[] args)
-	{
+	public static void main(String[] args) {
 
 		int[] a = new int[3];
 		int[] b = new int[3];
@@ -217,8 +187,7 @@ public class IntegerRayCast
 
 		IntegerRayCast irc = new IntegerRayCast( a, b );
 
-		for (int i = 0 ; i < 50 ; ++i)
-		{
+		for (int i = 0 ; i < 50 ; ++i) {
 			int[] pos = irc.next();
 			System.out.println( pos[0] + " " + pos[1] + " " + pos[2] );
 		}

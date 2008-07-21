@@ -1,3 +1,5 @@
+/* -*- mode: java; c-basic-offset: 8; indent-tabs-mode: t; tab-width: 8 -*- */
+
 package mipj;
 
 import java.io.*;
@@ -21,688 +23,632 @@ w*h transforms + ray trace
 compared to w*h*d transforms
 */
 
-    public static final float ONEDEGREE = 0.0174533f;
-    public static final int TRILINEAR = 1;
-    public static final int NEARESTNEIGHBOUR = 2;
+	public static final float ONEDEGREE = 0.0174533f;
+	public static final int TRILINEAR = 1;
+	public static final int NEARESTNEIGHBOUR = 2;
 
-    private boolean plugin; // acting as a plugin for ImageJ?
-    private ImageStack stack;
-    private byte[][] voxel = null;
-    private File outputFile;
-    private float zScale;
-    private int resX, resY;
-    private boolean writeToFile = false;
-    private float rayCastIncrement = 1.0f;
-    private int rayCastType = TRILINEAR;
-    private boolean dmip;
-    private int max_threshold = 255;
-    private boolean forceWrite = false;
+	private boolean plugin; // acting as a plugin for ImageJ?
+	private MIPImageStack stack;
+	private byte[][] voxel = null;
+	private File outputFile;
+	private float zScale;
+	private int resX, resY;
+	private boolean writeToFile = false;
+	private float rayCastIncrement = 1.0f;
+	private int rayCastType = TRILINEAR;
+	private boolean dmip;
+	private int max_threshold = 255;
+	private boolean forceWrite = false;
 
-    private int stackwidth, stackheight, stackdepth;
+	private int stackwidth, stackheight, stackdepth;
 
-    /** Create MIP using an ImageStack */
+	/** Create MIP using an ImageStack */
 
-    public MIP( ImageStack i, boolean write ) throws Exception
-    {
+	public MIP( MIPImageStack i, boolean write ) throws Exception {
 
-        stack = i;
+		stack = i;
 
-        voxel = stack.getStack();
+		voxel = stack.getStack();
 
-        if (voxel == null)
-            throw new Exception("Failed to read the stack");
+		if (voxel == null)
+			throw new Exception("Failed to read the stack");
 
-        zScale = 1.0f;
-        resX = stack.getWidth();
-        resY = stack.getHeight();
-        outputFile = new File("projection000.tif");
-        writeToFile = write;
+		zScale = 1.0f;
+		resX = stack.getWidth();
+		resY = stack.getHeight();
+		outputFile = new File("projection000.tif");
+		writeToFile = write;
 
-    }
+	}
 
-    public void setForceWrite( boolean b )
-    {
-        forceWrite = b;
-    }
+	public void setForceWrite( boolean b ) {
+		forceWrite = b;
+	}
 
-    public void setPlugin( boolean b )
-    {
-        plugin = b;
-    }
+	public void setPlugin( boolean b ) {
+		plugin = b;
+	}
 
-    /** Set the threshold above which value rays will be terminated */
+	/** Set the threshold above which value rays will be terminated */
 
-    public void setThreshold( int i ) throws Exception
-    {
-        if ( i > 1 && i < 256 )
-            max_threshold = i;
-        else throw new Exception("Threshold out of range...1 to 255 only");
-    }
+	public void setThreshold( int i ) throws Exception {
+		if ( i > 1 && i < 256 )
+			max_threshold = i;
+		else
+			throw new Exception("Threshold out of range...1 to 255 only");
+	}
 
-    /** Returns the threshold value */
+	/** Returns the threshold value */
 
-    public int getThreshold()
-    {
-        return max_threshold;
-    }
+	public int getThreshold() {
+		return max_threshold;
+	}
 
-    /** Set the X:Z ratio of the slices */
+	/** Set the X:Z ratio of the slices */
 
-    public void setZScale( float f )
-    {
-        zScale = f;
-        if (zScale == 0.0f)
-        {
-            zScale = (stack.getWidth() / stack.getDepth());
-        }
-    }
+	public void setZScale( float f ) {
+		zScale = f;
+		if (zScale == 0.0f) {
+			zScale = (stack.getWidth() / stack.getDepth());
+		}
+	}
 
-    /** Returns the ZScale value which has been set */
+	/** Returns the ZScale value which has been set */
 
-    public float getZScale()
-    {
-        return zScale;
-    }
+	public float getZScale() {
+		return zScale;
+	}
 
-    /** Set the file for output to be written to */
+	/** Set the file for output to be written to */
 
-    public void setOutputFile( File f )
-    {
-        outputFile = f;
-    }
+	public void setOutputFile( File f ) {
+		outputFile = f;
+	}
 
-    /** Return the output file to be written to */
+	/** Return the output file to be written to */
 
-    public File getOutputFile()
-    {
-        return outputFile;
-    }
+	public File getOutputFile() {
+		return outputFile;
+	}
 
-    /** Set the resolution for the output data */
+	/** Set the resolution for the output data */
 
-    public void setResolution( int x, int y ) throws Exception
-    {
+	public void setResolution( int x, int y ) throws Exception {
 
-        if ( x < 1 || y < 1 )
-            throw new Exception("You can't have a negative resolution!");
+		if ( x < 1 || y < 1 )
+			throw new Exception("You can't have a negative resolution!");
 
-        resX = x;
-        resY = y;
+		resX = x;
+		resY = y;
 
-    }
+	}
 
-    /** Returns the resolution of the output image */
+	/** Returns the resolution of the output image */
 
-    public int[] getResolution()
-    {
-        int[] res = new int[2];
-        res[0] = resX;
-        res[1] = resY;
-        return res;
-    }
+	public int[] getResolution() {
+		int[] res = new int[2];
+		res[0] = resX;
+		res[1] = resY;
+		return res;
+	}
 
-    /** Returns true if writing to a file, false if otherwise */
+	/** Returns true if writing to a file, false if otherwise */
 
-    public boolean writingToFile()
-    {
-        return writeToFile;
-    }
+	public boolean writingToFile() {
+		return writeToFile;
+	}
 
-    /** Set whether or not data will be written to the output file or not. */
+	/** Set whether or not data will be written to the output file or not. */
 
-    public void writeToFile( boolean b )
-    {
-        writeToFile = b;
-    }
+	public void writeToFile( boolean b ) {
+		writeToFile = b;
+	}
 
-    /** Returns the ray cast iteration increment */
+	/** Returns the ray cast iteration increment */
 
-    public float getRayCastIncrement()
-    {
-        return rayCastIncrement;
-    }
+	public float getRayCastIncrement() {
+		return rayCastIncrement;
+	}
 
-    /** Set the distance "stepped" each iteration while raycasting. 1.0f would step the distance of one whole voxel at a time. */
+	/** Set the distance "stepped" each iteration while raycasting. 1.0f would step the distance of one whole voxel at a time. */
 
-    public void setRayCastIncrement( float f ) throws Exception
-    {
-        if ( f <= 0.0f )
-            throw new Exception("Raycast increment must be greater than zero.");
+	public void setRayCastIncrement( float f ) throws Exception {
+		if ( f <= 0.0f )
+			throw new Exception("Raycast increment must be greater than zero.");
 
-        rayCastIncrement = f;
-    }
+		rayCastIncrement = f;
+	}
 
-    /** Returns the type of the raycasting */
+	/** Returns the type of the raycasting */
 
-    public int getRayCastType()
-    {
-        return rayCastType;
-    }
+	public int getRayCastType() {
+		return rayCastType;
+	}
 
-    /** Set the type of raycasting interpolation: either MIP.TRILINEAR or MIP.NEARESTNEIGHBOUR */
+	/** Set the type of raycasting interpolation: either MIP.TRILINEAR or MIP.NEARESTNEIGHBOUR */
 
-    public void setRayCastType( int t ) throws Exception
-    {
-        if ( t != TRILINEAR && t != NEARESTNEIGHBOUR )
-            throw new Exception("Unknown raycast type, must be MIP.TRILINEAR or MIP.NEARESTNEIGHBOUR.");
+	public void setRayCastType( int t ) throws Exception {
+		if ( t != TRILINEAR && t != NEARESTNEIGHBOUR )
+			throw new Exception("Unknown raycast type, must be MIP.TRILINEAR or MIP.NEARESTNEIGHBOUR.");
 
-        rayCastType = t;
-    }
+		rayCastType = t;
+	}
 
-    /** Set to enable Depth-MIP, where intensity is reduced for points further away. */
+	/** Set to enable Depth-MIP, where intensity is reduced for points further away. */
 
-    public void setDMIP( boolean s )
-    {
-        dmip = s;
-    }
+	public void setDMIP( boolean s ) {
+		dmip = s;
+	}
 
-    /** True if Depth-MIP is on, false if not */
+	/** True if Depth-MIP is on, false if not */
 
-    public boolean getDMIP()
-    {
-        return dmip;
-    }
+	public boolean getDMIP() {
+		return dmip;
+	}
 
-    /** Turns the byte array, given the dimensions, into an Image */
+	/** Turns the byte array, given the dimensions, into an Image */
 
-    private ImagePlus makeImage( byte[] answer, int width, int height )
-    {
-        ByteProcessor proc = new ByteProcessor( width, height );
-        proc.setPixels( (Object) answer );
-        return new ImagePlus( "tmp", proc );
-    }
+	private ImagePlus makeImage( byte[] answer, int width, int height ) {
+		ByteProcessor proc = new ByteProcessor( width, height );
+		proc.setPixels( (Object) answer );
+		return new ImagePlus( "tmp", proc );
+	}
 
-    /** Writes a byte array to the output file */
+	/** Writes a byte array to the output file */
 
-    private void writeFile( ImagePlus ip )
-    {
+	private void writeFile( ImagePlus ip ) {
 
-        System.out.print("Writing File... (to '" + outputFile + "')");
+		System.out.print("Writing File... (to '" + outputFile + "')");
 
-        try
-        {
+		try {
 
-            if ( forceWrite || !outputFile.exists() )
-            {
+			if ( forceWrite || !outputFile.exists() ) {
 
-                FileOutputStream fos = new FileOutputStream( outputFile );
+				FileOutputStream fos = new FileOutputStream( outputFile );
 
-                TiffEncoder tif = new TiffEncoder( ip.getFileInfo() );
+				TiffEncoder tif = new TiffEncoder( ip.getFileInfo() );
 
-                tif.write( new DataOutputStream(fos) );
+				tif.write( new DataOutputStream(fos) );
 
-                if ( !plugin && MIPDriver.outputJpeg() )
-                {
-                    FileSaver fs = new FileSaver( ip );
-                    String jpgName = outputFile.getAbsolutePath();
-                    jpgName = jpgName.substring(0, jpgName.length() - 3 ) + "jpg"; // remove tif replace with jpg
-                    fs.saveAsJpeg( jpgName );
-                }
+				if ( !plugin && MIPDriver.outputJpeg() ) {
+					FileSaver fs = new FileSaver( ip );
+					String jpgName = outputFile.getAbsolutePath();
+					jpgName = jpgName.substring(0, jpgName.length() - 3 ) + "jpg"; // remove tif replace with jpg
+					fs.saveAsJpeg( jpgName );
+				}
 
-            }
-            else
-            {
-                System.out.println("Won't overwrite existing file, use -f to override. " + outputFile);
-                return;
-            }
+			} else {
+				System.out.println("Won't overwrite existing file, use -f to override. " + outputFile);
+				return;
+			}
 
-        }
-        catch( IOException io )
-        {
-            System.out.println("Failed to write file in MIP.class");
-            io.printStackTrace();
-            return;
-        }
+		} catch( IOException io ) {
+			System.out.println("Failed to write file in MIP.class");
+			io.printStackTrace();
+			return;
+		}
 
-        System.out.println("Written");
+		System.out.println("Written");
 
-    }
+	}
 
-    /** Works out the value nearest to the given position. */
+	/** Works out the value nearest to the given position. */
 
-    private int nearestNeighbour( Vector3f pos )
-    {
+	private int nearestNeighbour( Vector3f pos ) {
 
 
-        int x, y, z;
+		int x, y, z;
 
-        x = (int)(pos.x > 0.0f ? pos.x + 0.5f : pos.x - 0.5f);
-        y = (int)(pos.y > 0.0f ? pos.y + 0.5f : pos.y - 0.5f);
-        z = (int)(pos.z > 0.0f ? pos.z + 0.5f : pos.z - 0.5f);
+		x = (int)(pos.x > 0.0f ? pos.x + 0.5f : pos.x - 0.5f);
+		y = (int)(pos.y > 0.0f ? pos.y + 0.5f : pos.y - 0.5f);
+		z = (int)(pos.z > 0.0f ? pos.z + 0.5f : pos.z - 0.5f);
 
-        return 0xff & voxel[z][x + (stack.getWidth()*y)];
+		return 0xff & voxel[z][x + (stack.getWidth()*y)];
 
 
-    }
+	}
 
-    /** Works out the intensity of a given value within the voxelspace, according to trilinear interpolation. */
+	/** Works out the intensity of a given value within the voxelspace, according to trilinear interpolation. */
 
-    private int trilinearIntensity( Vector3f pos, int max )
-    {
+	private int trilinearIntensity( Vector3f pos, int max ) {
 
-        int x, y, z;
+		int x, y, z;
 
-        x = (int) (pos.x);
-        y = (int) (pos.y);
-        z = (int) (pos.z);
+		x = (int) (pos.x);
+		y = (int) (pos.y);
+		z = (int) (pos.z);
 
-        if ( x == (stackwidth-1) )
-        {
-            pos.x = ((float)(x))-0.000001f;
-            x--;
-        }
-        if (y == (stackheight-1))
-        {
-            pos.y = ((float)(y))-0.000001f;
-            y--;
-        }
-        if (z == (stackdepth-1))
-        {
-            pos.z = ((float)(z))-0.000001f;
-            z--;
-        }
+		if ( x == (stackwidth-1) ) {
+			pos.x = ((float)(x))-0.000001f;
+			x--;
+		}
+		if (y == (stackheight-1)) {
+			pos.y = ((float)(y))-0.000001f;
+			y--;
+		}
+		if (z == (stackdepth-1)) {
+			pos.z = ((float)(z))-0.000001f;
+			z--;
+		}
 
-        float v000 = 0.0f, v100 = 0.0f, v010 = 0.0f, v001 = 0.0f, v101 = 0.0f, v011 = 0.0f, v110 = 0.0f, v111 = 0.0f;
+		float v000 = 0.0f, v100 = 0.0f, v010 = 0.0f, v001 = 0.0f, v101 = 0.0f, v011 = 0.0f, v110 = 0.0f, v111 = 0.0f;
 
-        v000 = (float) (0xff & voxel[z][x + (stackwidth*y)]);
-        v100 = (float) (0xff & voxel[z][(x+1) + (stackwidth*y)]);
-        v010 = (float) (0xff & voxel[z][x + (stackwidth*(y+1))]);
-        v001 = (float) (0xff & voxel[z+1][x + (stackwidth*y)]);
-        v101 = (float) (0xff & voxel[z+1][x+1 + (stackwidth*y)]);
-        v011 = (float) (0xff & voxel[z+1][x + (stackwidth*(y+1))]);
-        v110 = (float) (0xff & voxel[z][x+1 + (stackwidth*(y+1))]);
-        v111 = (float) (0xff & voxel[z+1][x+1 + (stackwidth*(y+1))]);
+		v000 = (float) (0xff & voxel[z][x + (stackwidth*y)]);
+		v100 = (float) (0xff & voxel[z][(x+1) + (stackwidth*y)]);
+		v010 = (float) (0xff & voxel[z][x + (stackwidth*(y+1))]);
+		v001 = (float) (0xff & voxel[z+1][x + (stackwidth*y)]);
+		v101 = (float) (0xff & voxel[z+1][x+1 + (stackwidth*y)]);
+		v011 = (float) (0xff & voxel[z+1][x + (stackwidth*(y+1))]);
+		v110 = (float) (0xff & voxel[z][x+1 + (stackwidth*(y+1))]);
+		v111 = (float) (0xff & voxel[z+1][x+1 + (stackwidth*(y+1))]);
 
-        float maxf = (float) max;
-        if ( v000 < maxf && v100 < maxf && v010 < maxf && v001 < maxf && v101 < maxf && v011 < maxf && v110 < maxf && v111 < maxf )
-            return 0;
+		float maxf = (float) max;
+		if ( v000 < maxf && v100 < maxf && v010 < maxf && v001 < maxf && v101 < maxf && v011 < maxf && v110 < maxf && v111 < maxf )
+			return 0;
 
-        pos.x -= (float)x;
-        pos.y -= (float)y;
-        pos.z -= (float)z;
+		pos.x -= (float)x;
+		pos.y -= (float)y;
+		pos.z -= (float)z;
 
-        float oneminusx = (1.0f - pos.x);
-        float oneminusy = (1.0f - pos.y);
-        float oneminusz = (1.0f - pos.z);
+		float oneminusx = (1.0f - pos.x);
+		float oneminusy = (1.0f - pos.y);
+		float oneminusz = (1.0f - pos.z);
 
 
 
-        float value = v000 * oneminusx * oneminusy * oneminusz +
-                      v100 * pos.x * oneminusy * oneminusz +
-                      v010 * oneminusx * pos.y * oneminusz +
-                      v001 * oneminusx * oneminusy * pos.z +
-                      v101 * pos.x * oneminusy * pos.z +
-                      v011 * oneminusx * pos.y * pos.z +
-                      v110 * pos.x * pos.y * oneminusz +
-                      v111 * pos.x * pos.y * pos.z;
+		float value = v000 * oneminusx * oneminusy * oneminusz +
+			v100 * pos.x * oneminusy * oneminusz +
+			v010 * oneminusx * pos.y * oneminusz +
+			v001 * oneminusx * oneminusy * pos.z +
+			v101 * pos.x * oneminusy * pos.z +
+			v011 * oneminusx * pos.y * pos.z +
+			v110 * pos.x * pos.y * oneminusz +
+			v111 * pos.x * pos.y * pos.z;
 
-        int val = (int)(value > 0.0f ? value + 0.5f : value - 0.5f);
+		int val = (int)(value > 0.0f ? value + 0.5f : value - 0.5f);
 
-        return val;
+		return val;
 
 
-    }
+	}
 
-    /** Simply projects the data set directly onto the screen. */
+	/** Simply projects the data set directly onto the screen. */
 
-    public ImagePlus projectZ()
-    {
+	public ImagePlus projectZ() {
 
-        byte[] answer = new byte[stack.getWidth()*stack.getHeight()];
+		byte[] answer = new byte[stack.getWidth()*stack.getHeight()];
 
-        int maxpix = stack.getWidth()*stack.getHeight();
-        int max;
+		int maxpix = stack.getWidth()*stack.getHeight();
+		int max;
 
-        for ( int i = 0 ; i < maxpix ; ++i )
-        {
+		for ( int i = 0 ; i < maxpix ; ++i ) {
 
-            max =  0xff & voxel[0][i];
+			max =  0xff & voxel[0][i];
 
-            for (int j = 1 ; j < stack.getDepth() ; ++j)
-            {
-                int test = 0xff & voxel[j][i];
-                if (test > max)
-                    max = test;
-            }
+			for (int j = 1 ; j < stack.getDepth() ; ++j) {
+				int test = 0xff & voxel[j][i];
+				if (test > max)
+					max = test;
+			}
 
-            answer[i] = (byte) max;
+			answer[i] = (byte) max;
 
-        }
+		}
 
 
-        ImagePlus ip = makeImage( answer , stack.getWidth(), stack.getHeight() );
+		ImagePlus ip = makeImage( answer , stack.getWidth(), stack.getHeight() );
 
-        if (writeToFile)
-            writeFile( ip );
+		if (writeToFile)
+			writeFile( ip );
 
-        return ip;
+		return ip;
 
-    }
+	}
 
-    /** Performs MIP by projecting every point in the dataset by a matrix. */
+	/** Performs MIP by projecting every point in the dataset by a matrix. */
 
-    public ImagePlus projectByMatrix( Matrix4f rotin )
-    {
+	public ImagePlus projectByMatrix( Matrix4f rotin ) {
 
-        Matrix4f rot = new Matrix4f( rotin );
+		Matrix4f rot = new Matrix4f( rotin );
 
-        byte[] answer = new byte[ stack.getWidth() * stack.getHeight() ];
+		byte[] answer = new byte[ stack.getWidth() * stack.getHeight() ];
 
-        int w = stack.getWidth();
-        int h = stack.getHeight();
-        int d = stack.getDepth();
-        int hw = (w>>1);
-        int hh = (h>>1);
-        int hd = (d>>1);
+		int w = stack.getWidth();
+		int h = stack.getHeight();
+		int d = stack.getDepth();
+		int hw = (w>>1);
+		int hh = (h>>1);
+		int hd = (d>>1);
 
-        int maxpix = stack.getWidth() * stack.getHeight();
-        int val;
+		int maxpix = stack.getWidth() * stack.getHeight();
+		int val;
 
-        Vector3f pos = new Vector3f();
+		Vector3f pos = new Vector3f();
 
-        Matrix4f mat = new Matrix4f();
+		Matrix4f mat = new Matrix4f();
 
-        mat.translateBy( -hw, -hh, -hd );
+		mat.translateBy( -hw, -hh, -hd );
 
-        rot.mul(mat);
+		rot.mul(mat);
 
-        rot.translateBy( hw, hh, hd );
+		rot.translateBy( hw, hh, hd );
 
-        for ( int z = 0 ; z < d ; ++z )
-        {
+		for ( int z = 0 ; z < d ; ++z ) {
 
-            if (plugin)
-            {
-                double prog = ((z*100)/d) / 100.0;
-                IJ.showProgress( prog );
-            }
-            else
-                System.out.print("."); // System.out.print(((z*100)/d)+"%\r");
+			if (plugin) {
+				double prog = ((z*100)/d) / 100.0;
+				IJ.showProgress( prog );
+			} else
+				System.out.print("."); // System.out.print(((z*100)/d)+"%\r");
 
-            for( int y = 0 ; y < h ; ++y )
-            {
+			for( int y = 0 ; y < h ; ++y ) {
 
-                for (int x = 0 ; x < w ; ++x )
-                {
+				for (int x = 0 ; x < w ; ++x ) {
 
-                    pos.x = x;
-                    pos.y = y;
-                    pos.z = z;
+					pos.x = x;
+					pos.y = y;
+					pos.z = z;
 
-                    rot.transform( pos );
+					rot.transform( pos );
 
-                    int ix = (int)(pos.x > 0.0f ? pos.x + 0.5f : pos.x - 0.5f);
-                    int iy = (int)(pos.y > 0.0f ? pos.y + 0.5f : pos.y - 0.5f);
+					int ix = (int)(pos.x > 0.0f ? pos.x + 0.5f : pos.x - 0.5f);
+					int iy = (int)(pos.y > 0.0f ? pos.y + 0.5f : pos.y - 0.5f);
 
-                    if (ix >= 0 && ix < w && iy >= 0 && iy < h)
-                    {
+					if (ix >= 0 && ix < w && iy >= 0 && iy < h) {
 
-                        val = 0xff & answer[ix + (w*iy)];
+						val = 0xff & answer[ix + (w*iy)];
 
-                        if ( val < (0xff & voxel[z][x + (w*y)]) )
-                            answer[ix + (w*iy)] = voxel[z][x + (w*y)];
+						if ( val < (0xff & voxel[z][x + (w*y)]) )
+							answer[ix + (w*iy)] = voxel[z][x + (w*y)];
 
-                    }
+					}
 
-                }
+				}
 
 
-            }
+			}
 
 
-        }
+		}
 
-        if (plugin)
-            IJ.showProgress( 1.0 );
-        else
-            System.out.println("100%...DONE");
+		if (plugin)
+			IJ.showProgress( 1.0 );
+		else
+			System.out.println("100%...DONE");
 
-        ImagePlus ip = makeImage( answer , w, h );
+		ImagePlus ip = makeImage( answer , w, h );
 
-        if (writeToFile)
-            writeFile( ip );
+		if (writeToFile)
+			writeFile( ip );
 
-        return ip;
+		return ip;
 
-    }
+	}
 
-    /** Performs simple ray-casting, treating each voxel as a box which may be passed through. */
+	/** Performs simple ray-casting, treating each voxel as a box which may be passed through. */
 
-    public ImagePlus rayCastByMatrixSimple( Matrix4f rotin )
-    {
+	public ImagePlus rayCastByMatrixSimple( Matrix4f rotin ) {
 
 
-        Matrix4f rot = new Matrix4f( rotin );
+		Matrix4f rot = new Matrix4f( rotin );
 
-        byte[] answer = new byte[ stack.getWidth() * stack.getHeight() ];
+		byte[] answer = new byte[ stack.getWidth() * stack.getHeight() ];
 
-        int w = stack.getWidth();
-        int h = stack.getHeight();
-        float d = (float)stack.getDepth() * zScale;
-        int hw = (w>>1);
-        int hh = (h>>1);
-        float hd = (d * 0.5f);
+		int w = stack.getWidth();
+		int h = stack.getHeight();
+		float d = (float)stack.getDepth() * zScale;
+		int hw = (w>>1);
+		int hh = (h>>1);
+		float hd = (d * 0.5f);
 
-        // for every pixel in the view-space (at the moment, it's the width and height of input data,
-        // but in future it could be any resolution
+		// for every pixel in the view-space (at the moment, it's the width and height of input data,
+		// but in future it could be any resolution
 
-        // transform the ray-casting direction
+		// transform the ray-casting direction
 
-        Vector3f direction = new Vector3f( 0.0f, 0.0f, rayCastIncrement );
-        rot.transform( direction );
+		Vector3f direction = new Vector3f( 0.0f, 0.0f, rayCastIncrement );
+		rot.transform( direction );
 
-        // how many steps needed to ray-trace?
+		// how many steps needed to ray-trace?
 
-        Vector3f centre = new Vector3f( (float)hw, (float)hh, hd  );
+		Vector3f centre = new Vector3f( (float)hw, (float)hh, hd  );
 
-        // distance to a corner ( i.e. biggest distance within a cube )
+		// distance to a corner ( i.e. biggest distance within a cube )
 
-        float max = centre.length() + 1.0f;
+		float max = centre.length() + 1.0f;
 
-        int steps = (int) max;
+		int steps = (int) max;
 
-        steps *= 2;
+		steps *= 2;
 
-        Vector3f pos = new Vector3f();
+		Vector3f pos = new Vector3f();
 
-        for ( int x = 0 ; x < w ; ++x )
-        {
+		for ( int x = 0 ; x < w ; ++x ) {
 
-            for( int y = 0 ; y < h ; ++y ) // transform each ray to be casted's start position
-            {
+			for( int y = 0 ; y < h ; ++y ) { // transform each ray to be casted's start position
 
-                    // could probably precalculate and just increment instead of transforming, but
-                    // there could be rounding problems
+				// could probably precalculate and just increment instead of transforming, but
+				// there could be rounding problems
 
-                    pos.x = (x - hw);
-                    pos.y = (y - hh);
-                    pos.z = -max;
+				pos.x = (x - hw);
+				pos.y = (y - hh);
+				pos.z = -max;
 
-                    rot.transform( pos );
+				rot.transform( pos );
 
-                    for( int i = 0 ; i < steps ; ++i )
-                    {
+				for( int i = 0 ; i < steps ; ++i ) {
 
-                        int px, py, pz;
+					int px, py, pz;
 
-                        px = (int) pos.x;
-                        py = (int) pos.y;
+					px = (int) pos.x;
+					py = (int) pos.y;
 
-                        if ( pos.z < hd && pos.z > (-hd) &&
-                             py < hh && py > (-hh) &&
-                             px < hw && px > (-hw) )
-                        {
-                            pz = (int)((pos.z + hd) / zScale);
-                            py += hh;
-                            px += hw;
+					if ( pos.z < hd && pos.z > (-hd) &&
+					     py < hh && py > (-hh) &&
+					     px < hw && px > (-hw) ) {
+						pz = (int)((pos.z + hd) / zScale);
+						py += hh;
+						px += hw;
 
-                            int val = 0xff & answer[x + (w*y)];
+						int val = 0xff & answer[x + (w*y)];
 
-                            if ( val < (0xff & voxel[pz][px + (w*py)]) )
-                                answer[x + (w*y)] = voxel[pz][px+(w*py)];
+						if ( val < (0xff & voxel[pz][px + (w*py)]) )
+							answer[x + (w*y)] = voxel[pz][px+(w*py)];
 
-                        }
+					}
 
-                        pos.add( direction );
+					pos.add( direction );
 
-                    }
+				}
 
-            }
+			}
 
-        }
+		}
 
-        ImagePlus ip = makeImage( answer , w, h );
+		ImagePlus ip = makeImage( answer , w, h );
 
-        if (writeToFile)
-            writeFile( ip );
+		if (writeToFile)
+			writeFile( ip );
 
-        return ip;
+		return ip;
 
-    }
+	}
 
 /** Performs simple ray-casting, treating each voxel as a box which may be passed through. */
 
-    public ImagePlus rayCastByMatrixInteger( Matrix4f rotin )
-    {
+	public ImagePlus rayCastByMatrixInteger( Matrix4f rotin ) {
 
-        Matrix4f rot = new Matrix4f( rotin );
+		Matrix4f rot = new Matrix4f( rotin );
 
-        byte[] answer = new byte[ stack.getWidth() * stack.getHeight() ];
+		byte[] answer = new byte[ stack.getWidth() * stack.getHeight() ];
 
-        int w = stack.getWidth();
-        int h = stack.getHeight();
-        float d = (float)stack.getDepth() * zScale;
+		int w = stack.getWidth();
+		int h = stack.getHeight();
+		float d = (float)stack.getDepth() * zScale;
 
-        int id = stack.getDepth();
-        int hw = (w>>1);
-        int hh = (h>>1);
-        float hd = (d * 0.5f);
-        int ihd = (int)hd;
-
-
-        // for every pixel in the view-space (at the moment, it's the width and height of input data,
-        // but in future it could be any resolution
-
-        // how many steps needed to ray-trace?
-
-        Vector3f centre = new Vector3f( (float)hw, (float)hh, (float)hd);
-
-        // distance to a corner ( i.e. biggest distance within a cube )
-
-        float max = centre.length() + 1.0f;
-
-        // transform the ray-casting direction
-
-        Vector3f direction = new Vector3f( 0.0f, 0.0f, max*2 );
-        rot.transform( direction );
-
-        int[] start = new int[3];
-        int[] end = new int[3];
-
-        Vector3f pos = new Vector3f();
-
-        // generates a template from IntegerRayCast and uses this instead of
-        // calculating what to do each time
-
-        pos.x = -hw;
-        pos.y = -hh;
-        pos.z = -max;
-        rot.transform( pos );
-        start[0] = (int)pos.x;
-        start[1] = (int)pos.y;
-        start[2] = (int)pos.z;
-        start[0] += hw;
-        start[1] += hh;
-        start[2] += ihd;
-        start[2] = (int)(((float)start[2]) / zScale);
-        pos.add( direction );
-        end[0] = (int)pos.x;
-        end[1] = (int)pos.y;
-        end[2] = (int)pos.z;
-        end[0] += hw;
-        end[1] += hh;
-        end[2] += ihd;
-        end[2] = (int)(((float)end[2]) / zScale);
-
-        IntegerRayCast irc = new IntegerRayCast( start, end );
-
-        byte[] template = irc.createTemplate();
-        int[] steps = irc.getSteps();
-
-        for ( int y = 0 ; y < h ; ++y )
-        {
+		int id = stack.getDepth();
+		int hw = (w>>1);
+		int hh = (h>>1);
+		float hd = (d * 0.5f);
+		int ihd = (int)hd;
 
 
-            for( int x = 0 ; x < w ; ++x ) // transform each ray to be casted's start position
-            {
+		// for every pixel in the view-space (at the moment, it's the width and height of input data,
+		// but in future it could be any resolution
 
-                    // could probably precalculate and just increment instead of transforming, but
-                    // there could be rounding problems
+		// how many steps needed to ray-trace?
 
-                    pos.x = (x - hw);
-                    pos.y = (y - hh);
-                    pos.z = -max;
+		Vector3f centre = new Vector3f( (float)hw, (float)hh, (float)hd);
 
-                    rot.transform( pos );
-                    start[0] = (int)pos.x;
-                    start[1] = (int)pos.y;
-                    start[2] = (int)pos.z;
-                    start[0] += hw;
-                    start[1] += hh;
-                    start[2] += ihd;
-                    start[2] = (int)(((float)start[2]) / zScale);
+		// distance to a corner ( i.e. biggest distance within a cube )
 
-                    int maxpt = 0;
+		float max = centre.length() + 1.0f;
 
-                    boolean visited = false;
+		// transform the ray-casting direction
 
-                    for(int i = 0 ; i < template.length ; ++i )
-                    {
+		Vector3f direction = new Vector3f( 0.0f, 0.0f, max*2 );
+		rot.transform( direction );
 
-                        if ( (template[i] & 0x01) != 0 )
-                            start[0] += steps[0];
-                        if ( (template[i] & 0x02) != 0 )
-                            start[1] += steps[1];
-                        if ( (template[i] & 0x04) != 0 )
-                            start[2] += steps[2];
+		int[] start = new int[3];
+		int[] end = new int[3];
 
-                        if ( start[0] >= 0 && start[0] < w &&
-                             start[1] >= 0 && start[1] < h &&
-                             start[2] >= 0 && start[2] < id )
-                        {
+		Vector3f pos = new Vector3f();
 
-                            visited = true;
+		// generates a template from IntegerRayCast and uses this instead of
+		// calculating what to do each time
 
-                            if (maxpt < ( 0xff & voxel[start[2]][start[0] + (w*start[1])]) )
-                            {
-                                maxpt = 0xff & voxel[start[2]][start[0] + (w*start[1])];
-                                if (maxpt >= max_threshold)
-                                    break;
-                            }
+		pos.x = -hw;
+		pos.y = -hh;
+		pos.z = -max;
+		rot.transform( pos );
+		start[0] = (int)pos.x;
+		start[1] = (int)pos.y;
+		start[2] = (int)pos.z;
+		start[0] += hw;
+		start[1] += hh;
+		start[2] += ihd;
+		start[2] = (int)(((float)start[2]) / zScale);
+		pos.add( direction );
+		end[0] = (int)pos.x;
+		end[1] = (int)pos.y;
+		end[2] = (int)pos.z;
+		end[0] += hw;
+		end[1] += hh;
+		end[2] += ihd;
+		end[2] = (int)(((float)end[2]) / zScale);
 
-                        }
-                        else
-                        {
-                            if (visited == true)
-                                break;
-                        }
+		IntegerRayCast irc = new IntegerRayCast( start, end );
 
-                    }
+		byte[] template = irc.createTemplate();
+		int[] steps = irc.getSteps();
 
-                    answer[x + (w*y)] = (byte) maxpt;
+		for ( int y = 0 ; y < h ; ++y ) {
 
-            }
 
-        }
+			for( int x = 0 ; x < w ; ++x ) { // transform each ray to be casted's start position
 
-        ImagePlus ip = makeImage( answer , w, h );
+				// could probably precalculate and just increment instead of transforming, but
+				// there could be rounding problems
 
-        if (writeToFile)
-            writeFile( ip );
+				pos.x = (x - hw);
+				pos.y = (y - hh);
+				pos.z = -max;
 
-        return ip;
+				rot.transform( pos );
+				start[0] = (int)pos.x;
+				start[1] = (int)pos.y;
+				start[2] = (int)pos.z;
+				start[0] += hw;
+				start[1] += hh;
+				start[2] += ihd;
+				start[2] = (int)(((float)start[2]) / zScale);
 
-    }
+				int maxpt = 0;
+
+				boolean visited = false;
+
+				for(int i = 0 ; i < template.length ; ++i ) {
+
+					if ( (template[i] & 0x01) != 0 )
+						start[0] += steps[0];
+					if ( (template[i] & 0x02) != 0 )
+						start[1] += steps[1];
+					if ( (template[i] & 0x04) != 0 )
+						start[2] += steps[2];
+
+					if ( start[0] >= 0 && start[0] < w &&
+					     start[1] >= 0 && start[1] < h &&
+					     start[2] >= 0 && start[2] < id ) {
+
+						visited = true;
+
+						if (maxpt < ( 0xff & voxel[start[2]][start[0] + (w*start[1])]) ) {
+							maxpt = 0xff & voxel[start[2]][start[0] + (w*start[1])];
+							if (maxpt >= max_threshold)
+								break;
+						}
+
+					} else {
+						if (visited == true)
+							break;
+					}
+
+				}
+
+				answer[x + (w*y)] = (byte) maxpt;
+
+			}
+
+		}
+
+		ImagePlus ip = makeImage( answer , w, h );
+
+		if (writeToFile)
+			writeFile( ip );
+
+		return ip;
+
+	}
 
     /** Performs trilinear interpolation to produce the colour of the volume at the given position. Uses
     <pre>
@@ -734,153 +680,143 @@ compared to w*h*d transforms
     */
 
 
-    public ImagePlus rayCastByMatrix( Matrix4f rotin )
-    {
+	public ImagePlus rayCastByMatrix( Matrix4f rotin ) {
 
-        Matrix4f rot = new Matrix4f( rotin );
-        rot.invert();
+		Matrix4f rot = new Matrix4f( rotin );
+		rot.invert();
 
-        byte[] answer = new byte[ resX * resY ];
-        int[] depthbuf = null;
+		byte[] answer = new byte[ resX * resY ];
+		int[] depthbuf = null;
 
-        if (dmip)
-        {
-            depthbuf = new int[ resX * resY ];
-            Arrays.fill( depthbuf, -1 );
-        }
+		if (dmip) {
+			depthbuf = new int[ resX * resY ];
+			Arrays.fill( depthbuf, -1 );
+		}
 
-        // transform the ray-casting direction
+		// transform the ray-casting direction
 
-        Vector3f direction = new Vector3f( 0.0f, 0.0f, rayCastIncrement );
-        rot.transform( direction );
+		Vector3f direction = new Vector3f( 0.0f, 0.0f, rayCastIncrement );
+		rot.transform( direction );
 
-        // configure dimensions of the number of "boxes" in the dataset
+		// configure dimensions of the number of "boxes" in the dataset
 
-        float dataWidth = (float) (stack.getWidth() - 1);
-        float dataHeight = (float) (stack.getHeight() - 1);
-        float dataDepth = (float) (stack.getDepth() - 1);
-        dataDepth *= zScale; // fiddle the z depth
+		float dataWidth = (float) (stack.getWidth() - 1);
+		float dataHeight = (float) (stack.getHeight() - 1);
+		float dataDepth = (float) (stack.getDepth() - 1);
+		dataDepth *= zScale; // fiddle the z depth
 
-        // distance between each box
+		// distance between each box
 
-        float xStep = dataWidth / ( (float) ( resX - 1) );
-        float yStep = dataHeight / ( (float) ( resY - 1) );
+		float xStep = dataWidth / ( (float) ( resX - 1) );
+		float yStep = dataHeight / ( (float) ( resY - 1) );
 
-        Vector3f centre = new Vector3f( dataWidth / 2.0f, dataHeight / 2.0f, dataDepth / 2.0f  );
+		Vector3f centre = new Vector3f( dataWidth / 2.0f, dataHeight / 2.0f, dataDepth / 2.0f  );
 
-        // distance to a corner ( i.e. biggest distance within a cube )
+		// distance to a corner ( i.e. biggest distance within a cube )
 
-        float farthest = centre.length() + 1.0f;
+		float farthest = centre.length() + 1.0f;
 
-        // steps required to go through the whole voxelspace
+		// steps required to go through the whole voxelspace
 
-        int maxsteps = (int) ( ( (farthest * 2.0f) + 1 ) / rayCastIncrement);
+		int maxsteps = (int) ( ( (farthest * 2.0f) + 1 ) / rayCastIncrement);
 
-        float depthfactor = (1.0f / maxsteps);
+		float depthfactor = (1.0f / maxsteps);
 
-        Vector3f pos = new Vector3f();
-        Vector3f realpos = new Vector3f(  );
+		Vector3f pos = new Vector3f();
+		Vector3f realpos = new Vector3f(  );
 
-        stackwidth = stack.getWidth();
-        stackdepth = stack.getDepth();
-        stackheight = stack.getHeight();
+		stackwidth = stack.getWidth();
+		stackdepth = stack.getDepth();
+		stackheight = stack.getHeight();
 
-        for ( int y = 0 ; y < resY ; ++y )
-        {
+		for ( int y = 0 ; y < resY ; ++y ) {
 
-            if (plugin)
-            {
-                double prog = ((y+1)/(double)resY);
-                IJ.showProgress( prog );
-            }
-            else
-                System.out.print((y+1) + "/" + resY + " Lines\r");
+			if (plugin) {
+				double prog = ((y+1)/(double)resY);
+				IJ.showProgress( prog );
+			} else
+				System.out.print((y+1) + "/" + resY + " Lines\r");
 
-            for ( int x = 0 ; x < resX ; ++x )
-            {
+			for ( int x = 0 ; x < resX ; ++x ) {
 
-                pos.x = (x * xStep) - centre.x; // position of viewpoint
-                pos.y = (y * yStep) - centre.y;
-                pos.z = -farthest;
+				pos.x = (x * xStep) - centre.x; // position of viewpoint
+				pos.y = (y * yStep) - centre.y;
+				pos.z = -farthest;
 
-                rot.transform( pos );
+				rot.transform( pos );
 
-                int max = 0;
+				int max = 0;
 
-                boolean visited = false;
+				boolean visited = false;
 
-                for ( int i = 0 ; i < maxsteps ; ++i ) // move into image from viewpoint
-                {
+				for ( int i = 0 ; i < maxsteps ; ++i ) { // move into image from viewpoint
 
-                    // it's thanks to this check that trilinear intensity needs no checks. Note >= ... <
+					// it's thanks to this check that trilinear intensity needs no checks. Note >= ... <
 
-                    if (pos.x >= -centre.x && pos.x < centre.x &&
-                        pos.y >= -centre.y && pos.y < centre.y &&
-                        pos.z >= -centre.z && pos.z < centre.z )
-                    {
+					if (pos.x >= -centre.x && pos.x < centre.x &&
+					    pos.y >= -centre.y && pos.y < centre.y &&
+					    pos.z >= -centre.z && pos.z < centre.z ) {
 
-                        visited = true;
+						visited = true;
 
-                        realpos.x = pos.x;
-                        realpos.y = pos.y;
-                        realpos.z = pos.z;
+						realpos.x = pos.x;
+						realpos.y = pos.y;
+						realpos.z = pos.z;
 
-                        realpos.add( centre );
+						realpos.add( centre );
 
-                        realpos.z /= zScale;
+						realpos.z /= zScale;
 
-                        int tmp;
+						int tmp;
 
-                        if ( rayCastType == NEARESTNEIGHBOUR )
-                            tmp = nearestNeighbour( realpos );
-                        else
-                            tmp = trilinearIntensity( realpos, max );
+						if ( rayCastType == NEARESTNEIGHBOUR )
+							tmp = nearestNeighbour( realpos );
+						else
+							tmp = trilinearIntensity( realpos, max );
 
-                        if (dmip) // depth mip enabled
-                        {
-                            float tmpf = (float) tmp;
-                            float dcalc = i * depthfactor;
-                            dcalc = 1.0f - dcalc;
-                            tmpf *= (dcalc); // dcalc^2 more "realistic"
-                            tmp = (int)( tmpf > 0.0f ? tmpf + 0.5f : tmpf - 0.5f);
-                        }
+						if (dmip) { // depth mip enabled
+							float tmpf = (float) tmp;
+							float dcalc = i * depthfactor;
+							dcalc = 1.0f - dcalc;
+							tmpf *= (dcalc); // dcalc^2 more "realistic"
+							tmp = (int)( tmpf > 0.0f ? tmpf + 0.5f : tmpf - 0.5f);
+						}
 
-                        if ( tmp > max )
-                        {
+						if ( tmp > max ) {
 
-                            max = tmp;
-                            answer[x + (resX*y)] = (byte) tmp;
-                            if ( max >= max_threshold ) // terminate if at highest value
-                                break;
-                        }
+							max = tmp;
+							answer[x + (resX*y)] = (byte) tmp;
+							if ( max >= max_threshold ) // terminate if at highest value
+								break;
+						}
 
-                    }
-                    else
-                        if (visited) break; // if left the voxelspace, quit!
+					} else
+						if (visited)
+							break; // if left the voxelspace, quit!
 
-                    pos.add( direction );
+					pos.add( direction );
 
-                } // for i
+				} // for i
 
-            } // for x
+			} // for x
 
-        } // for y
+		} // for y
 
-        if (plugin)
-            IJ.showProgress(1.0);
-        else
-            System.out.println("");
+		if (plugin)
+			IJ.showProgress(1.0);
+		else
+			System.out.println("");
 
 
-        ImagePlus ip = makeImage( answer , resX, resY );
+		ImagePlus ip = makeImage( answer , resX, resY );
 
-        if (writeToFile)
-            writeFile( ip );
+		if (writeToFile)
+			writeFile( ip );
 
-        return ip;
+		return ip;
 
 
-    }
+	}
 
 
 }
