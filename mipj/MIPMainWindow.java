@@ -453,14 +453,14 @@ public class MIPMainWindow
 
 		try {
 
-			int type = MIPDriver.SPLATTING;
+			int type = MIPDriver_.SPLATTING;
 
 			// projection type
 
 			if ( choiceType.getSelectedItem().equals("Splatting") )
-				type = MIPDriver.SPLATTING;
+				type = MIPDriver_.SPLATTING;
 			else
-				type = MIPDriver.RAYCASTING;
+				type = MIPDriver_.RAYCASTING;
 
 			// Obtain the stack to be processed
 
@@ -500,7 +500,7 @@ public class MIPMainWindow
 
 			// if splatting, then scale the actual stack (memory expensive)
 
-			if ( type == MIPDriver.SPLATTING && scale != 1.0f ) {
+			if ( type == MIPDriver_.SPLATTING && scale != 1.0f ) {
 				IJ.showStatus("Scaling");
 				ist.scale( scale );
 				IJ.showStatus("");
@@ -522,7 +522,7 @@ public class MIPMainWindow
 
 			try {
 				rayinc = Float.parseFloat( textInc.getText() );
-				if ( type == MIPDriver.RAYCASTING && rayinc <= 0.0f )
+				if ( type == MIPDriver_.RAYCASTING && rayinc <= 0.0f )
 					throw new NumberFormatException();
 
 			} catch( NumberFormatException nfe ) {
@@ -536,7 +536,7 @@ public class MIPMainWindow
 
 			try {
 				threshold = Integer.parseInt( textThreshold.getText() );
-				if ( type == MIPDriver.RAYCASTING && (threshold < 1 || threshold > 255) )
+				if ( type == MIPDriver_.RAYCASTING && (threshold < 1 || threshold > 255) )
 					throw new NumberFormatException();
 			} catch( NumberFormatException nfe ) {
 				IJ.error("Threshold invalid");
@@ -601,7 +601,7 @@ public class MIPMainWindow
 			} else
 				interp = MIP.NEARESTNEIGHBOUR;
 
-			MIPDriver md = new MIPDriver(
+			MIPDriver_ md = new MIPDriver_(
 				type,
 				resx,
 				resy,

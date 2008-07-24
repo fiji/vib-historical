@@ -210,7 +210,7 @@ compared to w*h*d transforms
 
 				tif.write( new DataOutputStream(fos) );
 
-				if ( !plugin && MIPDriver.outputJpeg() ) {
+				if ( !plugin && MIPDriver_.outputJpeg() ) {
 					FileSaver fs = new FileSaver( ip );
 					String jpgName = outputFile.getAbsolutePath();
 					jpgName = jpgName.substring(0, jpgName.length() - 3 ) + "jpg"; // remove tif replace with jpg

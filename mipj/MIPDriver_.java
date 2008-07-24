@@ -11,8 +11,9 @@ import java.util.Locale;
 import ij.plugin.PlugIn;
 import util.BatchOpener;
 import ij.Macro;
+import server.Job_Server;
 
-public class MIPDriver extends Thread implements PlugIn
+public class MIPDriver_ extends Thread implements PlugIn
 {
 
 	private String outputFileName;
@@ -38,9 +39,9 @@ public class MIPDriver extends Thread implements PlugIn
 	public final static int REALTIME = 2;
 
 
-	/** Creates a MIPDriver from a lot of arguments */
+	/** Creates a MIPDriver_ from a lot of arguments */
 
-	public MIPDriver(
+	public MIPDriver_(
 		int type,
 		int resx,
 		int resy,
@@ -92,17 +93,26 @@ public class MIPDriver extends Thread implements PlugIn
 
 	*/
 
+	public MIPDriver_() { }
+
 	public void run( String argument ) {
 
 		String options = Macro.getOptions();
 
 		String inputFilename = Macro.getValue( options, "input", "" );
 		if( inputFilename.equals("") )
-			throw new RuntimeException( "No input filename supplied for MIPDriver");
+			throw new RuntimeException( "No input filename supplied for MIPDriver_");
 
 		String outputFilenameBasename = Macro.getValue( options, "output", "" );
 		if( outputFilenameBasename.equals("") )
-			throw new RuntimeException( "No output filename basename supplied for MIPDriver");
+			throw new RuntimeException( "No output filename basename supplied for MIPDriver_");
+
+		// We insist for the macro version that the output is a directory:
+
+		File f = new File( outputFilenameBasename );
+		if( ! f.isDirectory() ) {
+			throw new RuntimeException( "The 'output' parameter must be a directory" );
+		}
 
 		String mipTypeSupplied = Macro.getValue( options, "mip", "" );
 		if( mipTypeSupplied.equals( "" ) )
@@ -147,9 +157,18 @@ public class MIPDriver extends Thread implements PlugIn
 		if( images == null || images.length < 1 )
 			throw new RuntimeException( "Couldn't open the input file " + inputFilename );
 
+		float totalProgressPoints = images.length * 7;
+		int lastProgressPoint = 0;
+
 		for( int i = 0; i < images.length; ++i ) {
 
+			System.out.println( lastProgressPoint / totalProgressPoints );
+			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+
 			MIPImageStack ist = new MIPImageStack( images[i].getStack() );
+
+			System.out.println( lastProgressPoint / totalProgressPoints );
+			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
 
 			if( mipType != REALTIME )
 				throw new RuntimeException( "Only mipType == REALTIME makes sense" );
@@ -157,31 +176,57 @@ public class MIPDriver extends Thread implements PlugIn
 			if ( zScale != 1.0f )
 				ist.zScale(zScale);
 
+			System.out.println( lastProgressPoint / totalProgressPoints );
+			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+
 			Discard d = new Discard( ist );
+
+			System.out.println( lastProgressPoint / totalProgressPoints );
+			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+
+
+			System.out.println("created Discard");
+
 			d.discardNN();
+			System.out.println("finished discardNN");
+			
+			System.out.println( lastProgressPoint / totalProgressPoints );
+			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+
 
 			RealTimeMIP r = d.calculate(Discard.FRONTMAIN, Discard.UPPER);
+			System.out.println("finished calculate");
+
+			System.out.println( lastProgressPoint / totalProgressPoints );
+			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
 
 			DecimalFormat f2 = new DecimalFormat("00");
-			String outputFilename = outputFilenameBasename + File.separator + "projection-" + f2.format(i) + ".rt";
+			String realOutputFileName = outputFilenameBasename + File.separator + "projection-" + f2.format(i) + ".rt";
 
 			try {
-				System.out.print("Writing file: " + outputFileName );
-				ObjectOutputStream oos = new ObjectOutputStream( new FileOutputStream( outputFileName ) );
+				System.out.print("Writing file: " + realOutputFileName );
+				ObjectOutputStream oos = new ObjectOutputStream( new FileOutputStream( realOutputFileName ) );
 				System.out.println(" : DONE");
 				oos.writeObject( r );
 				oos.close();
 			} catch( IOException e ) {
-				throw new RuntimeException( "Got an IOException when writing to " + outputFileName );
+				throw new RuntimeException( "Got an IOException when writing to " + realOutputFileName );
 			}
 
-		}
+			System.out.println( lastProgressPoint / totalProgressPoints );
+			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
 
+		}
+				
+		System.out.println( lastProgressPoint / totalProgressPoints );
+		Job_Server.updateProgressInDirectory( outputFilenameBasename, 1.0f );
+
+		Job_Server.finishDirectory( outputFilenameBasename );
 	}
 
-	/** Creates a MIPDriver class from a set of command-line options */
+	/** Creates a MIPDriver_ class from a set of command-line options */
 
-	public MIPDriver( String[] args ) throws Exception {
+	public MIPDriver_( String[] args ) throws Exception {
 
 		outputFileName = new String("projection");
 		mipType = SPLATTING;
@@ -200,7 +245,7 @@ public class MIPDriver extends Thread implements PlugIn
 
 
 		if ( args.length < 1 ) {
-			System.out.println("Usage: java MIPDriver inputdir ...");
+			System.out.println("Usage: java MIPDriver_ inputdir ...");
 			throw new Exception();
 		} else
 			inputDir = new String(args[0]);
@@ -317,7 +362,7 @@ public class MIPDriver extends Thread implements PlugIn
 				} // end while
 
 			} else {
-				System.out.println("Usage: java MIPDriver inputdir [output file] [options]");
+				System.out.println("Usage: java MIPDriver_ inputdir [output file] [options]");
 			}
 
 		} catch(ArrayIndexOutOfBoundsException aob) {
@@ -504,7 +549,7 @@ public class MIPDriver extends Thread implements PlugIn
 
 		try {
 
-			MIPDriver mipd = new MIPDriver( args );
+			MIPDriver_ mipd = new MIPDriver_( args );
 			mipd.start();
 
 
