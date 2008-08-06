@@ -36,8 +36,9 @@ import java.io.*;
 
 import amira.AmiraParameters;
 
-import org.jvyaml.YAML;
-import org.jvyaml.YAMLConfig;
+import org.jvyamlb.YAML;
+import org.jvyamlb.YAMLConfig;
+import org.jruby.util.ByteList;
 
 import server.Job_Server;
 
@@ -174,7 +175,8 @@ public class Extract_Image_Properties implements PlugIn {
 		}
 
 		YAMLConfig y=YAML.config();
-		String d=YAML.dump(properties,y);
+		ByteList bl=YAML.dump(properties,y);
+		String d=bl.toString();
 
 		pw.print(d);
 		
