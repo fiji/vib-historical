@@ -124,7 +124,8 @@ public class DisplayApplet
 				"&x=" + Math.round(angle[0]) + "&y=" + Math.round(angle[1]) + "&z=" + Math.round(angle[2]) + "&m=" + strType + strRaySpec
 				+ strScale;
 
-			getAppletContext().showDocument( new URL(strUrl) , "_blank" );
+			// getAppletContext().showDocument( new URL(strUrl) , "_blank" );
+			getAppletContext().showDocument( new URL(strUrl) );
 
 		} catch(Exception e) {
 			e.printStackTrace();
