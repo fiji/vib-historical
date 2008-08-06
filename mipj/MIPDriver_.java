@@ -4,12 +4,17 @@ package mipj;
 
 import java.io.*;
 import ij.util.StringSorter;
-import ij.ImagePlus;
 import ij.IJ;
+import ij.ImagePlus;
+import ij.ImageStack;
+import ij.process.ImageProcessor;
+import ij.process.StackConverter;
 import java.text.*;
 import java.util.Locale;
 import ij.plugin.PlugIn;
 import util.BatchOpener;
+import util.Limits;
+import util.RGB_to_Luminance;
 import ij.Macro;
 import server.Job_Server;
 
@@ -91,13 +96,29 @@ public class MIPDriver_ extends Thread implements PlugIn
 
 	      java -Xmx1024 -jar ij.jar -eval "run('MIP Driver', 'input=[foo.lsm] output=[/var/tmp/foo/] mip=rt zscale=1.2');"
 
+           To render a nice quality projection, we use values like these:
+
+              java -Xmx1024 -jar ij.jar -eval "run('MIP Driver', 'input=[foo.lsm] output=[/var/tmp/foo/] j f mip=splat t=nn zscale=1.2 i=0.1 h=255 rotx=-30 roty=89 rotz=-31 scale=1.0 channel=0
+
 	*/
 
 	public MIPDriver_() { }
 
 	public void run( String argument ) {
 
+		// Set some defaults here:
+		resx = resy = 0;
+		interpolationType = MIP.TRILINEAR;
+		scale = 1;
+		rayCastInc = 0.5f;
+		dmip = false;
+		threshold = 255;
+		nImages = 1;
+		animx = animy = animz = 0.0f;
+
 		String options = Macro.getOptions();
+
+		// The options up to ------ are needed to generate the realtime output
 
 		String inputFilename = Macro.getValue( options, "input", "" );
 		if( inputFilename.equals("") )
@@ -138,87 +159,297 @@ public class MIPDriver_ extends Thread implements PlugIn
 			throw new RuntimeException( "Malformed Z scale supplied: " + zScaleSupplied );
 		}
 
-		// Now set the other parameters we need:
-		resx = resy = 0;
-		interpolationType = MIP.TRILINEAR;
-		scale = 1;
-		rayCastInc = 0.5f;
-		dmip = false;
-		threshold = 255;
-		nImages = 1;
-		animx = animy = animz = 0.0f;
+		String scaleSupplied = Macro.getValue( options, "scale", "1" );
+		if( scaleSupplied.equals("") )
+			throw new RuntimeException( "No scale supplied" );
+		try {
+			scale = Float.parseFloat( scaleSupplied );
+		} catch( NumberFormatException nfe ) {
+			throw new RuntimeException( "Malformed scale supplied: " + scaleSupplied );
+		}
 
-		plugin = false;
+		// ------
+		// Now the ones needed to generate the nice images:
+
+		if( mipType != REALTIME ) {
+
+			outputJpeg = isMatch( options, "j" );
+
+			forceWrite = isMatch( options, "f" );
+
+			String suppliedInterpolation = Macro.getValue( options, "t", "nn" );
+			if (suppliedInterpolation.equals("nn"))
+				interpolationType =  MIP.NEARESTNEIGHBOUR;
+			else if ( suppliedInterpolation.equals("tri") )
+				interpolationType = MIP.TRILINEAR;
+			else
+				throw new RuntimeException("Malformed 't' (interpolation type) parameter suppled: " + suppliedInterpolation);
+
+			String suppliedRayInc = Macro.getValue( options, "i", "0.5" );
+			try {
+				rayCastInc = Float.parseFloat( suppliedRayInc );
+			} catch( NumberFormatException nfe ) {
+				throw new RuntimeException( "Malformed rayCastInc supplied: " + suppliedRayInc );
+			}
+
+			String suppliedH = Macro.getValue( options, "h", "255" );
+			try {
+				threshold = Integer.parseInt(suppliedH);
+				if( threshold < 1 || threshold > 255 )
+					threshold = 255;
+			} catch( NumberFormatException nfe ) {
+				throw new RuntimeException( "Malformed threshold (h) supplied: " + suppliedH );
+			}
+		}
 
 		rot = new Matrix4f();
+
+		if( mipType != REALTIME ) {
+			String suppliedRotX = Macro.getValue( options, "rotx", "" );
+			String suppliedRotY = Macro.getValue( options, "roty", "" );
+			String suppliedRotZ = Macro.getValue( options, "rotz", "" );
+			try {
+				rot.rotByX( Float.parseFloat( suppliedRotX ) * MIP.ONEDEGREE );
+				rot.rotByY( Float.parseFloat( suppliedRotY ) * MIP.ONEDEGREE );
+				rot.rotByZ( Float.parseFloat( suppliedRotZ ) * MIP.ONEDEGREE );
+			} catch( NumberFormatException nfe ) {
+				throw new RuntimeException( "Malformed parameters supplied: rotx=["+suppliedRotX+"] roty=["+suppliedRotY+"] rotz=["+suppliedRotZ+"]" );
+			}
+		}
+
+		plugin = false;
 
 		ImagePlus [] images = BatchOpener.open( inputFilename );
 
 		if( images == null || images.length < 1 )
 			throw new RuntimeException( "Couldn't open the input file " + inputFilename );
 
-		float totalProgressPoints = images.length * 7;
+		int maxWidth = 400;
+		int maxHeight = 400;
+
+		boolean resizeFirst = false;
+		int newWidth = -1;
+		int newHeight = -1;
+		int originalWidth = images[0].getWidth();
+		int originalHeight = images[0].getHeight();
+		if( originalWidth > maxWidth || originalHeight > maxHeight ) {
+			resizeFirst = true;
+			if( originalWidth > originalHeight ) {
+				// Scale so that the width is maxWidth:
+				newWidth = maxWidth;
+				newHeight = (originalHeight * maxWidth) / originalWidth;
+			} else {
+				// Scale so that the height is maxHeight:
+				newHeight = maxHeight;
+				newWidth = (originalWidth * maxHeight) / originalHeight;
+			}
+		}
+
+		float totalProgressPoints = images.length * 7 + (resizeFirst ? images.length : 0);
 		int lastProgressPoint = 0;
 
-		for( int i = 0; i < images.length; ++i ) {
+		DecimalFormat f2 = new DecimalFormat("00");
 
-			System.out.println( lastProgressPoint / totalProgressPoints );
-			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+		for( int c = 0; c < images.length; ++c ) {
 
-			MIPImageStack ist = new MIPImageStack( images[i].getStack() );
-
-			System.out.println( lastProgressPoint / totalProgressPoints );
-			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
-
-			if( mipType != REALTIME )
-				throw new RuntimeException( "Only mipType == REALTIME makes sense" );
-
-			if ( zScale != 1.0f )
-				ist.zScale(zScale);
-
-			System.out.println( lastProgressPoint / totalProgressPoints );
-			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
-
-			Discard d = new Discard( ist );
-
-			System.out.println( lastProgressPoint / totalProgressPoints );
-			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
-
-
-			System.out.println("created Discard");
-
-			d.discardNN();
-			System.out.println("finished discardNN");
-			
-			System.out.println( lastProgressPoint / totalProgressPoints );
-			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
-
-
-			RealTimeMIP r = d.calculate(Discard.FRONTMAIN, Discard.UPPER);
-			System.out.println("finished calculate");
-
-			System.out.println( lastProgressPoint / totalProgressPoints );
-			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
-
-			DecimalFormat f2 = new DecimalFormat("00");
-			String realOutputFileName = outputFilenameBasename + File.separator + "projection-" + f2.format(i) + ".rt";
-
-			try {
-				System.out.print("Writing file: " + realOutputFileName );
-				ObjectOutputStream oos = new ObjectOutputStream( new FileOutputStream( realOutputFileName ) );
-				System.out.println(" : DONE");
-				oos.writeObject( r );
-				oos.close();
-			} catch( IOException e ) {
-				throw new RuntimeException( "Got an IOException when writing to " + realOutputFileName );
+			ImagePlus imageToUse = null;
+			if( resizeFirst ) {
+				System.out.println("Resizing down to "+newWidth+" x "+newHeight );
+				ImageStack stack = images[c].getStack();
+				ImageStack newStack = new ImageStack(newWidth,newHeight);
+				for( int z = 0; z < images[c].getStackSize(); ++z ) {
+					ImageProcessor ip = stack.getProcessor( z + 1 );
+					ip.setInterpolate(true);
+					ImageProcessor newIp = ip.resize(newWidth,newHeight);
+					newStack.addSlice("",newIp);
+				}
+				Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+				imageToUse = new ImagePlus("scaled-"+images[c].getTitle(),newStack);
+				images[c].close();
+			} else {
+				imageToUse = images[c];
 			}
 
-			System.out.println( lastProgressPoint / totalProgressPoints );
+			System.out.println("After possibly resizing, each slice is: "+imageToUse.getWidth()+" x "+imageToUse.getWidth());
+
+			/* Now if the images is either 16 bit or 32
+			   bit, find the minimum and maximum and
+			   convert to 8bit: */
+
+			int imageType = imageToUse.getType();
+			if( imageType == ImagePlus.GRAY16 || imageType == ImagePlus.GRAY32 ) {
+				float [] limits = Limits.getStackLimits(imageToUse);
+				ImageProcessor p = imageToUse.getProcessor();
+				p.setMinAndMax( limits[0], limits[1]);
+				StackConverter converter=new StackConverter(imageToUse);
+				converter.convertToGray8();
+			} else if( imageType == ImagePlus.COLOR_RGB ) {
+				imageToUse = RGB_to_Luminance.convertToLuminance(imageToUse);
+			}
+
 			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
 
+			MIPImageStack ist = new MIPImageStack( imageToUse.getStack() );
+
+			Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+
+			if( mipType == REALTIME ) {
+
+				String realOutputFileName = outputFilenameBasename + File.separator + "projection-" + f2.format(c) + "." + mipTypeSupplied;
+
+				if ( zScale != 1.0f )
+					ist.zScale(zScale);
+
+				Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+
+				Discard d = new Discard( ist );
+
+				Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+
+
+				d.discardNN();
+
+				Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+
+				RealTimeMIP r = d.calculate(Discard.FRONTMAIN, Discard.UPPER);
+
+				Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+
+				try {
+					ObjectOutputStream oos = new ObjectOutputStream( new FileOutputStream( realOutputFileName ) );
+					oos.writeObject( r );
+					oos.close();
+				} catch( IOException e ) {
+					throw new RuntimeException( "Got an IOException when writing to " + realOutputFileName );
+				}
+
+				Job_Server.updateProgressInDirectory( outputFilenameBasename, (lastProgressPoint++) / totalProgressPoints );
+
+			} else {
+
+				try {
+
+					// need to resample to do zscaling for splatting
+					if (mipType == SPLATTING && zScale != 1.0f) {
+						if (plugin)
+							IJ.showStatus("ZScaling");
+						ist.zScale( zScale );
+					}
+
+					MIP m = new MIP( ist, !plugin );
+
+					m.setPlugin(plugin);
+					m.setForceWrite( forceWrite );
+
+					if ( resx != 0 && resy != 0 )
+						m.setResolution( resx, resy );
+
+					m.setZScale( zScale );
+
+					m.setRayCastType( interpolationType );
+					m.setThreshold( threshold );
+					m.setRayCastIncrement( rayCastInc );
+					m.setDMIP( dmip );
+
+					float incX, incY, incZ;
+
+					incX = incY = incZ = 0.0f;
+
+					if (nImages > 1 ) {
+						float f_ = 1.0f / (nImages-1);
+
+						incX = animx * f_ * MIP.ONEDEGREE;
+						incY = animy * f_ * MIP.ONEDEGREE;
+						incZ = animz * f_ * MIP.ONEDEGREE;
+
+					}
+
+					ij.ImageStack buildStack = null;
+					ImagePlus buildImg = null;
+
+					for( int i = 0 ; i < nImages ; ++i ) {
+
+						String realOutputFileName = outputFilenameBasename + File.separator + "projection-" + f2.format(c) + "-" + mipTypeSupplied;
+						String extension = outputJpeg ? ".jpg" : ".tif";
+						realOutputFileName += extension;
+
+						m.setOutputFile( new File( realOutputFileName ) );
+
+						if ( mipType == SPLATTING ) {
+							if ( !plugin )
+								m.projectByMatrix( rot );
+							else {
+								ImagePlus img =  m.projectByMatrix( rot );
+
+								if ( i == 0 && nImages > 1 ) { // set up the stack for adding to
+
+									buildStack = new ij.ImageStack( img.getWidth(), img.getHeight(), img.getProcessor().getColorModel() );
+									byte[] ba = (byte[]) img.getProcessor().getPixels();
+
+									buildStack.addSlice( null, ba );
+
+									for( int n = 1 ; n < nImages ; ++n ) {
+										buildStack.addSlice( null , new byte[ba.length] );
+									}
+
+									buildImg = new ImagePlus( m.getOutputFile().getName(), buildStack );
+									buildImg.show();
+									buildImg.setSlice(1);
+								} else if ( nImages > 1 ) {
+									buildStack.setPixels( img.getProcessor().getPixels() , buildImg.getCurrentSlice()+1 );
+									if (buildImg == null)
+										return;
+									buildImg.setSlice( buildImg.getCurrentSlice()+1 );
+								} else {
+									img.setTitle( m.getOutputFile().getName() );
+									img.show();
+								}
+							}
+						} else if ( mipType == RAYCASTING ) {
+							if ( !plugin )
+								m.rayCastByMatrix( rot );
+							else {
+								ImagePlus img =  m.rayCastByMatrix( rot );
+
+								if ( i == 0 && nImages > 1 ) { // set up the stack for adding to
+
+									buildStack = new ij.ImageStack( img.getWidth(), img.getHeight(), img.getProcessor().getColorModel() );
+									byte[] ba = (byte[]) img.getProcessor().getPixels();
+
+									buildStack.addSlice( null, ba );
+
+									for( int n = 1 ; n < nImages ; ++n ) {
+										buildStack.addSlice( null , new byte[ba.length] );
+									}
+
+									buildImg = new ImagePlus( m.getOutputFile().getName(), buildStack );
+									buildImg.show();
+									buildImg.setSlice(1);
+								} else if ( nImages > 1 ) {
+									buildStack.setPixels( img.getProcessor().getPixels() , buildImg.getCurrentSlice()+1 );
+									if (buildImg == null)
+										return;
+									buildImg.setSlice( buildImg.getCurrentSlice()+1 );
+								} else {
+									img.setTitle( m.getOutputFile().getName() );
+									img.show();
+								}
+							}
+						}
+
+						rot.rotByX( incX );
+						rot.rotByY( incY );
+						rot.rotByZ( incZ );
+
+					}
+				} catch( Exception e ) {
+					throw new RuntimeException("Caught an exception: "+e);
+				}
+			}
+			imageToUse.close();
+			images[c] = null;
 		}
-				
-		System.out.println( lastProgressPoint / totalProgressPoints );
+
 		Job_Server.updateProgressInDirectory( outputFilenameBasename, 1.0f );
 
 		Job_Server.finishDirectory( outputFilenameBasename );
@@ -559,6 +790,34 @@ public class MIPDriver_ extends Thread implements PlugIn
 
 	}
 
+	// This is just copied from GenericDialog; it should be in Macro, I think.
+
+	// Returns true if s2 is in s1 and not in a bracketed literal (e.g., "[literal]")
+	boolean isMatch(String s1, String s2) {
+		if (s1.startsWith(s2))
+			return true;
+		s2 = " " + s2;
+		int len1 = s1.length();
+		int len2 = s2.length();
+		boolean match, inLiteral=false;
+		char c;
+		for (int i=0; i<len1-len2+1; i++) {
+			c = s1.charAt(i);
+			if (inLiteral && c==']')
+				inLiteral = false;
+			else if (c=='[')
+				inLiteral = true;
+			if (c!=s2.charAt(0) || inLiteral || (i>1&&s1.charAt(i-1)=='='))
+				continue;
+			match = true;
+			for (int j=0; j<len2; j++) {
+				if (s2.charAt(j)!=s1.charAt(i+j))
+					{match=false; break;}
+			}
+			if (match) return true;
+		}
+		return false;
+	}
 
 }
 
