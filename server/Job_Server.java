@@ -90,7 +90,7 @@ import ij.plugin.PlugIn;
 
 public class Job_Server implements PlugIn {
 
-	static private final String logFilename = "/tmp/job-server.log";
+	static private String logFilename = null;
 
 	Hashtable<Thread,Job> threadToJob;
 
@@ -218,6 +218,11 @@ public class Job_Server implements PlugIn {
 	public void run(String ignore) {
 
 		System.out.println("Entering the run method of server.Job_Server");
+
+		logFilename = System.getProperty("logfilename");
+		if( logFilename == null )
+			logFilename = "/tmp/job-server.log";
+		System.out.println("Using the log file: "+logFilename);
 
 		logStream = null;
 		try {
