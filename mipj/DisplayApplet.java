@@ -259,6 +259,8 @@ public class DisplayApplet
 	}
 
 	public void start() {
+		// Fake an item event to load the first channel:
+		itemStateChanged( new ItemEvent(stackChoice,ItemEvent.ITEM_STATE_CHANGED,stackChoice,ItemEvent.SELECTED) );
 	}
 
 	public void stop() {
