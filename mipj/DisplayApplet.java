@@ -292,6 +292,9 @@ public class DisplayApplet
 
 				String url = (String) paramVec.get(currentIndex + 2);
 
+				// Allow the data for the other channel to be garbage collected:
+				upper.clearDataset();
+
 				try {
 					setStatus( "Loading from " + url );
 					upper.loadDataset( new URL( url ) );

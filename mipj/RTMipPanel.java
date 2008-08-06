@@ -41,6 +41,10 @@ public class RTMipPanel extends Panel implements MouseMotionListener, MouseListe
 
 	}
 
+	public void clearDataset( ) {
+		r = null;
+	}
+
 	public void loadDataset( URL loc ) throws Exception {
 
 		m.setIdentity();
