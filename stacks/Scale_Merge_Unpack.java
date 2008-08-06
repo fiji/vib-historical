@@ -47,6 +47,7 @@ import java.util.Iterator;
 import javax.imageio.ImageIO;
 
 import util.BatchOpener;
+import util.Limits;
 import server.Job_Server;
 
 public class Scale_Merge_Unpack implements PlugIn {
@@ -151,6 +152,15 @@ public class Scale_Merge_Unpack implements PlugIn {
 		ImagePlus [] images = BatchOpener.open( filename );
 		if( images == null || images.length == 0 )
 			throw new RuntimeException("Failed to load: "+filename);
+
+		for( int c = 0; c < images.length; ++c ) {
+			int imageType = images[c].getType();
+			if( imageType == ImagePlus.GRAY16 || imageType == ImagePlus.GRAY32 ) {
+				float [] limits = Limits.getStackLimits(images[c]);
+				ImageProcessor p = images[c].getProcessor();
+				p.setMinAndMax(limits[0],limits[1]);
+			}
+		}
 
 		if( (redIsChannel < -1 || redIsChannel >= images.length) ||
 		    (greenIsChannel < -1 || greenIsChannel >= images.length) ||

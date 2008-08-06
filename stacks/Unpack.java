@@ -20,6 +20,7 @@
 package stacks;
 
 import util.BatchOpener;
+import util.Limits;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -67,6 +68,11 @@ public class Unpack {
 				   int sliceMax,
 				   String directory ) throws IOException {
 
+		int imageType = imagePlus.getType();
+		float [] limits = null;
+		if( imageType != ImagePlus.COLOR_RGB )
+			limits = Limits.getStackLimits( imagePlus );
+
 		ImageStack stack = imagePlus.getStack();
 
 		int width = imagePlus.getWidth();
@@ -105,6 +111,9 @@ public class Unpack {
 				toWriteWidth = ip.getWidth();
 				toWriteHeight = ip.getHeight();
 			}
+
+			if( imageType == ImagePlus.GRAY16 || imageType == ImagePlus.GRAY32 )
+				ip.setMinAndMax( limits[0], limits[1] );
 
 			int bitDepth = imagePlus.getBitDepth();
 
