@@ -116,7 +116,7 @@ public class DisplayApplet
 
 			float zScale = objZScale.floatValue();
 
-			zScale *= scale;
+			// zScale *= scale;
 
 			float angle[] = upper.getRot().getEuler();
 
