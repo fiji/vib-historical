@@ -37,10 +37,21 @@ import java.io.*;
 import amira.AmiraParameters;
 
 import org.jvyamlb.YAML;
+import org.jvyamlb.YAMLFactory;
+import org.jvyamlb.DefaultYAMLFactory;
+import org.jvyamlb.Serializer;
 import org.jvyamlb.YAMLConfig;
+import org.jvyamlb.Representer;
+import org.jvyamlb.SafeRepresenterImpl;
 import org.jruby.util.ByteList;
 
 import server.Job_Server;
+
+class SafeYAMLFactory extends DefaultYAMLFactory {
+	public Representer createRepresenter(final Serializer serializer, final YAMLConfig cfg) {
+		return new SafeRepresenterImpl(serializer,cfg);
+	}
+}
 
 public class Extract_Image_Properties implements PlugIn {
 
@@ -174,7 +185,7 @@ public class Extract_Image_Properties implements PlugIn {
 			throw new RuntimeException("Couldn't open the file: '"+outputFilename+"' for writing; exception was: "+e);
 		}
 
-		YAMLConfig y=YAML.config();
+		YAMLFactory y=new SafeYAMLFactory();
 		ByteList bl=YAML.dump(properties,y);
 		String d=bl.toString();
 
