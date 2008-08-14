@@ -232,7 +232,7 @@ public class Extract_Image_Properties implements PlugIn {
 			imps[i].close();
 		}
 
-		boolean verbose = true;
+		boolean verbose = false;
 
 		// Now some special cases for different file types:
 
