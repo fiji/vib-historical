@@ -1,7 +1,7 @@
 javaVersion=1.5
 all <- VIB_.jar
 
-CLASSPATH=$CLASSPATH:junit-4.4.jar:.
+CLASSPATH=$CLASSPATH:junit-4.4.jar:.:../plugins/LSM_Toolbox.jar
 VIB_.jar <- **/*.java \
 	vib/FloatMatrix.java math3d/FloatMatrixN.java FibonacciHeapInt.java \
 	math3d/JacobiFloat.java math3d/Eigensystem3x3Float.java \

@@ -47,11 +47,18 @@ import org.jruby.util.ByteList;
 
 import server.Job_Server;
 
-class SafeYAMLFactory extends DefaultYAMLFactory {
-	public Representer createRepresenter(final Serializer serializer, final YAMLConfig cfg) {
-		return new SafeRepresenterImpl(serializer,cfg);
-	}
-}
+import java.io.File;
+import java.util.ArrayList;
+import java.util.AbstractMap;
+import java.util.Set;
+import org.imagearchive.lsm.toolbox.Reader;
+import org.imagearchive.lsm.toolbox.info.CZ_LSMInfo;
+import org.imagearchive.lsm.toolbox.info.scaninfo.Track;
+import org.imagearchive.lsm.toolbox.info.scaninfo.Recording;
+import org.imagearchive.lsm.toolbox.info.scaninfo.DetectionChannel;
+import org.imagearchive.lsm.toolbox.info.scaninfo.IlluminationChannel;
+
+import util.ChannelDataLSM;
 
 public class Extract_Image_Properties implements PlugIn {
 
@@ -72,30 +79,36 @@ public class Extract_Image_Properties implements PlugIn {
 		}
 	}
 
-	boolean client = false;
-	
+	public static String getStringValueSafe( AbstractMap m, String key ) {
+		Object result = m.get(key);
+		if( result == null )
+			return "";
+		else
+			return (String)result;
+	}
+
 	public void run( String pluginArguments ) {
-		
+
 		String realArguments = null;
 		String macroArguments = Macro.getOptions();
-		
+
 		if( (macroArguments == null) || (macroArguments.equals("")) ) {
-			
+
 			if( (pluginArguments == null) || (pluginArguments.equals("")) ) {
 				throw new RuntimeException("No parameters supplied either as macro options or a plugin argument.");
 			} else {
 				realArguments = pluginArguments;
 			}
-			
-		} else { 
+
+		} else {
 			realArguments = macroArguments;
 		}
-		
+
 		String filename = Macro.getValue(
 			realArguments,
 			"filename",
 			"");
-		
+
 		if( filename.equals("") )
 			throw new RuntimeException("No macro parameter 'filename' supplied");
 
@@ -104,28 +117,21 @@ public class Extract_Image_Properties implements PlugIn {
 			realArguments,
 			"original",
 			"");
-		
-		
+
+
 		String destinationDirectory = Macro.getValue(
 			macroArguments,
 			"directory",
 			"");
 
-		
+
 		if( destinationDirectory.equals("") )
 			throw new RuntimeException("No macro parameter 'directory' supplied");
-		
-		String clientString = Macro.getValue(
-			macroArguments,
-			"client",
-			null );
-		if( clientString != null )
-			client = true;
-		
+
 		Hashtable<String,Object> properties=new Hashtable<String,Object>();
-		
-		String loaderUsed = "foo";
-		
+
+		String loaderUsed = null;
+
 		BatchOpener.ChannelsAndLoader cal = null;
 		try {
 			cal = BatchOpener.openToChannelsAndLoader( filename );
@@ -135,16 +141,17 @@ public class Extract_Image_Properties implements PlugIn {
 		if( cal == null )
 			throw new RuntimeException("Couldn't open the file: "+filename);
 
+		loaderUsed = cal.loaderUsed;
 		properties.put( "loader", cal.loaderUsed );
-		
+
 		ImagePlus [] imps = cal.channels;
-		
+
 		properties.put( "channels",  imps.length);
-		
+
 		int width  = imps[0].getWidth();
 		int height = imps[0].getHeight();
 		int depth  = imps[0].getStackSize();
-		
+
 		properties.put( "width",     width);
 		properties.put( "height",    height);
 		properties.put( "depth",     depth);
@@ -164,20 +171,13 @@ public class Extract_Image_Properties implements PlugIn {
 		// Now write out the properties we've discovered as YAML:
 
 		File outputDirectoryFile = new File(destinationDirectory);
-		
+
 		if( ! outputDirectoryFile.exists() ) {
 			throw new RuntimeException("The output directory ('"+destinationDirectory+"') didn't exist");
 		}
-		
+
 		String outputFilename = outputDirectoryFile.getAbsolutePath() + File.separator + "properties-generic";
 
-		if( loaderUsed.equals("LSM_Toolbox") ) {
-			// Then we should write out some additional information:
-			String outputFilenameLSM = outputDirectoryFile.getAbsolutePath() + File.separator + "properties-LSM";
-			// FIXME: implement this
-
-		}
-	       
 		PrintWriter pw = null;
 		try {
 			pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(outputFilename),"UTF-8"));
@@ -190,7 +190,6 @@ public class Extract_Image_Properties implements PlugIn {
 		String d=bl.toString();
 
 		pw.print(d);
-		
 		pw.close();
 
 		// Now extract some thumbnails:
@@ -201,7 +200,7 @@ public class Extract_Image_Properties implements PlugIn {
 		if( width > height ) {
 			scale = (float)maxThumbnailDimension / width;
 		} else {
-			scale = (float)maxThumbnailDimension / height;			
+			scale = (float)maxThumbnailDimension / height;
 		}
 
 		int midSlice = depth / 2;
@@ -228,9 +227,71 @@ public class Extract_Image_Properties implements PlugIn {
 		}
 
 		// close all ImagePlus objects
-		
+
 		for( int i = 0; i < imps.length; ++i ) {
 			imps[i].close();
+		}
+
+		boolean verbose = true;
+
+		// Now some special cases for different file types:
+
+		if(verbose) System.out.println("Considering loader-specific properties...");
+
+		if( loaderUsed.equals("LSM_Toolbox") ) {
+			if(verbose) System.out.println("LSM_Toolbox specific case:");
+
+			// Then we should write out some additional information:
+			String outputFilenameLSM = outputDirectoryFile.getAbsolutePath() + File.separator + "properties-LSM";
+
+			properties=new Hashtable<String,Object>();
+
+			for( int i = 0; i < 1; ++i ) {
+
+				File f = new File(filename);
+				Reader reader = new Reader();
+				CZ_LSMInfo cz = reader.readCz(f);
+
+				if (cz.scanInfo.recordings.size() == 0) {
+					properties.put("Error","No recordings found in the file.");
+					break;
+				}
+				if (cz.scanInfo.recordings.size() > 1) {
+					properties.put ("Error","We don't currently support multiple recordings in a single file.");
+					break;
+				}
+
+				// Go through the scan info:
+				Recording r = (Recording) cz.scanInfo.recordings.get(0);
+
+				properties.put( "objective",   getStringValueSafe( r.records, "ENTRY_OBJECTIVE" ) );
+				properties.put( "notes",       getStringValueSafe( r.records, "ENTRY_NOTES" ) );
+				properties.put( "description", getStringValueSafe( r.records, "ENTRY_DESCRIPTION" ) );
+				properties.put( "name",        getStringValueSafe( r.records, "ENTRY_NAME" ) );
+				properties.put( "user",        getStringValueSafe( r.records, "USER" ) );
+
+				ChannelDataLSM channels[] = ChannelDataLSM.getChannelsData(f);
+
+				Hashtable[] channelsAsArrayOfHashes = new Hashtable[channels.length];
+				for( int ci = 0; ci < channels.length; ++ci )
+					channelsAsArrayOfHashes[ci] = channels[ci].toHash();
+
+				properties.put( "channels", channelsAsArrayOfHashes );
+			}
+
+			pw = null;
+			try {
+				pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(outputFilenameLSM),"UTF-8"));
+			} catch( Exception e ) {
+				throw new RuntimeException("Couldn't open the file: '"+outputFilename+"' for writing; exception was: "+e);
+			}
+
+			bl=YAML.dump(properties,y);
+			d=bl.toString();
+
+			pw.print(d);
+			pw.close();
+
 		}
 
 		Job_Server.finishDirectory(destinationDirectory);
