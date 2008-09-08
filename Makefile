@@ -1,4 +1,4 @@
-.PHONY : show test
+.PHONY : show test fastpngtest
 
 JAVAS=$(shell find * -name \*.java | grep -v ^tempdir)
 
@@ -91,6 +91,15 @@ TRACERSOURCES=stacks/ThreePanes.java \
 	amira/AmiraParameters.java \
 	amira/AmiraMeshDecoder.java \
 	amira/AmiraTable.java
+
+fastpng/fastpng_Native_PNG_Writer.h : fastpng/Native_PNG_Writer.class
+	javah -jni -d fastpng fastpng.Native_PNG_Writer
+
+fastpng/libfastpng.so : fastpng/fastpng_Native_PNG_Writer.h fastpng/fastpng_Native_PNG_Writer.c
+	( cd fastpng && gcc -Wall -o libfastpng.so fastpng_Native_PNG_Writer.c -shared -fPIC -I/usr/lib/jvm/java-6-sun/include/ -I/usr/lib/jvm/java-6-sun/include/linux/ )
+
+fastpngtest : fastpng/libfastpng.so
+	LD_LIBRARY_PATH=fastpng java fastpng.Native_PNG_Writer
 
 test :
 	java -Xmx$(TESTMEM) -classpath $(PLUGINSHOME)/$(IJ_JAR)$(CPSEP)$(PLUGINSHOME)/jzlib-1.0.7.jar$(CPSEP)$.$(CPSEP)$(JUNIT4JAR)$(CPSEP)$(PLUGINSHOME)/Jama-1.0.2.jar org.junit.runner.JUnitCore $(TESTCLASSES)
