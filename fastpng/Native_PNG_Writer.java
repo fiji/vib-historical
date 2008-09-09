@@ -25,7 +25,7 @@
 
 package fastpng;
 
-class Native_PNG_Writer {
+public class Native_PNG_Writer {
 
 	public native boolean write8BitPNG( byte [] pixelData, int width, int height, byte [] reds, byte [] greens, byte [] blues, String outputFilename );
 
