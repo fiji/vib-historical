@@ -1,11 +1,21 @@
-
 #include "fastpng_Native_PNG_Writer.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "png.h"        /* libpng header; includes zlib.h */
-// #include "readpng.h"    /* typedefs, common macros, public prototypes */
+#include "png.h"
+
+#define ERROR_BUFFER_SIZE 1024
+
+#define RUNTIME_EXCEPTION(m) { \
+    jclass exceptionClass = (*env)->FindClass(env,"java/lang/RuntimeException"); \
+    if( ! exceptionClass ) { \
+        printf("No RuntimeException\n"); \
+        return 0; \
+    } \
+    (*env)->ThrowNew(env, exceptionClass, m); \
+    return 0; \
+}
 
 /*
  * Class:     fastpng_Native_PNG_Writer
@@ -23,6 +33,8 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
    jbyteArray blues_java,
    jstring output_filename_java)
 {
+    char error_buffer[ERROR_BUFFER_SIZE];
+
     int reds_length = -1;
     int greens_length = -1;
     int blues_length = -1;
@@ -37,50 +49,53 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
     signed char * pixel_data = NULL;
 
     const jbyte * output_filename = (*env)->GetStringUTFChars(env,output_filename_java,NULL);
-    if( ! output_filename ) {
-        return 0;
-    }
+    if( ! output_filename )
+        RUNTIME_EXCEPTION("Couldn't allocate space for String");
 
     if( ! pixel_data_java )
-        return 0;
+        RUNTIME_EXCEPTION("No pixel data supplied");
 
     pixel_data_length = (*env)->GetArrayLength(env,pixel_data_java);
 
     if( required_pixel_data_length != pixel_data_length )
-        return 0;
+        RUNTIME_EXCEPTION("Length of pixel data didn't match dimensions");
 
     pixel_data = malloc(pixel_data_length);
     if( ! pixel_data )
-        return 0;
+        RUNTIME_EXCEPTION("Couldn't allocate space for pixel data");
 
     printf("Hello, output filename is %s\n",output_filename);
 
     // Now copy the pixel data:
     (*env)->GetByteArrayRegion(env,pixel_data_java,0,pixel_data_length,pixel_data);
 
-    if( reds ) {
+    if( reds_java ) {
         reds_length = (*env)->GetArrayLength(env,reds_java);
         reds = malloc(reds_length);
         if( ! reds )
-            return 0;
+            RUNTIME_EXCEPTION("Couldn't allocate space for reds of palette");
         (*env)->GetByteArrayRegion(env,reds_java,0,reds_length,reds);
     }
 
-    if( greens ) {
+    if( greens_java ) {
         greens_length = (*env)->GetArrayLength(env,greens_java);
         greens = malloc(greens_length);
         if( ! greens )
-            return 0;
+            RUNTIME_EXCEPTION("Couldn't allocate space for greens of palette");
         (*env)->GetByteArrayRegion(env,greens_java,0,greens_length,greens);
     }
 
-    if( blues ) {
+    if( blues_java ) {
         blues_length = (*env)->GetArrayLength(env,blues_java);
         blues = malloc(blues_length);
         if( ! blues )
-            return 0;
-        (*env)->GetByteArrayRegion(env,blues_java,0,blues_length,blues);    
+            RUNTIME_EXCEPTION("Couldn't allocate space for blues of palette");
+        (*env)->GetByteArrayRegion(env,blues_java,0,blues_length,blues);
     }
+
+    if( ! ( (reds_length == greens_length) &&
+            (greens_length == blues_length) ) )
+        RUNTIME_EXCEPTION("Red, green and blue arrays must be the same size");
 
     {
         png_bytepp rows = NULL;
@@ -90,25 +105,28 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
 
         FILE * fp = fopen( output_filename, "wb" );
         if( ! fp ) {
-            fprintf(stderr, "Can't open PNG file [%s] for output\n",
-                    output_filename);
-            return -1;
+            snprintf(error_buffer,ERROR_BUFFER_SIZE-1,"Can't open PNG file [%s] for output",output_filename);
+            error_buffer[ERROR_BUFFER_SIZE-1] = 0;
+            RUNTIME_EXCEPTION(error_buffer);
         }
 
         png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, 0, 0, 0 );
         if( ! png_ptr ) {
-            fprintf(stderr, "Failed to allocate a png_structp\n" );
             fclose(fp);
-            return -1;
+            snprintf(error_buffer,ERROR_BUFFER_SIZE-1,"Failed to allocate a png_structp");
+            error_buffer[ERROR_BUFFER_SIZE-1] = 0;
+            RUNTIME_EXCEPTION(error_buffer);
         }
 
         info_ptr = png_create_info_struct( png_ptr );
         if( ! info_ptr ) {
-            fprintf(stderr, "Failed to allocate a png_infop" );
             png_destroy_write_struct( &png_ptr, 0 );
-            fclose( fp );
-            return -1;
+            fclose(fp);
+            snprintf(error_buffer,ERROR_BUFFER_SIZE-1,"Failed to allocate a png_infop");
+            error_buffer[ERROR_BUFFER_SIZE-1] = 0;
+            RUNTIME_EXCEPTION(error_buffer);
         }
+
         png_init_io( png_ptr, fp );
 
         png_set_compression_level( png_ptr, 3 );
@@ -118,21 +136,40 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
                       width,
                       height,
                       8,
-                      PNG_COLOR_TYPE_GRAY,
+                      (reds_length < 0) ? PNG_COLOR_TYPE_GRAY : PNG_COLOR_TYPE_PALETTE,
                       PNG_INTERLACE_NONE,
                       PNG_COMPRESSION_TYPE_DEFAULT, // The only option...
                       PNG_FILTER_TYPE_DEFAULT );
 
+        printf("reds_length is %d\n",reds_length);
+
+        png_color * png_palette = 0;
+        if( reds_length >= 0 ) {
+            png_palette = (png_color *) png_malloc(
+                png_ptr,
+                sizeof(png_color) * reds_length );png_set_PLTE(png_ptr, info_ptr, png_palette, reds_length);
+            {
+                int pi;
+                for( pi = 0; pi < reds_length; ++pi ) {
+                    png_palette[pi].red    = reds[pi];
+                    png_palette[pi].blue   = blues[pi];
+                    png_palette[pi].green  = greens[pi];
+                }
+            }
+            printf("setting palette\n");
+            png_set_PLTE(png_ptr, info_ptr, png_palette, reds_length);
+        }
+
         png_write_info(png_ptr, info_ptr);
 
         if( setjmp( png_ptr->jmpbuf ) ) {
-            fprintf(stderr, "Failed to setjmp\n" );
             png_destroy_write_struct( &png_ptr, 0 );
-            free(rows);
             fclose(fp);
-            return -1;            
+            snprintf(error_buffer,ERROR_BUFFER_SIZE-1,"Failed to setjmp");
+            error_buffer[ERROR_BUFFER_SIZE-1] = 0;
+            RUNTIME_EXCEPTION(error_buffer);
         }
-        
+
         int pitch = png_get_rowbytes( png_ptr, info_ptr );
         // printf( "pitch is: %d\n",pitch );
 
@@ -142,18 +179,19 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
             unsigned char * row = malloc(pitch);
             if( ! row ) {
                 int l;
-                fprintf(stderr, "Failed to allocate a row\n" );
                 png_destroy_write_struct( &png_ptr, 0 );
                 for( l = 0; l < j; ++j ) {
                     free(rows[l]);
                 }
                 free(rows);
                 fclose(fp);
-                return -1;
+                snprintf(error_buffer,ERROR_BUFFER_SIZE-1,"Failed to allocate space for row");
+                error_buffer[ERROR_BUFFER_SIZE-1] = 0;
+                RUNTIME_EXCEPTION(error_buffer);
             }
             for( k = 0; k < width; ++k ) {
                 memcpy(row,pixel_data+j*width,width);
-            }            
+            }
             rows[j] = row;
         }
 
@@ -166,7 +204,7 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
         for( j = 0; j < height; ++j ) {
             free(rows[j]);
         }
-        free( rows );        
+        free( rows );
     }
 
     (*env)->ReleaseStringUTFChars(env,output_filename_java,output_filename);
