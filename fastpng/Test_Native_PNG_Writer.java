@@ -37,11 +37,11 @@ public class Test_Native_PNG_Writer {
 		ImagePlus [] images = BatchOpener.open("test-images/tidied-mhl-62yxUAS-lacZ0-reduced.tif");
 		ImageStack stack = images[0].getStack();
 
-		byte [] pixelData = (byte[])stack.getPixels(stack.getSize()/2);
+		byte [] pixelData8Bit = (byte[])stack.getPixels(stack.getSize()/2);
 
 		Native_PNG_Writer writer = new Native_PNG_Writer();
 
-		writer.write8BitPNG( pixelData, stack.getWidth(), stack.getHeight(), null, null, null, "test-grey.png");
+		writer.write8BitPNG( pixelData8Bit, stack.getWidth(), stack.getHeight(), null, null, null, "test-grey.png");
 
 		byte [] reds   = new byte[256];
 		byte [] greens = new byte[256];
@@ -52,7 +52,17 @@ public class Test_Native_PNG_Writer {
 			greens[i] = 0;
 		}
 
-		writer.write8BitPNG( pixelData, stack.getWidth(), stack.getHeight(), reds, greens, blues, "test-colour.png");
+		writer.write8BitPNG( pixelData8Bit, stack.getWidth(), stack.getHeight(), reds, greens, blues, "test-colour.png");
+
+		// ------------------------------------------------------------------------
+		// Now write an RGB image (hopefully):
+
+		images = BatchOpener.open("test-images/71yAAeastmost-RGB.tif");
+		stack = images[0].getStack();
+
+		int [] pixelDataRGB = (int[])stack.getPixels(stack.getSize()/2);
+
+		writer.writeFullColourPNG( pixelDataRGB, stack.getWidth(), stack.getHeight(), "test-RGB.png");
 
 	}
 }
