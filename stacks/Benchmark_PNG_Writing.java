@@ -51,6 +51,8 @@ import util.BatchOpener;
 import util.Limits;
 import server.Job_Server;
 
+import fastpng.Native_PNG_Writer;
+
 public class Benchmark_PNG_Writing implements PlugIn {
 
 	String testFilenames[] = {
@@ -84,6 +86,11 @@ public class Benchmark_PNG_Writing implements PlugIn {
 
 		File outputDirectoryFile = new File(outputDirectory);
 		outputDirectoryFile.mkdir();
+
+		// ------------------------------------------------------------------------
+		// First the pure Java technique:
+
+		/*
 
 		for( int tfi = 0; tfi < testFilenames.length; ++tfi ) {
 
@@ -162,5 +169,98 @@ public class Benchmark_PNG_Writing implements PlugIn {
 				}
 			}
 		}
+
+		*/
+
+		// ------------------------------------------------------------------------
+		// Now the JNI libpng technique:
+
+		Native_PNG_Writer writer = new Native_PNG_Writer();
+
+		for( int tfi = 0; tfi < testFilenames.length; ++tfi ) {
+
+			b("Trying filename: "+testFilenames[tfi]);
+
+			// First load the image to an array of ImagePlus objects:
+			ImagePlus [] images = BatchOpener.open( testFilenames[tfi] );
+			if( images == null || images.length == 0 )
+				throw new RuntimeException("Failed to load: "+testFilenames[tfi]);
+
+			File testFile = new File(testFilenames[tfi]);
+
+			for( int c = 0; c < images.length; ++c ) {
+
+				int imageType = images[c].getType();
+				if( imageType == ImagePlus.GRAY16 || imageType == ImagePlus.GRAY32 ) {
+					float [] limits = Limits.getStackLimits(images[c]);
+					ImageProcessor p = images[c].getProcessor();
+					p.setMinAndMax(limits[0],limits[1]);
+				}
+				int bitDepth = images[c].getBitDepth();
+
+				String channelString = i3.format(c);
+
+				ImagePlus imagePlus = images[c];
+
+				int newWidth = imagePlus.getWidth();
+				int newHeight = imagePlus.getHeight();
+				int depth = imagePlus.getStackSize();
+
+				ImageStack stack = imagePlus.getStack();
+
+				for( int z = 0; z < depth; ++z ) {
+
+					ImageProcessor ip = stack.getProcessor(z+1);
+
+					String sliceString = i3.format(z);
+					String outputFileName =
+						outputDirectory +
+						"/" +
+						channelString +
+						"-" + sliceString + "-" +
+						testFile.getName() + "-jni.png";
+
+					LookUpTable lut = imagePlus.createLut();
+					IndexColorModel cm = null;
+					byte [] reds   = null;
+					byte [] greens = null;
+					byte [] blues  = null;
+					if( lut != null ) {
+						int size = lut.getMapSize();
+						if( size > 0 ) {
+							reds = lut.getReds();
+							greens = lut.getGreens();
+							blues = lut.getBlues();
+						}
+					}
+
+					if( bitDepth == 8 ) {
+						if( true ) {
+							ImageProcessor resized = ip.resize(333,333);
+							System.out.println("Resized PNG has width: "+resized.getWidth());
+							System.out.println("Resized PNG has height: "+resized.getHeight());
+							byte [] pixelData8Bit = (byte[])resized.getPixels();
+							System.out.println("Length of data is: "+pixelData8Bit.length);
+							writer.write8BitPNG( pixelData8Bit, 333, 333, reds, greens, blues, outputFileName);
+						} else {
+							byte [] pixelData8Bit = (byte[])ip.getPixels();
+							writer.write8BitPNG( pixelData8Bit, newWidth, newHeight, reds, greens, blues, outputFileName);
+						}
+					} else if( bitDepth == 16 ) {
+						ImageProcessor bp = ip.convertToByte(true);
+						byte [] pixelData8Bit = (byte[])bp.getPixels();
+						writer.write8BitPNG( pixelData8Bit, newWidth, newHeight, reds, greens, blues, outputFileName);
+					} else if( bitDepth == 24 ) {
+						int [] pixelDataRGB = (int[])ip.getPixels();
+						writer.writeFullColourPNG( pixelDataRGB, newWidth, newHeight, outputFileName );
+					} else {
+						throw new RuntimeException("Unhandled bit depth: "+bitDepth);
+					}
+					b("Done writing PNG files");
+
+				}
+			}
+		}
+
 	}
 }
