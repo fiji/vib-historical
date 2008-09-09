@@ -17,22 +17,20 @@
     return 0; \
 }
 
-/*
- * Class:     fastpng_Native_PNG_Writer
- * Method:    write8BitPNG
- * Signature: ([BII[B[B[BLjava/lang/String;)Z
- */
-JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
-  (JNIEnv * env,
-   jobject this,
-   jbyteArray pixel_data_java,
-   jint width,
-   jint height,
-   jbyteArray reds_java,
-   jbyteArray greens_java,
-   jbyteArray blues_java,
-   jstring output_filename_java)
+
+jboolean writePNG( JNIEnv * env,
+                   jobject this,
+                   jbyteArray pixel_data_byte_java,
+                   jintArray pixel_data_int_java,
+                   jint width,
+                   jint height,
+                   jbyteArray reds_java,
+                   jbyteArray greens_java,
+                   jbyteArray blues_java,
+                   jstring output_filename_java )
 {
+    int isRGB;
+
     char error_buffer[ERROR_BUFFER_SIZE];
 
     int reds_length = -1;
@@ -46,28 +44,44 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
     int required_pixel_data_length = width * height;
     int pixel_data_length = -1;
 
-    signed char * pixel_data = NULL;
+    unsigned char * pixel_data_byte = NULL;
+    unsigned int * pixel_data_int = NULL;
 
     const jbyte * output_filename = (*env)->GetStringUTFChars(env,output_filename_java,NULL);
     if( ! output_filename )
         RUNTIME_EXCEPTION("Couldn't allocate space for String");
 
-    if( ! pixel_data_java )
-        RUNTIME_EXCEPTION("No pixel data supplied");
+    if( pixel_data_byte_java && pixel_data_int_java )
+        RUNTIME_EXCEPTION("Both byte and int pixel data supplied");
 
-    pixel_data_length = (*env)->GetArrayLength(env,pixel_data_java);
+    if( ! (pixel_data_byte_java || pixel_data_int_java) )
+        RUNTIME_EXCEPTION("Neither byte nor int pixel data supplied");
+
+    isRGB = pixel_data_int_java != 0;
+
+    pixel_data_length = (*env)->GetArrayLength(env,
+                                               isRGB ? pixel_data_int_java : pixel_data_byte_java);
 
     if( required_pixel_data_length != pixel_data_length )
         RUNTIME_EXCEPTION("Length of pixel data didn't match dimensions");
 
-    pixel_data = malloc(pixel_data_length);
-    if( ! pixel_data )
-        RUNTIME_EXCEPTION("Couldn't allocate space for pixel data");
+    if( isRGB ) {
 
-    printf("Hello, output filename is %s\n",output_filename);
+        pixel_data_int = malloc(pixel_data_length * sizeof(unsigned int));
+        if( ! pixel_data_int )
+            RUNTIME_EXCEPTION("Couldn't allocate space for pixel data");
 
-    // Now copy the pixel data:
-    (*env)->GetByteArrayRegion(env,pixel_data_java,0,pixel_data_length,pixel_data);
+        (*env)->GetIntArrayRegion(env,pixel_data_int_java,0,pixel_data_length,pixel_data_int);
+
+    } else {
+
+        pixel_data_byte = malloc(pixel_data_length * sizeof(unsigned char));
+        if( ! pixel_data_byte )
+            RUNTIME_EXCEPTION("Couldn't allocate space for pixel data");
+
+        (*env)->GetByteArrayRegion(env,pixel_data_byte_java,0,pixel_data_length,pixel_data_byte);
+
+    }
 
     if( reds_java ) {
         reds_length = (*env)->GetArrayLength(env,reds_java);
@@ -136,18 +150,17 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
                       width,
                       height,
                       8,
-                      (reds_length < 0) ? PNG_COLOR_TYPE_GRAY : PNG_COLOR_TYPE_PALETTE,
+                      isRGB ? PNG_COLOR_TYPE_RGB :
+                      ((reds_length < 0) ? PNG_COLOR_TYPE_GRAY : PNG_COLOR_TYPE_PALETTE),
                       PNG_INTERLACE_NONE,
                       PNG_COMPRESSION_TYPE_DEFAULT, // The only option...
                       PNG_FILTER_TYPE_DEFAULT );
 
-        printf("reds_length is %d\n",reds_length);
-
         png_color * png_palette = 0;
-        if( reds_length >= 0 ) {
+        if( (! isRGB) && (reds_length >= 0) ) {
             png_palette = (png_color *) png_malloc(
                 png_ptr,
-                sizeof(png_color) * reds_length );png_set_PLTE(png_ptr, info_ptr, png_palette, reds_length);
+                sizeof(png_color) * reds_length );
             {
                 int pi;
                 for( pi = 0; pi < reds_length; ++pi ) {
@@ -156,7 +169,6 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
                     png_palette[pi].green  = greens[pi];
                 }
             }
-            printf("setting palette\n");
             png_set_PLTE(png_ptr, info_ptr, png_palette, reds_length);
         }
 
@@ -171,7 +183,6 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
         }
 
         int pitch = png_get_rowbytes( png_ptr, info_ptr );
-        // printf( "pitch is: %d\n",pitch );
 
         rows = malloc( height * sizeof(png_bytep) );
 
@@ -189,8 +200,20 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
                 error_buffer[ERROR_BUFFER_SIZE-1] = 0;
                 RUNTIME_EXCEPTION(error_buffer);
             }
-            for( k = 0; k < width; ++k ) {
-                memcpy(row,pixel_data+j*width,width);
+            if( isRGB ) {
+                for( k = 0; k < width; ++k ) {
+                    unsigned int value = pixel_data_int[(j * width) + k];
+                    unsigned char b = (unsigned char)( value & 0xFF );
+                    unsigned char g = (unsigned char)( (value & 0xFF00) >> 8 );
+                    unsigned char r = (unsigned char)( (value & 0xFF0000) >> 16 );
+                    int i = k * 3;
+                    row[i++] = r;
+                    row[i++] = g;
+                    row[i] = b;
+                }
+            } else {
+                // With 8 bit images, it's much simpler, just memcpy the data:
+                memcpy(row,pixel_data_byte+j*width,width);
             }
             rows[j] = row;
         }
@@ -214,16 +237,53 @@ JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
 
 /*
  * Class:     fastpng_Native_PNG_Writer
+ * Method:    write8BitPNG
+ * Signature: ([BII[B[B[BLjava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_write8BitPNG
+  (JNIEnv * env,
+   jobject this,
+   jbyteArray pixel_data_java,
+   jint width,
+   jint height,
+   jbyteArray reds_java,
+   jbyteArray greens_java,
+   jbyteArray blues_java,
+   jstring output_filename_java)
+{
+    return writePNG( env,
+                     this,
+                     pixel_data_java,
+                     NULL,
+                     width,
+                     height,
+                     reds_java,
+                     greens_java,
+                     blues_java,
+                     output_filename_java );
+}
+
+/*
+ * Class:     fastpng_Native_PNG_Writer
  * Method:    writeFullColourPNG
  * Signature: ([IIILjava/lang/String;)Z
  */
 JNIEXPORT jboolean JNICALL Java_fastpng_Native_1PNG_1Writer_writeFullColourPNG
   (JNIEnv * env,
    jobject this,
-   jintArray pixel_data,
+   jintArray pixel_data_java,
    jint width,
    jint height,
    jstring output_filename_java)
 {
-    return 0;
+    return writePNG( env,
+                     this,
+                     NULL,
+                     pixel_data_java,
+                     width,
+                     height,
+                     NULL,
+                     NULL,
+                     NULL,
+                     output_filename_java );
 }
