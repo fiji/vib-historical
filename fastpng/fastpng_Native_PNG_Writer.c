@@ -17,7 +17,6 @@
     return 0; \
 }
 
-
 jboolean writePNG( JNIEnv * env,
                    jobject this,
                    jbyteArray pixel_data_byte_java,
@@ -221,6 +220,8 @@ jboolean writePNG( JNIEnv * env,
         png_write_image( png_ptr, rows );
 
         png_write_end( png_ptr, 0 );
+
+        fclose(fp);
 
         png_destroy_write_struct( &png_ptr, &info_ptr );
 
