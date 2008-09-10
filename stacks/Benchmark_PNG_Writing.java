@@ -57,7 +57,8 @@ public class Benchmark_PNG_Writing implements PlugIn {
 
 	String testFilenames[] = {
 		"/home/mark/scans/71yAAeastmost.lsm",
-		"/home/mark/scans/71yAAeastmost-RGB.tif"
+		"/home/mark/scans/71yAAeastmost-RGB.tif",
+		"/home/mark/fiji/VIB/test-images/181y-12bit-aaarrg-mid-detail-reduced.tif"
 	};
 
 	String outputDirectory = "/tmp/bored/";
