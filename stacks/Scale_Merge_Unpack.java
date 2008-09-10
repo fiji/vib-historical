@@ -33,6 +33,7 @@ import ij.LookUpTable;
 import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 import ij.process.ColorProcessor;
+import ij.process.ByteProcessor;
 
 import java.text.DecimalFormat;
 import java.io.*;
@@ -49,6 +50,8 @@ import javax.imageio.ImageIO;
 import util.BatchOpener;
 import util.Limits;
 import server.Job_Server;
+
+import fastpng.Native_PNG_Writer;
 
 public class Scale_Merge_Unpack implements PlugIn {
 
@@ -68,6 +71,8 @@ public class Scale_Merge_Unpack implements PlugIn {
 	String destinationDirectory;
 
 	public void run(String pluginArguments) {
+
+		Native_PNG_Writer writer = new Native_PNG_Writer();
 
 		String realArguments = null;
 		String macroArguments = Macro.getOptions();
@@ -308,6 +313,8 @@ public class Scale_Merge_Unpack implements PlugIn {
 			ImagePlus imagePlus = images[i];
 			ImageStack stack = imagePlus.getStack();
 
+			int imageType = imagePlus.getType();
+
 			for( int z = 0; z < depth; ++z ) {
 
 				ImageProcessor ip = stack.getProcessor(z+1);
@@ -317,34 +324,50 @@ public class Scale_Merge_Unpack implements PlugIn {
 
 				LookUpTable lut = imagePlus.createLut();
 				IndexColorModel cm = null;
+				byte [] reds   = null;
+				byte [] greens = null;
+				byte [] blues  = null;
 				if( lut != null ) {
 					int size = lut.getMapSize();
 					if( size > 0 ) {
-						byte [] reds = lut.getReds();
-						byte [] greens = lut.getGreens();
-						byte [] blues = lut.getBlues();
+						reds = lut.getReds();
+						greens = lut.getGreens();
+						blues = lut.getBlues();
 						cm = new IndexColorModel(8,size,reds,greens,blues);
 					}
 				}
-				BufferedImage bi;
-				if( bitDepth == 8 || bitDepth == 16 ) {
-					if( cm == null ) {
-						bi = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_BYTE_GRAY);
-					} else {
-						bi = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_BYTE_INDEXED, cm);
-					}
-				} else {
-					bi = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
-				}
 
-				Graphics2D g = (Graphics2D)bi.getGraphics();
-				Image imageToDraw = ip.createImage();
-				g.drawImage(imageToDraw, 0, 0, null);
-				File f = new File(outputFileName);
-				try {
-					ImageIO.write(bi, "png", f);
-				} catch( IOException e ) {
-					throw new RuntimeException(e.toString());
+				if( bitDepth == 8 ) {
+					writer.write8BitPNG( (byte[])ip.getPixels(),
+							     newWidth,
+							     newHeight,
+							     reds,
+							     greens,
+							     blues,
+							     outputFileName );
+				} else if( bitDepth == 16 ) {
+					ImageProcessor bp = ip.convertToByte(true);
+					byte [] pixelData8Bit = (byte[])bp.getPixels();
+					writer.write8BitPNG( pixelData8Bit,
+							     newWidth,
+							     newHeight,
+							     reds,
+							     greens,
+							     blues,
+							     outputFileName);
+				} else if( imageType == ImagePlus.GRAY32 ) {
+					ImageProcessor bp = ip.convertToByte(true);
+					byte [] pixelData8Bit = (byte[])bp.getPixels();
+					writer.write8BitPNG( pixelData8Bit,
+							     newWidth,
+							     newHeight,
+							     reds,
+							     greens,
+							     blues,
+							     outputFileName);
+				} else if( imageType == ImagePlus.COLOR_RGB ) {
+					int [] pixelDataRGB = (int[])ip.getPixels();
+					writer.writeFullColourPNG( pixelDataRGB, newWidth, newHeight, outputFileName );
 				}
 				++ slicesDone;
 				reportProgress( slicesDone );
@@ -367,18 +390,9 @@ public class Scale_Merge_Unpack implements PlugIn {
 				String sliceString = f5.format(z);
 				String outputFileName = destinationDirectory + "/" + channelString + sliceString + ".png";
 
-				BufferedImage bi;
-				bi = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
+				int [] pixelDataRGB = (int[])ip.getPixels();
+				writer.writeFullColourPNG( pixelDataRGB, newWidth, newHeight, outputFileName );
 
-				Graphics2D g = (Graphics2D)bi.getGraphics();
-				Image imageToDraw = ip.createImage();
-				g.drawImage(imageToDraw, 0, 0, null);
-				File f = new File(outputFileName);
-				try {
-					ImageIO.write(bi, "png", f);
-				} catch( IOException e ) {
-					throw new RuntimeException(e.toString());
-				}
 				++ slicesDone;
 				reportProgress( slicesDone );
 			}
