@@ -96,7 +96,7 @@ fastpng/fastpng_Native_PNG_Writer.h : fastpng/Native_PNG_Writer.class
 	javah -classpath .:../ImageJA/ij.jar -jni -d fastpng fastpng.Native_PNG_Writer
 
 fastpng/libfastpng.so : fastpng/fastpng_Native_PNG_Writer.h fastpng/fastpng_Native_PNG_Writer.c
-	( cd fastpng && gcc -Wall -g -o libfastpng.so fastpng_Native_PNG_Writer.c -shared -fPIC -I/usr/lib/jvm/java-6-sun/include/ -I/usr/lib/jvm/java-6-sun/include/linux/ `libpng-config --libs` )
+	( cd fastpng && gcc -Wall -O3 -o libfastpng.so fastpng_Native_PNG_Writer.c -shared -fPIC -I/usr/lib/jvm/java-6-sun/include/ -I/usr/lib/jvm/java-6-sun/include/linux/ `libpng-config --libs` )
 
 fastpngtest : fastpng/libfastpng.so fastpng/Test_Native_PNG_Writer.class fastpng/Native_PNG_Writer.class
 	LD_LIBRARY_PATH=fastpng java -classpath .:../ImageJA/ij.jar fastpng.Test_Native_PNG_Writer
