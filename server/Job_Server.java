@@ -7,21 +7,54 @@ import java.util.LinkedList;
 import java.util.Hashtable;
 import java.net.*;
 import java.io.*;
-
+import java.security.SecureRandom;
+import java.security.MessageDigest;
+import java.util.Calendar;
+import java.text.SimpleDateFormat;
 import ij.ImageJ;
 import ij.plugin.PlugIn;
 
 /* This is a class that provides a TCP server for queuing and starting
  * jobs in an instance of ImageJ.  An objection to this might be that
  * ImageJ already binds to localhost and starts commands in a similar
- * fashion.  However, it has no facility for controlling the number of
- * jobs that may run concurrently or querying the progress of jobs. */
+ * fashion.  However, ImageJ has no facility for controlling the
+ * number of jobs that may run concurrently or querying the progress
+ * of jobs. */
 
-/* To send a command to the server, you write a tab separated line
- * terminated by \r\n.  The server will send back a tab separated line
- * terminated by \r\n.
+/* Each message from and to the server consists of a single line of
+ * tab-separated fields followed by \r\n.  When any client connects to
+ * the server, the server begins the conversation by sending two
+ * fields:
 
- * The first field in the command indicates the action:
+     "hello" followed by a challenge, which is a string of letters and
+     numbers with a strong random component.
+
+ * The client should reply with two fields:
+
+     The first field should be "auth"
+
+     The second field should be the SHA1 digest of the shared secret
+     word concatenated with the challenge provided by the server.
+     e.g. if the server greets the client with
+     "hello\t10a7e01bf81d2302.1ae834af0e9\r\n" and the shared secret
+     word is "hopeless", then it should return the SHA1 sum of
+     "hopeless10a7e01bf81d2302.1ae834af0e9". This means returning the
+     message:
+
+     "auth\tfa9768025aadab388fb5508a4ef1a680fbff233e\r\n"
+
+
+ * If this is incorrect then the server replies:
+
+     "denied\r\n"
+
+   ... and closes the connection.  If the reply is correct then the
+   reply is:
+
+     "success\r\n"
+
+ * Then the client should send a line with a command.  The first field
+   in the command indicates the action:
 
      "start":
 
@@ -32,7 +65,7 @@ import ij.plugin.PlugIn;
 	   first, and in the second field the job ID specific to this
 	   server.
 
-     "query"
+     "query":
 
 	 - The second field must a job ID
 
@@ -215,9 +248,56 @@ public class Job_Server implements PlugIn {
 		}
 	}
 
-	public void run(String ignore) {
+	static StringBuffer byteArrayToStringBuffer( byte [] b ) {
+		char [] hexDigits = { '0', '1', '2', '3', '4', '5', '5', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+		StringBuffer result = new StringBuffer();
+		for( int i = 0; i < b.length; ++i ) {
+			int value = b[i] & 0xFF;
+			result.append( hexDigits[(value & 0xF0) >> 4] );
+			result.append( hexDigits[(value & 0x0F)] );
+		}
+		return result;
+	}
 
-		System.out.println("Entering the run method of server.Job_Server");
+	SecureRandom secureRandom = new SecureRandom();
+	Calendar calendar = Calendar.getInstance();
+	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+
+	private String makeChallenge() {
+		StringBuffer sb = new StringBuffer();
+		sb.append( sdf.format(calendar.getTime()) );
+		sb.append( "." );
+		sb.append( System.currentTimeMillis() );
+		sb.append( "." );
+		byte bytes[] = new byte[64];
+		secureRandom.nextBytes(bytes);
+		sb.append( byteArrayToStringBuffer( bytes ) );
+		return sb.toString();
+	}
+
+	boolean validChallengeResponse( String challenge, String sharedSecret, String suppliedResponse ) {
+		boolean result;
+		try {
+			String stringToHash = sharedSecret + challenge;
+			MessageDigest sha = MessageDigest.getInstance("SHA-1");
+			byte [] bytesToHash = stringToHash.getBytes("UTF-8");
+			byte [] bytesSHA1sum = sha.digest(bytesToHash);
+			String stringSHA1sum = byteArrayToStringBuffer( bytesSHA1sum ).toString();
+			log( "We think the response should be: "+stringSHA1sum );
+			log( "Comparing it to the supplied: "+suppliedResponse );
+		        result = stringSHA1sum.equals(suppliedResponse);
+			log( "The result is: "+result);
+		} catch( java.security.NoSuchAlgorithmException e ) {
+			log( "Missing the SHA-1 algorithm (!)" );
+			return false;
+		} catch( java.io.UnsupportedEncodingException e ) {
+			log( "Missing UTF-8 encoding (!)" );
+			return false;
+		}
+		return result;
+	}
+
+	public void run(String ignore) {
 
 		logFilename = System.getProperty("logfilename");
 		if( logFilename == null )
@@ -231,6 +311,13 @@ public class Job_Server implements PlugIn {
 			System.out.println("Couldn't open log file.");
 			System.exit(-1);
 		}
+
+		Runtime runtime = Runtime.getRuntime();
+		int processors = runtime.availableProcessors();
+
+		log( "This system has "+processors+" processors." );
+
+		System.out.println("Number of processors available to the Java Virtual Machine: " + processors);
 
 		jobQueue = new LinkedList<Job>();
 		allJobs = new ArrayList<Job>();
@@ -254,6 +341,8 @@ public class Job_Server implements PlugIn {
 
 		for(;;) {
 
+			String sharedSecret = "read this from a file instead";
+
 			Socket clientSocket = null;
 			BufferedReader in = null;
 			PrintStream out = null;
@@ -270,17 +359,42 @@ public class Job_Server implements PlugIn {
 
 				out = new PrintStream( clientSocket.getOutputStream() );
 
+				String challenge = makeChallenge();
+				log( "Going to send challenge: "+challenge );
+
+				out.print("hello\t"+challenge+"\r\n");
+
 				String nextLine = in.readLine();
 
 				String [] arguments = nextLine.split("\\t");
 
-/*
-				log("Got arguments:");
-				for( int i = 0; i < arguments.length;++i ) {
-					log(arguments[i]);
+				if( arguments.length != 2 ) {
+					log("Wrong number of fields ('"+arguments.length+"') in response to challenge - full line was: '"+nextLine+"'");
+					out.print("denied\r\n");
+					clientSocket.close();
+					continue;
 				}
-				log("End of arguments.");
-*/
+
+				if( ! arguments[0].equals("auth") ) {
+					log("Should have got an 'auth' in response to challenge - full line was: '"+nextLine+"'");
+					out.print("denied\r\n");
+					clientSocket.close();
+					continue;
+				}
+
+				if( ! validChallengeResponse(challenge,sharedSecret,arguments[1]) ) {
+					log("Crypted secret failed to match: '"+nextLine+"'");
+					out.print("denied\r\n");
+					clientSocket.close();
+					continue;
+				}
+
+				log("Authentication succeeded, continuing...");
+				out.print("success\r\n");
+
+				nextLine = in.readLine();
+
+				arguments = nextLine.split("\\t");
 
 				if( arguments.length >= 2 ) {
 
