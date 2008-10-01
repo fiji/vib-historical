@@ -13,6 +13,8 @@ import java.util.Calendar;
 import java.text.SimpleDateFormat;
 import ij.ImageJ;
 import ij.plugin.PlugIn;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /* This is a class that provides a TCP server for queuing and starting
  * jobs in an instance of ImageJ.  An objection to this might be that
@@ -124,6 +126,7 @@ import ij.plugin.PlugIn;
 public class Job_Server implements PlugIn {
 
 	static private String logFilename = null;
+	static private String configurationFilename = null;
 
 	Hashtable<Thread,Job> threadToJob;
 
@@ -297,12 +300,47 @@ public class Job_Server implements PlugIn {
 		return result;
 	}
 
+	public Hashtable parseConfigurationFile( String configurationFilename ) {
+
+		Hashtable result = new Hashtable();
+
+		try {
+			BufferedReader f = new BufferedReader( new FileReader(configurationFilename) );
+			Pattern p = Pattern.compile("^[ \t]*([^ \t=]+)[ \t]*=[ \t]*([^ \t=]+)([ \t]*$|[ \t]+#)");
+			Pattern empty = Pattern.compile("^[ \t]*($|#)");
+
+			String line = null;
+			while ( (line = f.readLine()) != null ) {
+				System.out.println("Got line: "+line);
+				Matcher m = empty.matcher( line );
+				if( m.find() )
+					continue;
+			        m = p.matcher( line );
+				if( m.find() ) {
+					result.put(m.group(1),m.group(2));
+				} else {
+					log( "Malformed line found in configuration file: " );
+				}
+			}
+		} catch( IOException e ) {
+			log( "Couldn't open the configuration file: "+configurationFilename );
+			return null;
+		}
+
+		return result;
+	}
+
 	public void run(String ignore) {
 
 		logFilename = System.getProperty("logfilename");
 		if( logFilename == null )
 			logFilename = "/tmp/job-server.log";
 		System.out.println("Using the log file: "+logFilename);
+
+		configurationFilename = System.getProperty("configurationfilename");
+		if( configurationFilename == null )
+			configurationFilename = "/etc/default/imagej-job-server";
+		System.out.println("Using the configuration file: "+configurationFilename);
 
 		logStream = null;
 		try {
@@ -311,6 +349,14 @@ public class Job_Server implements PlugIn {
 			System.out.println("Couldn't open log file.");
 			System.exit(-1);
 		}
+
+		Hashtable configurationHash = parseConfigurationFile( configurationFilename );
+		if( configurationHash == null ) {
+			System.out.println("Parsing the configuration file failed");
+			System.exit(-1);
+		}
+
+		log( "Finished parsing configuration file" );
 
 		Runtime runtime = Runtime.getRuntime();
 		int processors = runtime.availableProcessors();
@@ -341,7 +387,11 @@ public class Job_Server implements PlugIn {
 
 		for(;;) {
 
-			String sharedSecret = "read this from a file instead";
+			String sharedSecret = (String)configurationHash.get("IMAGEJ_SERVER_SECRET");
+			if( sharedSecret == null ) {
+				System.out.println("Couldn't find the shared secret (key IMAGEJ_SERVER_SECRET) in the configuration file");
+				System.exit(-1);
+			}
 
 			Socket clientSocket = null;
 			BufferedReader in = null;
@@ -365,6 +415,11 @@ public class Job_Server implements PlugIn {
 				out.print("hello\t"+challenge+"\r\n");
 
 				String nextLine = in.readLine();
+				if( nextLine == null ) {
+					log("nextLine was null when waiting for response to challenge from client");
+					clientSocket.close();
+					continue;
+				}
 
 				String [] arguments = nextLine.split("\\t");
 
@@ -393,6 +448,11 @@ public class Job_Server implements PlugIn {
 				out.print("success\r\n");
 
 				nextLine = in.readLine();
+				if( nextLine == null ) {
+					log("nextLine was null when waiting for command from the client");
+					clientSocket.close();
+					continue;
+				}
 
 				arguments = nextLine.split("\\t");
 
