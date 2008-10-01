@@ -201,6 +201,15 @@ public class BatchOpener {
 				return null;
 			}
 
+			boolean tryImageIO = false;
+			IntegerValueForTag compression = new IntegerValueForTag();
+			try {
+				in.seek(0);
+				boolean gotCompressionTag = findTag( ij.io.TiffDecoder.COMPRESSION, in, tiffLittleEndian, compression );
+			} catch(IOException e) {
+				return null;
+			}
+
 			if (isLSM) {
 
 				try {
@@ -389,6 +398,42 @@ public class BatchOpener {
 				in.close();
 			} catch( IOException e ) {
 				IJ.error("Couldn't close the file.");
+				return null;
+			}
+
+			/* The only situations where we don't just use
+			   the default opener at this stage are when
+			   the compression method isn't supported by
+			   ImageJ and we have to use the ij-ImageIO
+			   plugin... */
+
+			if( compression.found && (compression.value != 5) && (compression.value != 1) && !(compression.value==7/*&&fi.width<500*/) ) {
+
+				loaderUsed = "ij-ImageIO";
+
+				try {
+					ClassLoader loader = IJ.getClassLoader();
+					if (loader == null)
+						throw new RuntimeException("IJ.getClassLoader() failed (!)");
+					Class<?> c = loader.loadClass("net.sf.ij.jaiio.JAIReader");
+					Class [] parameterTypes = { java.io.File.class };
+					Object [] parameters = new Object[1];
+					parameters[0] = file;
+					Method m = c.getMethod( "read", parameterTypes );
+					ImagePlus [] result = (ImagePlus[])m.invoke(null,parameters);
+					if( result == null )
+						return null;
+					return new ChannelsAndLoader(result,loaderUsed);
+				} catch (ClassNotFoundException e) {
+					IJ.error("The net.sf.ij.jaiio.JAIReader class was not found: " + e);
+				} catch (NoSuchMethodException e) {
+					IJ.error("Couldn't find the read(File) method in net.sf.ij.jaiio.JAIReader: " + e);
+				} catch ( IllegalAccessException e ) {
+					IJ.error("IllegalAccessException when running net.sf.ij.jaiio.JAIReader.read(File): "+e);
+				} catch (InvocationTargetException e) {
+					Throwable realException = e.getTargetException();
+					IJ.error("There was an exception thrown by net.sf.ij.jaiio.JAIReader.read(File): " + realException);
+				}
 				return null;
 			}
 
@@ -620,19 +665,29 @@ public class BatchOpener {
 		return result;
 	}
 
+	private static class IntegerValueForTag {
+		int value = -1;
+		boolean found = false;
+	}
+
 	private static boolean findLSMTag(RandomAccessFile in, boolean littleEndian) throws IOException {
-		return findTag(34412, in, littleEndian);
+		return findTag(34412, in, littleEndian, null);
 	}
 	// This is a stripped down version of TiffDecoder.getTiffInfo() that just
 	// looks for an particular TIFF tag...
 
-	private static boolean findTag(long tagToLookFor, RandomAccessFile in, boolean littleEndian) throws IOException {
+	private static boolean findTag(long tagToLookFor, RandomAccessFile in, boolean littleEndian, IntegerValueForTag valueFound) throws IOException {
+
+		if( valueFound != null ) {
+			valueFound.value = -1;
+			valueFound.found = false;
+		}
 
 		int byteOrder = in.readShort();
 		int magicNumber = getShort(in, littleEndian); // 42
 		int offset = getInt(in, littleEndian);
 		if (magicNumber != 42) {
-			IJ.error("Not really a TIFF file (BUG: should have been detected earlier.)");
+			IJ.error("Not really a TIFF file (BUG: should have been detected earlier.) The magic number was: "+magicNumber);
 			// FIXME: throw an exception...
 		}
 
@@ -660,6 +715,10 @@ public class BatchOpener {
 				count = getInt(in, littleEndian);
 				value = getValue(in, littleEndian, fieldType, count);
 				if (tag == tagToLookFor) {
+					if ( valueFound != null ) {
+						valueFound.value = value;
+						valueFound.found = true;
+					}
 					return true;
 				}
 			}
