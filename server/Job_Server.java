@@ -249,7 +249,7 @@ public class Job_Server implements PlugIn {
 	}
 
 	static StringBuffer byteArrayToStringBuffer( byte [] b ) {
-		char [] hexDigits = { '0', '1', '2', '3', '4', '5', '5', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+		char [] hexDigits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 		StringBuffer result = new StringBuffer();
 		for( int i = 0; i < b.length; ++i ) {
 			int value = b[i] & 0xFF;
