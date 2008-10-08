@@ -15,6 +15,7 @@ import ij.ImageJ;
 import ij.plugin.PlugIn;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.sql.*;
 
 /* This is a class that provides a TCP server for queuing and starting
  * jobs in an instance of ImageJ.  An objection to this might be that
@@ -60,12 +61,29 @@ import java.util.regex.Pattern;
 
      "start":
 
-	 - The second field must be a macro expression, typically
-	   "run('Watever Plugin','example=foo');"
+         - The second field is the name of an ImageJ command, such as
+           'Whatever Plugin'.
 
-	 - A single line is returned which contains "started" in the
-	   first, and in the second field the job ID specific to this
-	   server.
+         - The third field is the string of parameters that will be
+           passed to the ImageJ command (augmented with a directory
+           parameter.)
+
+	 - The fourth field must be the relative output directory.
+           (It is relative to IMAGEJ_SERVER_DATA_ROOT.)
+
+	 - A fifth field is an estimated upper bound on the number of
+           megabytes of memory that the command will require to run to
+           completion.
+
+         - The reply is either:
+
+                  "started\t42\r\n"
+
+           ... where 42 is a job ID or:
+
+                  "failed\tError message\r\n"
+
+           .... where 'Error message' is something more informative.
 
      "query":
 
@@ -102,7 +120,7 @@ import java.util.regex.Pattern;
 		  - The job ID was unknown
 
    If the command is unknown, has the wrong number of arguments or
-   some other error occurs, then "error\t<ERROR-MESSAGE" is returned.
+   some other error occurs, then "error\t<ERROR-MESSAGE>" is returned.
 
 */
 
@@ -125,42 +143,83 @@ import java.util.regex.Pattern;
 
 public class Job_Server implements PlugIn {
 
-	static private String logFilename = null;
-	static private String configurationFilename = null;
+	private static Job_Server instance = null;
+
+	static private final String allowedCommands[] = {
+		"Scale, Merge and Unpack",
+		"MIPDriver ",
+		"Extract Image Properties"
+	};
+
+	private String logFilename = null;
+	private String configurationFilename = null;
 
 	Hashtable<Thread,Job> threadToJob;
 
-	public static final int maxJobs = 2;
+	private int maxJobs = 2;
 
 	/* We also use the jobQueue object to synchronize on; that
 	   also protects currentlyRunningJobs... */
 
-	private static LinkedList<Job> jobQueue;
-	private int currentlyRunningJobs = 0;
+	private LinkedList<Job> jobQueue;
+	private LinkedList<Job> currentlyRunningJobs;
 
-	/* The allJobs object just records all jobs ever submitted to this
-	   server. */
-	private static ArrayList<Job> allJobs;
-
-	public final static int tcpPort = 2061;
-	public final static String bindInterfaceIP = "127.0.0.1";
+	private int tcpPort = 2061;
+	private String bindInterfaceIP = "127.0.0.1";
 
 	public void startNextIfPossible() {
 		log( "startNextIfPossible()" );
 		synchronized(jobQueue) {
-			if( (jobQueue.size() > 0) && (currentlyRunningJobs < maxJobs) ) {
-				Job jobToRun = jobQueue.removeFirst();
-				log("Starting a new job "+jobToRun);
-				jobToRun.start();
-				++ currentlyRunningJobs;
-				log("New job was started (now "+currentlyRunningJobs+" running)");
+			// Calculate the amount of memory that's used by the currently running jobs:
+			int maxMemoryUsedCurrentlyMiB = 0;
+			for( int i = 0; i < currentlyRunningJobs.size(); ++i ) {
+				Job j=(Job)currentlyRunningJobs.get(i);
+				maxMemoryUsedCurrentlyMiB += j.getMemoryRequiredMiB();
+			}
+			/* Only start a job if there's something in
+			   the job queue, we aren't already running
+			   too many jobs, and there's going to be
+			   enough memory. */
+			if( (jobQueue.size() > 0) && (currentlyRunningJobs.size() < maxJobs) ) {
+				log("Would start a new job, but checking the memory requirements...");
+				// Just peek at the next in the queue to check the memory it requires:
+				log(" queue length before is: "+jobQueue.size());
+				Job firstInQueue = jobQueue.getFirst();
+				log(" queue length after is: "+jobQueue.size());
+				int maxMemoryPossibleMiB = (int)(runtime.maxMemory() / (1024 * 1024));
+				int wouldPossiblyBeUsedMiB = maxMemoryUsedCurrentlyMiB + firstInQueue.getMemoryRequiredMiB();
+				if( wouldPossiblyBeUsedMiB > maxMemoryPossibleMiB ) {
+					log("Not running the job - currently using "+maxMemoryUsedCurrentlyMiB+
+					    "MiB, maximum possibly available is "+maxMemoryPossibleMiB+
+					    "MiB, amount that could be used if the job were started: "+wouldPossiblyBeUsedMiB);
+				} else {
+					Job jobToRun = jobQueue.removeFirst();
+					log("Starting a new job "+jobToRun);
+					jobToRun.start();
+					currentlyRunningJobs.add(jobToRun);
+					log("New job was started (now "+currentlyRunningJobs.size()+" running)");
+				}
 			}
 		}
 	}
 
 	public void jobCompleted( Job j ) {
 		synchronized(jobQueue) {
-			-- currentlyRunningJobs;
+			// Find the index of that job by matching the ID:
+			int jobIDToFind = j.getJobID();
+			int foundIndex = -1;
+			for( int i = 0; i < currentlyRunningJobs.size(); ++i ) {
+				Job consideringJob = currentlyRunningJobs.get(i);
+				if( jobIDToFind == consideringJob.getJobID() ) {
+					foundIndex = i;
+					break;
+				}
+			}
+			if( foundIndex < 0 ) {
+				System.out.println("Completed job didn't seem to be in the currentlyRunningJobs list!");
+				System.exit(-1);
+			}
+			currentlyRunningJobs.remove(foundIndex);
 			startNextIfPossible();
 		}
 	}
@@ -182,11 +241,32 @@ public class Job_Server implements PlugIn {
 		log( null, s );
 	}
 
+	public void log( Job job, String s ) {
+		String message = "";
+		if( job != null )
+			message += job;
+		message += "[]: " + s;
+		synchronized(logStream) {
+			logStream.println( message );
+			logStream.flush();
+		}
+	}
+
+	public void logArguments( String [] arguments ) {
+		log( "Arguments were: " );
+		for( int i = 0; i < arguments.length; ++i )
+			log( "arguments["+i+"] = '"+arguments[i]+"'" );
+	}
+
 	/** You can call this static method from your job's thread to
 	    update the progress of the job reported by the job server.
 	    This will only work if you're in the original thread that
 	    was created when the job started...
 	 */
+
+	/* FIXME: this method is actually unusued: */
+
+	/*
 	public static boolean setJobProportionDone( float proportionDone ) {
 
 		Thread currentThread = Thread.currentThread();
@@ -199,16 +279,23 @@ public class Job_Server implements PlugIn {
 		job.setProportionDone( proportionDone );
 		return true;
 	}
+	*/
+	public void exitInError( String errorMessage ) {
+		exitInError( errorMessage, null );
+	}
 
-	public void log( Job job, String s ) {
-		String message = "";
-		if( job != null )
-			message += job;
-		message += "[]: " + s;
-		synchronized(logStream) {
-			logStream.println( message );
-			logStream.flush();
+	public void exitInError( String errorMessage, Throwable exception ) {	
+		log(errorMessage);
+		System.out.println(errorMessage);
+		if( exception != null ) {
+			StackTraceElement ste[] = exception.getStackTrace();
+			for( int i = 0; i < ste.length; ++i ) {
+				log( "....."+ste );
+			}
+			exception.printStackTrace();
+			System.out.println("Error was: "+exception);
 		}
+		System.exit(-1);
 	}
 
 	public static void finishDirectory( String directory ) {
@@ -330,68 +417,261 @@ public class Job_Server implements PlugIn {
 		return result;
 	}
 
+	Connection dbConnection = null;
+
+	boolean updateJobsTable( ) {
+
+		int versionToUpgradeTo = 1;
+
+		int currentVersion = 0;
+		String schemaInfoTable = "schema_information";
+
+		try {
+			// Check that the schema_information table exists:
+			
+			/* Following the description in "Understanding
+			   JDBC Metadata" by Kyle Brown (turned up
+			   randomly via Google)... */
+
+			DatabaseMetaData dmd = dbConnection.getMetaData();
+			String[] names = { "TABLE" };
+			ResultSet tableNames = dmd.getTables( null, null, schemaInfoTable, names );
+			boolean found = false;
+			while (tableNames.next()) {
+				String tableName = tableNames.getString("TABLE_NAME");
+				if( tableName.equals(schemaInfoTable) ) {
+					System.out.println("Found the table '"+schemaInfoTable+"'");
+					found = true;
+				}
+			}
+			if( ! found )
+				System.out.println("Didn't find the table '"+schemaInfoTable+"', so current version is 0");
+			if( found ) {				
+				Statement statement = dbConnection.createStatement();
+				ResultSet results = statement.executeQuery("SELECT version FROM "+schemaInfoTable);
+				// There should only be one row:
+				int rowsFetched = 0;
+				int versionInTable = -1;
+				while ( results.next() ) {
+					++ rowsFetched;
+					versionInTable = results.getInt("version");
+				}
+				if( rowsFetched != 1 ) {
+					System.out.println("BUG: There should be exactly one row in "+schemaInfoTable);
+					return false;
+				}
+				currentVersion = versionInTable;
+				results.close();
+			}
+
+			if( currentVersion > versionToUpgradeTo ) {
+				System.out.println("This code is earlier than the version in the table!");
+				System.out.println("You must have used a newer version of the code at some point.");
+				System.out.println("Can't downgrade in this code version as a result; exiting");
+				return false;
+			}
+
+			/* So if we're here we should have an accurate
+			   schema version which is <= the version we
+			   can upgrade to: */
+
+			while( currentVersion < versionToUpgradeTo ) {
+				if( currentVersion == 0 ) {
+					System.out.println("At version 0; creating the table to upgrade to version 1.");
+					Statement statement = dbConnection.createStatement();
+					statement.executeUpdate(
+						"CREATE TABLE "+schemaInfoTable+" (version integer)" );
+					statement.executeUpdate(
+						"CREATE TABLE jobs ("+
+						"id serial primary key, "+
+						"status integer, "+
+						"error_message text, "+
+						"proportion_done float, "+
+						"started_at timestamp, "+
+						"ended_at timestamp, "+
+						"imagej_command text, "+
+						"imagej_command_options text, "+
+						"memory_required_mib integer, "+
+						"data_root text, "+
+						"relative_directory text"+
+						")" );
+					int rowCount = statement.executeUpdate(
+						"INSERT INTO "+schemaInfoTable+" (version) VALUES (1)" );
+					if( rowCount != 1 ) {
+						System.out.println("Inserting the version number failed");
+					}
+					// We don't want IDs to clash with ones from the old system:
+					statement.executeQuery( "SELECT setval('jobs_id_seq', 1000)" );
+					currentVersion = 1;
+				}
+			}
+			return true;
+		} catch( SQLException se ) {
+			System.out.println("Got an SQLException while trying to upgrade the table:");
+			se.printStackTrace();
+			return false;
+		}
+	}
+
+	private void reply( PrintStream out, String reply ) {
+		log("Sending reply: "+reply);
+		out.print(reply);
+	}
+
+	Runtime runtime;
+
 	public void run(String ignore) {
 
+		// Make sure there's only one Job_Server running in this JVM:
+		synchronized( Job_Server.class ) {
+			if( instance == null ) {
+				instance = this;
+			} else {
+				System.out.println("There already seems to be a Job_Server running in this JVM");
+				System.exit(-1);
+			}
+		}
+
+		// Open the log file:
 		logFilename = System.getProperty("logfilename");
 		if( logFilename == null )
 			logFilename = "/tmp/job-server.log";
 		System.out.println("Using the log file: "+logFilename);
 
-		configurationFilename = System.getProperty("configurationfilename");
-		if( configurationFilename == null )
-			configurationFilename = "/etc/default/imagej-job-server";
-		System.out.println("Using the configuration file: "+configurationFilename);
-
 		logStream = null;
 		try {
-			logStream = new PrintStream(logFilename);
+			logStream = new PrintStream( new FileOutputStream( logFilename, true ) );
 		} catch( IOException e ) {
 			System.out.println("Couldn't open log file.");
 			System.exit(-1);
 		}
 
-		Hashtable configurationHash = parseConfigurationFile( configurationFilename );
-		if( configurationHash == null ) {
-			System.out.println("Parsing the configuration file failed");
-			System.exit(-1);
+		// Make sure that the PostgreSQL JDBC driver is loaded:
+		try {
+			Class.forName("org.postgresql.Driver");
+		} catch( ClassNotFoundException e ) {
+			exitInError( "Couldn't find the PostgreSQL JDBC driver - is it installed?", e );
 		}
 
-		log( "Finished parsing configuration file" );
+		// Open and parse the configuration file:
+		configurationFilename = System.getProperty("configurationfilename");
+		if( configurationFilename == null )
+			configurationFilename = "/etc/default/imagej-job-server";
+		log("Using the configuration file: "+configurationFilename);
 
-		Runtime runtime = Runtime.getRuntime();
+		Hashtable configurationHash = parseConfigurationFile( configurationFilename );
+		if( configurationHash == null )
+			exitInError( "Parsing the configuration file failed" );
+
+		String dbUser = (String)configurationHash.get("DB_USER");
+		String dbPassword = (String)configurationHash.get("DB_PASSWORD");
+		String dbName = (String)configurationHash.get("DB_NAME");
+
+		if( dbUser == null || dbPassword == null )
+			exitInError( "Either the DB_USER or DB_PASSWORD parameters were not set in "+configurationFilename );
+
+		// Try opening a connection to the database:
+		dbConnection = null;
+		try {
+			dbConnection = DriverManager.getConnection(
+				"jdbc:postgresql:"+dbName,
+				dbUser,
+				dbPassword
+				);
+		} catch( SQLException se ) {
+
+			String seString = se.toString();
+
+			/* This isn't a very robust way of spotting
+			   this error, but it's worth trying for a
+			   slightly better error message */
+
+			if( seString.indexOf("database \"fijijobs\" does not exist") >= 0 )
+				exitInError( "You need to create the fijijobs database, see README" );
+			else
+				exitInError( "Got an SQLException while trying to connect to the fijijobs database" );
+		}
+
+		// See what version of the schema is there, and
+		// upgrade it if necessary:
+		if( ! updateJobsTable() )
+			exitInError( "Updating the table failed" );
+
+		runtime = Runtime.getRuntime();
 		int processors = runtime.availableProcessors();
+		maxJobs = processors + 1;
 
 		log( "This system has "+processors+" processors." );
 
-		System.out.println("Number of processors available to the Java Virtual Machine: " + processors);
+		/* Now we need to reload any queue from the database: */
+
+		log( "Loading queued, working and unknown jobs back into the queue." );
 
 		jobQueue = new LinkedList<Job>();
-		allJobs = new ArrayList<Job>();
+		currentlyRunningJobs = new LinkedList<Job>();
+		try {
+			PreparedStatement ps = dbConnection.prepareStatement(
+				"SELECT * FROM jobs WHERE status = ? OR status = ? OR status < 0 ORDER by started_at" );
+			ps.setInt( 1, Job.WORKING );
+			ps.setInt( 2, Job.QUEUED );
+			ResultSet resultSet = ps.executeQuery();
+			while( resultSet.next() ) {
+				Job newJob = Job.recreateFromDBResult( this, resultSet );
+				log("Got newJob: "+newJob);
+				newJob.setStatus( Job.QUEUED );
+				newJob.setProportionDone( 0 );
+				synchronized( jobQueue ) {
+					jobQueue.addLast(newJob);
+				}
+			}
+		} catch( SQLException se ) {
+			exitInError( "There was an SQLException while reloading job queue from the DB" );
+		}
+
+		for( int i = 0; i < jobQueue.size(); ++i ) {
+			log("jobQueue["+i+"]: "+jobQueue.get(i));
+		}
+
+		/* We'll need this prepared statement every time we
+		   look for a job with a particular ID: */
+		PreparedStatement psJobFromID = null;
+		try {
+			psJobFromID = dbConnection.prepareStatement(
+				"SELECT * FROM jobs WHERE id = ?" );
+		} catch( SQLException se ) {
+			exitInError( "There was an SQLException while preparing the job query statement" );
+		}
 
 		InetAddress bindAddress = null;
 
 		try {
 			bindAddress = InetAddress.getByName(bindInterfaceIP);
 		} catch( UnknownHostException e ) {
-			System.out.println("Unknown host: "+bindInterfaceIP);
-			System.exit(-1);
+			exitInError( "Unknown host: "+bindInterfaceIP );
 		}
 		ServerSocket serverSocket = null;
 
 		try {
 			serverSocket = new ServerSocket(tcpPort,32,bindAddress);
 		} catch (IOException e) {
-			System.out.println("Could not listen on port: "+tcpPort);
-			System.exit(-1);
+			exitInError( "Could not listen on port: "+tcpPort );
 		}
 
-		for(;;) {
+		String dataRoot = (String)configurationHash.get("IMAGEJ_SERVER_DATA_ROOT");
+		if( dataRoot == null )
+			exitInError("IMAGEJ_SERVER_DATA_ROOT didn't seem to be defined in the configuration file.");
 
-			String sharedSecret = (String)configurationHash.get("IMAGEJ_SERVER_SECRET");
-			if( sharedSecret == null ) {
-				System.out.println("Couldn't find the shared secret (key IMAGEJ_SERVER_SECRET) in the configuration file");
-				System.exit(-1);
-			}
+		File dataRootFile = new File(dataRoot);
+		if( ! dataRootFile.isDirectory() )
+			exitInError("The defined IMAGEJ_SERVER_DATA_ROOT ("+dataRoot+") doesn't seem to be a directory");
+
+		String sharedSecret = (String)configurationHash.get("IMAGEJ_SERVER_SECRET");
+		if( sharedSecret == null )
+			exitInError("Couldn't find the shared secret (key IMAGEJ_SERVER_SECRET) in the configuration file");
+
+		startNextIfPossible();
+
+		for(;;) {
 
 			Socket clientSocket = null;
 			BufferedReader in = null;
@@ -412,7 +692,7 @@ public class Job_Server implements PlugIn {
 				String challenge = makeChallenge();
 				log( "Going to send challenge: "+challenge );
 
-				out.print("hello\t"+challenge+"\r\n");
+				reply(out,"hello\t"+challenge+"\r\n");
 
 				String nextLine = in.readLine();
 				if( nextLine == null ) {
@@ -422,30 +702,31 @@ public class Job_Server implements PlugIn {
 				}
 
 				String [] arguments = nextLine.split("\\t");
+				logArguments( arguments );
 
 				if( arguments.length != 2 ) {
 					log("Wrong number of fields ('"+arguments.length+"') in response to challenge - full line was: '"+nextLine+"'");
-					out.print("denied\r\n");
+					reply(out,"denied\r\n");
 					clientSocket.close();
 					continue;
 				}
 
 				if( ! arguments[0].equals("auth") ) {
 					log("Should have got an 'auth' in response to challenge - full line was: '"+nextLine+"'");
-					out.print("denied\r\n");
+					reply(out,"denied\r\n");
 					clientSocket.close();
 					continue;
 				}
 
 				if( ! validChallengeResponse(challenge,sharedSecret,arguments[1]) ) {
 					log("Crypted secret failed to match: '"+nextLine+"'");
-					out.print("denied\r\n");
+					reply(out,"denied\r\n");
 					clientSocket.close();
 					continue;
 				}
 
 				log("Authentication succeeded, continuing...");
-				out.print("success\r\n");
+				reply(out,"success\r\n");
 
 				nextLine = in.readLine();
 				if( nextLine == null ) {
@@ -455,27 +736,94 @@ public class Job_Server implements PlugIn {
 				}
 
 				arguments = nextLine.split("\\t");
+				logArguments( arguments );
 
 				if( arguments.length >= 2 ) {
 
 					if( "start".equals(arguments[0]) ) {
 
-						String macroExpression = arguments[1];
+						String imageJCommand = arguments[1];
+						boolean allowed = false;
+						for( int i = 0; i < allowedCommands.length; ++i )
+							if( allowedCommands[i].equals(allowedCommands[i]) )
+								allowed = true;
+						if( ! allowed ) {
+							String errorMessage = "Unsupported ImageJ command requested: '"+
+								imageJCommand+"'";
+							log(errorMessage);
+							reply(out,"failed\t"+errorMessage+"\r\n");
+							continue;
+						}
+						String imageJCommandOptions = arguments[2];
+						String relativeOutputDirectory = arguments[3];
+						// Check that there are not ".." elements in the path:
+						if( relativeOutputDirectory.indexOf("..") >= 0 ) {
+							String errorMessage = "The output directory may attempt to move up: '"+
+								relativeOutputDirectory+"'";
+							log(errorMessage);
+							reply(out,"failed\t"+errorMessage+"\r\n");
+							continue;
+						}
+						String absoluteOutputDirectory = dataRoot + File.separator + relativeOutputDirectory;
+						File absoluteOutputDirectoryFile = new File(absoluteOutputDirectory);
+						if( ! absoluteOutputDirectoryFile.isDirectory() ) {
+							String errorMessage = "The formed absolute output directory didn't seem to be a directory: '"+absoluteOutputDirectory+"'";
+							log(errorMessage);
+							reply(out,"failed\t"+errorMessage+"\r\n");
+							continue;
+						}
+						String estimatedMaxMemoryMiBString = arguments[4];
+						int estimatedMaxMemoryMiB = -1;
+						try {
+							estimatedMaxMemoryMiB = Integer.parseInt(estimatedMaxMemoryMiBString);
+						} catch( NumberFormatException e ) {
+							String errorMessage = "Malformed memory requirement: '"+
+								estimatedMaxMemoryMiBString+"'";
+							log(errorMessage);
+							reply(out,"failed\t"+errorMessage+"\r\n");
+							continue;
+						}
+						/* Add a fudge factor of 5% for object headers, etc. + 2 MiB
+						   for the hedge */
+						int bumpedEstimatedMaxMemoryMiB = (int)Math.ceil( (float)estimatedMaxMemoryMiB * 1.05f + 2 );
+						log("Bumped estimated memory from "+estimatedMaxMemoryMiB+"MiB to "+bumpedEstimatedMaxMemoryMiB+"MiB");
 
-						log("Going to create a job to run macro expression: "+macroExpression);
-
-						Job newJob = new Job( this,
-								      macroExpression );
-
-						newJob.setStatus(Job.QUEUED);
-
-						int jobID = -1;
-						synchronized ( allJobs ) {
-							jobID = allJobs.size( );
-							allJobs.add( newJob );
+						long runtimeMaxMemoryMiB = runtime.maxMemory() / (1024 * 1024);
+						if( bumpedEstimatedMaxMemoryMiB >runtimeMaxMemoryMiB ) {
+							String errorMessage = "Too little memory to run this job: "+
+								bumpedEstimatedMaxMemoryMiB+"MiB is greater than the"+
+								" JVM's max memory ("+runtimeMaxMemoryMiB+"MiB)";
+							log(errorMessage);
+							reply(out,"failed\t"+errorMessage+"\r\n");
+							continue;
 						}
 
-						newJob.setJobID( jobID );
+						imageJCommandOptions += " directory=[" + absoluteOutputDirectory + "]";
+						imageJCommandOptions += " dataroot=[" + dataRoot + "]";
+
+						Job newJob = null;
+						try {
+							newJob = new Job( this,
+									  imageJCommand,
+									  imageJCommandOptions,
+									  bumpedEstimatedMaxMemoryMiB,
+									  dataRoot,
+									  relativeOutputDirectory );
+
+							newJob.setStatus(Job.QUEUED);
+
+						} catch( SQLException se ) {
+							String errorMessage = "There was an SQL exception while creating the new job";
+							log(errorMessage);
+							log("SQLException was: "+se);
+							se.printStackTrace();
+							reply(out,"failed\t"+errorMessage+"\r\n");
+							continue;
+						} 
+
+						System.out.println("Going to get jobID");						
+						int jobID = newJob.getJobID();
+						System.out.println("Got jobID: "+jobID);
 
 						synchronized( jobQueue ) {
 							jobQueue.addLast(newJob);
@@ -483,7 +831,7 @@ public class Job_Server implements PlugIn {
 						}
 
 						log("Java job ID will be: "+jobID);
-						out.print("started\t"+jobID+"\r\n");
+						reply(out,"started\t"+jobID+"\r\n");
 
 					} else if( "query".equals(arguments[0]) ) {
 
@@ -494,37 +842,44 @@ public class Job_Server implements PlugIn {
 							jobID = Integer.parseInt(jobIDString);
 						} catch( NumberFormatException nfe ) {
 							log("Malformed jobIDString: "+jobIDString);
-							out.print("unknown\tJob ID '"+jobIDString+"' not found\r\n");
+							reply(out,"unknown\tJob ID '"+jobIDString+"' not found\r\n");
 							clientSocket.close();
 							continue;
 						}
 
-						Job j=null;
+						Job foundJob = null;
 
 						try {
-							j = allJobs.get(jobID);
-						} catch( IndexOutOfBoundsException e ) {
-							log("Couldn't find job ID: "+jobID);
-							out.print("unknown\tJob ID '"+jobIDString+"' not found\r\n");
+							psJobFromID.setInt( 1, jobID );
+							ResultSet resultSet = psJobFromID.executeQuery();
+							int rowsFound = 0;
+							resultSet.next();
+							foundJob = Job.recreateFromDBResult( this, resultSet );
+
+						} catch( SQLException se ) {
+							System.out.println("Got an SQLException while trying to find an exiting job:");
+							se.printStackTrace();
+							System.out.println("Error was: "+se);
+							reply(out,"unknown\tError while looking for job ID "+jobIDString+"\r\n");
 							clientSocket.close();
 							continue;
 						}
 
-						int status=j.getStatus();
+						int status=foundJob.getStatus();
 						if( status == Job.WORKING ) {
 							String p="";
-							float proportionDone = j.getProportionDone();
+							float proportionDone = foundJob.getProportionDone();
 							if( proportionDone >= 0 ) {
 								p = "" + proportionDone;
 							}
-							out.print("working\t"+p+"\r\n");
+							reply(out,"working\t"+p+"\r\n");
 						} else if( status == Job.FAILED ) {
-							String errorMessage = j.getErrorMessage();
+							String errorMessage = foundJob.getErrorMessage();
 							if( errorMessage == null )
 								errorMessage = "";
-							out.print("failed\t"+errorMessage+"\r\n");
+							reply(out,"failed\t"+errorMessage+"\r\n");
 						} else if( status == Job.FINISHED ) {
-							out.print("finished\r\n");
+							reply(out,"finished\r\n");
 						} else if( status == Job.QUEUED ) {
 							int placeInQueue = -1;
 							// FIXME: this is potentially a performance bottleneck:
@@ -535,18 +890,21 @@ public class Job_Server implements PlugIn {
 										placeInQueue = i;
 								}
 							}
-							out.print("queued\t"+placeInQueue+"\r\n");
+							reply(out,"queued\t"+placeInQueue+"\r\n");
 						} else {
-							out.print("error\tUnknown job status found: "+status+"\r\n");
+							reply(out,"error\tUnknown job status found: "+status+"\r\n");
 						}
 
-
 					} else {
-						out.print("error\tUnknown action "+arguments[0]+"\r\n");
+						reply(out,"error\tUnknown action "+arguments[0]+"\r\n");
 					}
 
 				} else {
-					out.print("error\tNot enough arguments (only "+arguments.length+")\r\n");
+					if( arguments.length == 1 ) {
+						reply(out,"error\tNot enough arguments (only "+arguments.length+": first was '"+arguments[0]+"')\r\n");	
+					} else {
+						reply(out,"error\tNot enough arguments (only "+arguments.length+")\r\n");
+					}
 				}
 
 				clientSocket.close();
@@ -555,10 +913,6 @@ public class Job_Server implements PlugIn {
 				System.out.println("There was an IOException with connection "+clientSocket+ ": "+e);
 				continue;
 			}
-
-
 		}
-
 	}
-
 }

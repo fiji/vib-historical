@@ -20,7 +20,6 @@ import server.Job_Server;
 
 public class MIPDriver_ extends Thread implements PlugIn
 {
-
 	private String outputFileName;
 	private String currentParse;
 	private int mipType;
@@ -86,19 +85,18 @@ public class MIPDriver_ extends Thread implements PlugIn
 	/* This is the PlugIn interface.  We only care about this
 	 * being able to parse one set of options here:
 
-	      input    =>  this.inputDir
-	      output   =>  this.outputFileName
-	      mip      =>  this.mipType
-	      zscale   =>  this.zScale
-
+	      input     =>  this.inputDir
+	      directory =>  this.outputFileName
+	      mip       =>  this.mipType
+	      zscale    =>  this.zScale
 
 	   Example call:
 
-	      java -Xmx1024 -jar ij.jar -eval "run('MIP Driver', 'input=[foo.lsm] output=[/var/tmp/foo/] mip=rt zscale=1.2');"
+	      java -Xmx1024 -jar ij.jar -eval "run('MIP Driver', 'input=[foo.lsm] directory=[/var/tmp/foo/] mip=rt zscale=1.2');"
 
            To render a nice quality projection, we use values like these:
 
-              java -Xmx1024 -jar ij.jar -eval "run('MIP Driver', 'input=[foo.lsm] output=[/var/tmp/foo/] j f mip=splat t=nn zscale=1.2 i=0.1 h=255 rotx=-30 roty=89 rotz=-31 scale=1.0 channel=0
+              java -Xmx1024 -jar ij.jar -eval "run('MIP Driver', 'input=[foo.lsm] directory=[/var/tmp/foo/] j f mip=splat t=nn zscale=1.2 i=0.1 h=255 rotx=-30 roty=89 rotz=-31 scale=1.0 channel=0
 
 	*/
 
@@ -124,7 +122,7 @@ public class MIPDriver_ extends Thread implements PlugIn
 		if( inputFilename.equals("") )
 			throw new RuntimeException( "No input filename supplied for MIPDriver_");
 
-		String outputFilenameBasename = Macro.getValue( options, "output", "" );
+		String outputFilenameBasename = Macro.getValue( options, "directory", "" );
 		if( outputFilenameBasename.equals("") )
 			throw new RuntimeException( "No output filename basename supplied for MIPDriver_");
 
@@ -132,7 +130,7 @@ public class MIPDriver_ extends Thread implements PlugIn
 
 		File f = new File( outputFilenameBasename );
 		if( ! f.isDirectory() ) {
-			throw new RuntimeException( "The 'output' parameter must be a directory" );
+			throw new RuntimeException( "The 'directory' parameter must be a directory" );
 		}
 
 		String mipTypeSupplied = Macro.getValue( options, "mip", "" );
