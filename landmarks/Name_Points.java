@@ -1382,10 +1382,23 @@ public class Name_Points implements PlugIn {
 		File pointsFile=new File(pointsFileName);
 
 		if( ! pointsFile.exists() ) {
-			IJ.error("There's no corresponding points file for that image.  It must be called "+pointsFile.getAbsolutePath());
-			return false;
+			OpenDialog od;
+
+			od = new OpenDialog("Cannot find points file with standard name: Select template points file...",
+					pointsFile.getParent(),
+					pointsFileName );
+
+			String fileName = od.getFileName();
+			String directory = od.getDirectory();
+
+			if( fileName == null ) {
+				IJ.error("There's no corresponding points file for that image.  It must be called "+pointsFile.getAbsolutePath());
+				return false;
+			}
+
+			pointsFileName=directory+fileName;
 		}
-		NamedPointSet templatePointSet=NamedPointSet.forImage(templateImageFileName);
+		NamedPointSet templatePointSet=NamedPointSet.forPointsFile(pointsFileName);
 		System.out.println("point set was: "+templatePointSet);
 		if( templatePointSet == null ) {
 			return false;
