@@ -32,45 +32,45 @@ import vib.transforms.FastMatrixTransform;
 import vib.transforms.OrderedTransformations;
 
 public class NamedPointSet {
-	
+
 	ArrayList<NamedPoint> points;
-	
+
 	public int size() {
 		return points.size();
 	}
-	
+
 	public NamedPointSet() {
 		points = new ArrayList<NamedPoint>();
 	}
-	
+
 	public ListIterator listIterator() {
 		return points.listIterator();
 	}
-	
+
 	/* FIXME: these next two methods should return new transformed
 	   point sets instead. */
-	
-        public void correctWithCalibration( Calibration c ) {
-		
-                FastMatrixTransform fm=FastMatrixTransform.fromCalibrationWithoutOrigin(c);
-		
-                Iterator i0;
-                for(i0=points.listIterator();i0.hasNext();) {
-                        NamedPoint p=(NamedPoint)i0.next();
-                        p.transformWith(fm);
-                }
-		
-        }	
 
-        public void transformPointsWith( OrderedTransformations o ) {
-		
-                Iterator i0;
-                for(i0=points.listIterator();i0.hasNext();) {
-                        NamedPoint p=(NamedPoint)i0.next();
-                        p.transformWith(o);
-                }
+	public void correctWithCalibration( Calibration c ) {
+
+		FastMatrixTransform fm=FastMatrixTransform.fromCalibrationWithoutOrigin(c);
+
+		Iterator i0;
+		for(i0=points.listIterator();i0.hasNext();) {
+			NamedPoint p=(NamedPoint)i0.next();
+			p.transformWith(fm);
+		}
+
+	}	
+
+	public void transformPointsWith( OrderedTransformations o ) {
+
+		Iterator i0;
+		for(i0=points.listIterator();i0.hasNext();) {
+			NamedPoint p=(NamedPoint)i0.next();
+			p.transformWith(o);
+		}
 	}
-	
+
 	public NamedPoint getPoint( String name ) {
 		Iterator i;
 		for (i = listIterator(); i.hasNext();) {
@@ -81,21 +81,21 @@ public class NamedPointSet {
 		}
 		return null;
 	}
-	
+
 	public NamedPoint get(int i) { 
 		return points.get(i);
 	}
-	
+
 	public NamedPoint get(String name) {
-                Iterator i0;
-                for(i0=points.listIterator();i0.hasNext();) {
-                        NamedPoint p=(NamedPoint)i0.next();
-                        if( p.getName().equals(name) )
+		Iterator i0;
+		for(i0=points.listIterator();i0.hasNext();) {
+			NamedPoint p=(NamedPoint)i0.next();
+			if( p.getName().equals(name) )
 				return p;
-                }
+		}
 		return null;
 	}
-	
+
 	void showAsROI(int i, ImagePlus imp) {
 		NamedPoint p = points.get(i);
 		assert p.set;
@@ -107,13 +107,13 @@ public class NamedPointSet {
 		imp.setSlice(slice+1);
 		ImageCanvas canvas = imp.getCanvas();
 		Roi roi = new PointRoi(canvas.screenX((int)p.x),
-				       canvas.screenY((int)p.y),
-				       imp);
+				canvas.screenY((int)p.y),
+				imp);
 		imp.setRoi(roi);
 	}
-	
+
 	public boolean savePointsFile( String savePath ) {
-		
+
 		try {
 			FileOutputStream fos = new FileOutputStream(savePath);
 			byte [] asBytes = dataAsBytes( );
@@ -124,11 +124,11 @@ public class NamedPointSet {
 			return false;
 		}
 	}	
-	
+
 	public byte [] dataAsBytes( ) {
-		
+
 		int total_bytes = 0;
-		
+
 		ArrayList< byte [] > linesOfBytes = new ArrayList< byte [] >();
 		Iterator i;
 		for(i=listIterator();i.hasNext();) {
@@ -146,54 +146,54 @@ public class NamedPointSet {
 				total_bytes += line_bytes.length;
 			}
 		}
-		
+
 		byte [] result = new byte[total_bytes];
 		int add_at = 0;
-		
+
 		for( int j = 0; j < linesOfBytes.size(); ++j ) {
 			byte [] line_of_bytes = linesOfBytes.get(j);
 			System.arraycopy( line_of_bytes, 0, result, add_at, line_of_bytes.length );
 			add_at += line_of_bytes.length;
 		}
-		
+
 		return result;
 	}
 
 	static Pattern p_data =
-			Pattern.compile("^\"(.*)\": *"+
-					"\\[ *([eE0-9\\.\\-]+) *, *"+
-					"([eE0-9\\.\\-]+) *, *"+
-					"([eE0-9\\.\\-]+) *\\] *$");
+		Pattern.compile("^\"(.*)\": *"+
+				"\\[ *([eE0-9\\.\\-]+) *, *"+
+				"([eE0-9\\.\\-]+) *, *"+
+		"([eE0-9\\.\\-]+) *\\] *$");
 
 	static Pattern p_empty = Pattern.compile("^ *$");		
 
 	static Pattern p_name_no_data = Pattern.compile("^\"(.*)\":.*$");
 
 	public static NamedPointSet fromString( String fileContents ) {
-		
+
 		StringTokenizer tokenizer=new StringTokenizer(fileContents,"\n");
-		
+
 		NamedPointSet result = new NamedPointSet();
-		
+
 		while( tokenizer.hasMoreTokens() ) {
-			
+
 			String line = tokenizer.nextToken();
 
 			NamedPoint n = parseLine(line);
-			
+
 			if( n != null ) {
 				result.add(n);
 			}
-			
+
 		}
-		
+
 		return result;
 	}
-	
+
 	public void add(NamedPoint namedPoint) {
 		points.add(namedPoint);
 	}
-	
+
 	static NamedPoint parseLine( String line ) {
 		Matcher m_data = p_data.matcher(line);
 		Matcher m_empty = p_empty.matcher(line);
@@ -201,9 +201,9 @@ public class NamedPointSet {
 
 		if (m_data.matches()) {
 			return new NamedPoint(m_data.group(1),
-						Double.parseDouble(m_data.group(2)),
-						Double.parseDouble(m_data.group(3)),
-						Double.parseDouble(m_data.group(4)));
+					Double.parseDouble(m_data.group(2)),
+					Double.parseDouble(m_data.group(3)),
+					Double.parseDouble(m_data.group(4)));
 		} else if (m_empty.matches()) {
 			return null;
 		} else if (m_name_no_data.matches()) {
@@ -213,72 +213,72 @@ public class NamedPointSet {
 			return null;
 		}
 	}
-	
-        public static NamedPointSet forImage( String fullFileName ) {
-		
-                // System.out.println("Trying to find points for image: "+fullFileName);
-		
-                String defaultFilename=fullFileName+".points";
-                // System.out.println("Looking for points file at: "+fullFileName);
-		
+
+	public static NamedPointSet forImage( String fullFileName ) {
+
+		// System.out.println("Trying to find points for image: "+fullFileName);
+
+		String defaultFilename=fullFileName+".points";
+		// System.out.println("Looking for points file at: "+fullFileName);
+
 
 		System.out.println("Trying to load: "+defaultFilename);
 		try {
-			
-                        NamedPointSet newNamedPoints = new NamedPointSet();
+
+			NamedPointSet newNamedPoints = new NamedPointSet();
 
 			BufferedReader f = new BufferedReader(
-                                new FileReader(defaultFilename));
+					new FileReader(defaultFilename));
 
 			String line;
-                        while ((line=f.readLine())!=null) {
-				
+			while ((line=f.readLine())!=null) {
+
 				NamedPoint n = parseLine(line);
 				if( n != null )
 					newNamedPoints.add(n);			
 			}
-			
-                        return newNamedPoints;
-			
+
+			return newNamedPoints;
+
 		} catch( IOException e ) {
 			/*
 			IJ.error("Error opening the points file "+defaultFilename+": "+e);
 			System.out.println("Got an IOException while loading the points file: "+e);
 			e.printStackTrace();
-			*/
+			 */
 			return null;
-                }
-		
-        }
-	
-        public static NamedPointSet forImage( ImagePlus imp ) {
-		
-                FileInfo info = imp.getOriginalFileInfo();
-                if( info == null ) {
-                        return null;
-                }
-                String fileName = info.fileName;
-                String url = info.url;
-                String directory = info.directory;
-		
-                return NamedPointSet.forImage( directory+File.separator+fileName );
-        }		
-	
-        public ArrayList<String> namesSharedWith( NamedPointSet other) {
-		
-                ArrayList<String> common = new ArrayList<String>();
-                Iterator i0;
-                for(i0=listIterator();i0.hasNext();) {
-                        String pointName = ((NamedPoint)i0.next()).name;
-                        for(Iterator i1=other.listIterator();i1.hasNext();) {
-                                if (pointName.equals(((NamedPoint)i1.next()).name)) {
-                                        common.add(new String(pointName));
-                                        break;
-                                }
-                        }
-                }
-                return common;
-        }
+		}
+
+	}
+
+	public static NamedPointSet forImage( ImagePlus imp ) {
+
+		FileInfo info = imp.getOriginalFileInfo();
+		if( info == null ) {
+			return null;
+		}
+		String fileName = info.fileName;
+		String url = info.url;
+		String directory = info.directory;
+
+		return NamedPointSet.forImage( directory+File.separator+fileName );
+	}		
+
+	public ArrayList<String> namesSharedWith( NamedPointSet other) {
+
+		ArrayList<String> common = new ArrayList<String>();
+		Iterator i0;
+		for(i0=listIterator();i0.hasNext();) {
+			String pointName = ((NamedPoint)i0.next()).name;
+			for(Iterator i1=other.listIterator();i1.hasNext();) {
+				if (pointName.equals(((NamedPoint)i1.next()).name)) {
+					common.add(new String(pointName));
+					break;
+				}
+			}
+		}
+		return common;
+	}
 
 	public Point3d[] getPoint3DArrayForNames( String [] names ) {
 		Point3d [] result = new Point3d[names.length];
