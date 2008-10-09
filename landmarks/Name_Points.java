@@ -9,6 +9,8 @@ import ij.gui.*;
 import ij.plugin.*;
 import ij.plugin.filter.*;
 import ij.text.*;
+import ij.Prefs.*;
+
 
 import java.applet.Applet;
 import java.awt.*;
@@ -319,8 +321,8 @@ class PointsDialog extends Dialog implements ActionListener, WindowListener {
 }
 
 public class Name_Points implements PlugIn {
-
-	String templateImageFilename="/GD/projects/Sebastian/fruMARCMRegistrationSeba/RefBrain/T1.tif";
+	String templateImageFilename=Prefs.get("landmarks.Name_Points.templateImageFilename",
+			"/GD/projects/Sebastian/fruMARCMRegistrationSeba/RefBrain/T1.tif");
 	ImagePlus templateImage;
 	NamedPointSet templatePoints;
 	String templateUnits;
@@ -1179,6 +1181,17 @@ public class Name_Points implements PlugIn {
 	ImageCanvas canvas;
 
 	public void run( String arguments ) {
+		File templateImageFile=new File(templateImageFilename);
+		if (IJ.altKeyDown()){
+			OpenDialog od = new OpenDialog("Select template image file...",
+					templateImageFile.getParent(), templateImageFile.getName());
+
+			if( od.getFileName() != null ) {
+				templateImageFilename=od.getDirectory()+od.getFileName();
+				templateImageFile=new File(templateImageFilename);
+				Prefs.set("landmarks.Name_Points.templateImageFilename", templateImageFilename);
+			}
+		}
 
 		Applet applet = IJ.getApplet();
 		if( applet != null ) {
@@ -1270,22 +1283,21 @@ public class Name_Points implements PlugIn {
 
 		canvas = imp.getCanvas();
 
-		//		if(IJ.altKeyDown()){
-		ImagePlus [] templateChannels=BatchOpener.open(templateImageFilename);
-		if( templateChannels != null ) {
-			templateImage = templateChannels[0];
-			templatePoints = NamedPointSet.forImage(templateImageFilename);
-		}
-		//		}
-
 		if( applet == null ) {
 			boolean foundExistingPointsFile = loadAtStart();		
 			if( ! foundExistingPointsFile ) {
 				points = new NamedPointSet();
-				for (int i = 0; i < templatePoints.size(); ++i){
-					points.add(new NamedPoint(templatePoints.get(i).getName()));
-					//					points.add(new NamedPoint(defaultPointNames[i]));
-
+				
+				if(templateImageFile.exists()){
+					templatePoints=NamedPointSet.forImage(templateImageFilename);
+				}
+				
+				if(templatePoints!=null){
+					defaultPointNames=templatePoints.getPointNames();
+				}
+				
+				for (int i = 0; i < defaultPointNames.length; ++i){
+					points.add(new NamedPoint(defaultPointNames[i]));
 				}
 			}
 		}
