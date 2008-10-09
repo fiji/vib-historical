@@ -17,6 +17,20 @@
     return 0; \
 }
 
+#define CLEANUP \
+{ \
+    if( reds ) \
+        free(reds); \
+    if( greens ) \
+        free(greens); \
+    if( blues ) \
+        free(blues); \
+    if( pixel_data_byte ) \
+        free(pixel_data_byte); \
+    if( pixel_data_int ) \
+        free(pixel_data_int); \
+}
+
 jboolean writePNG( JNIEnv * env,
                    jobject this,
                    jbyteArray pixel_data_byte_java,
@@ -85,30 +99,38 @@ jboolean writePNG( JNIEnv * env,
     if( reds_java ) {
         reds_length = (*env)->GetArrayLength(env,reds_java);
         reds = malloc(reds_length);
-        if( ! reds )
+        if( ! reds ) {
+            CLEANUP;
             RUNTIME_EXCEPTION("Couldn't allocate space for reds of palette");
+        }
         (*env)->GetByteArrayRegion(env,reds_java,0,reds_length,reds);
     }
 
     if( greens_java ) {
         greens_length = (*env)->GetArrayLength(env,greens_java);
         greens = malloc(greens_length);
-        if( ! greens )
+        if( ! greens ) {
+            CLEANUP;
             RUNTIME_EXCEPTION("Couldn't allocate space for greens of palette");
+        }
         (*env)->GetByteArrayRegion(env,greens_java,0,greens_length,greens);
     }
 
     if( blues_java ) {
         blues_length = (*env)->GetArrayLength(env,blues_java);
         blues = malloc(blues_length);
-        if( ! blues )
+        if( ! blues ) {
+            CLEANUP;
             RUNTIME_EXCEPTION("Couldn't allocate space for blues of palette");
+        }
         (*env)->GetByteArrayRegion(env,blues_java,0,blues_length,blues);
     }
 
     if( ! ( (reds_length == greens_length) &&
-            (greens_length == blues_length) ) )
+            (greens_length == blues_length) ) ) {
+        CLEANUP;
         RUNTIME_EXCEPTION("Red, green and blue arrays must be the same size");
+    }
 
     {
         png_bytepp rows = NULL;
@@ -118,6 +140,7 @@ jboolean writePNG( JNIEnv * env,
 
         FILE * fp = fopen( output_filename, "wb" );
         if( ! fp ) {
+            CLEANUP;
             snprintf(error_buffer,ERROR_BUFFER_SIZE-1,"Can't open PNG file [%s] for output",output_filename);
             error_buffer[ERROR_BUFFER_SIZE-1] = 0;
             RUNTIME_EXCEPTION(error_buffer);
@@ -125,6 +148,7 @@ jboolean writePNG( JNIEnv * env,
 
         png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, 0, 0, 0 );
         if( ! png_ptr ) {
+            CLEANUP;
             fclose(fp);
             snprintf(error_buffer,ERROR_BUFFER_SIZE-1,"Failed to allocate a png_structp");
             error_buffer[ERROR_BUFFER_SIZE-1] = 0;
@@ -133,6 +157,7 @@ jboolean writePNG( JNIEnv * env,
 
         info_ptr = png_create_info_struct( png_ptr );
         if( ! info_ptr ) {
+            CLEANUP;
             png_destroy_write_struct( &png_ptr, 0 );
             fclose(fp);
             snprintf(error_buffer,ERROR_BUFFER_SIZE-1,"Failed to allocate a png_infop");
@@ -174,6 +199,7 @@ jboolean writePNG( JNIEnv * env,
         png_write_info(png_ptr, info_ptr);
 
         if( setjmp( png_ptr->jmpbuf ) ) {
+            CLEANUP;
             png_destroy_write_struct( &png_ptr, 0 );
             fclose(fp);
             snprintf(error_buffer,ERROR_BUFFER_SIZE-1,"Failed to setjmp");
@@ -184,11 +210,20 @@ jboolean writePNG( JNIEnv * env,
         int pitch = png_get_rowbytes( png_ptr, info_ptr );
 
         rows = malloc( height * sizeof(png_bytep) );
+        if( ! rows ) {
+                CLEANUP;
+                png_destroy_write_struct( &png_ptr, 0 );
+                fclose(fp);
+                snprintf(error_buffer,ERROR_BUFFER_SIZE-1,"Failed to allocate space for rows");
+                error_buffer[ERROR_BUFFER_SIZE-1] = 0;
+                RUNTIME_EXCEPTION(error_buffer);
+        }
 
         for( j = 0; j < height; ++j ) {
             unsigned char * row = malloc(pitch);
             if( ! row ) {
                 int l;
+                CLEANUP;
                 png_destroy_write_struct( &png_ptr, 0 );
                 for( l = 0; l < j; ++j ) {
                     free(rows[l]);
@@ -230,6 +265,8 @@ jboolean writePNG( JNIEnv * env,
         }
         free( rows );
     }
+
+    CLEANUP;
 
     (*env)->ReleaseStringUTFChars(env,output_filename_java,output_filename);
 
