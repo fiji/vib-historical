@@ -220,15 +220,19 @@ public class NamedPointSet {
 
 		String defaultFilename=fullFileName+".points";
 		// System.out.println("Looking for points file at: "+fullFileName);
+		
+		return NamedPointSet.forPointsFile(defaultFilename);
+	}
 
+	public static NamedPointSet forPointsFile( String fullFileName ) {
 
-		System.out.println("Trying to load: "+defaultFilename);
+		System.out.println("Trying to load: "+fullFileName);
 		try {
 
 			NamedPointSet newNamedPoints = new NamedPointSet();
 
 			BufferedReader f = new BufferedReader(
-					new FileReader(defaultFilename));
+					new FileReader(fullFileName));
 
 			String line;
 			while ((line=f.readLine())!=null) {
