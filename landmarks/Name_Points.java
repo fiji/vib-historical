@@ -143,12 +143,15 @@ class PointsDialog extends Dialog implements ActionListener, WindowListener {
 
 			saveButton = new Button("Save");
 			saveButton.addActionListener(this);
+			igsSaveButton = new Button("Save as IGS");
+			igsSaveButton.addActionListener(this);
 			resetButton = new Button("Reset");
 			resetButton.addActionListener(this);
 			closeButton = new Button("Close");
 			closeButton.addActionListener(this);
 
 			buttonsPanel.add(saveButton);		
+			buttonsPanel.add(igsSaveButton);		
 			buttonsPanel.add(resetButton);
 			buttonsPanel.add(closeButton);
 
@@ -196,6 +199,7 @@ class PointsDialog extends Dialog implements ActionListener, WindowListener {
 	}
 
 	Button saveButton;
+	Button igsSaveButton;
 	Button resetButton;
 	Button closeButton;	
 
@@ -271,7 +275,9 @@ class PointsDialog extends Dialog implements ActionListener, WindowListener {
 		if(source == closeButton) {
 			dispose();
 		} else if (source == saveButton) {
-			plugin.save();
+			plugin.save(".points");
+		} else if (source == igsSaveButton) {
+			plugin.save(".landmarks");
 		} else if (source == resetButton) {
 			plugin.reset();
 		} else if (source == uploadButton) {
@@ -983,7 +989,7 @@ public class Name_Points implements PlugIn {
 		return result;
 	}	
 
-	public void save() {
+	public void save(String fileType) {
 
 		FileInfo info = imp.getOriginalFileInfo();
 		if( info == null ) {
@@ -994,14 +1000,13 @@ public class Name_Points implements PlugIn {
 		String url = info.url;
 		String directory = info.directory;
 
-		String suggestedSaveFilename;
-
-		suggestedSaveFilename = fileName+".points";
-
+		// GJ: Note that the image fileName is used directly here since 
+		// ij.io.SaveDialog.setExtension() appends rather than replaces 
+		// file extensions of more than 5 characters 
 		SaveDialog sd = new SaveDialog("Save points annotation file as...",
 				directory,
-				suggestedSaveFilename,
-				".points");
+				fileName,
+				fileType);
 
 		String savePath;
 		if(sd.getFileName()==null)
@@ -1009,7 +1014,6 @@ public class Name_Points implements PlugIn {
 		else {
 			savePath = sd.getDirectory()+sd.getFileName();
 		}
-
 		File file = new File(savePath);
 		if ((file!=null)&&file.exists()) {
 			if (!IJ.showMessageWithCancel(
@@ -1020,8 +1024,16 @@ public class Name_Points implements PlugIn {
 		}
 
 		IJ.showStatus("Saving point annotations to "+savePath);
-
-		if( ! points.savePointsFile( savePath ) )
+		boolean saveResult=false;
+		if(fileType.equalsIgnoreCase(".points")){
+			saveResult=points.savePointsFile(savePath);
+		} else {
+			Calibration cal=imp.getCalibration();
+			if(cal==null) IJ.error("Unable to save IGS landmarks without valid calibration information");
+			saveResult=points.saveIGSPointsFile(savePath,cal);
+		}
+		
+		if( ! saveResult )
 			IJ.error("Error saving to: "+savePath+"\n");
 
 		IJ.showStatus("Saved point annotations.");

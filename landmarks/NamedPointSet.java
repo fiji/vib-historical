@@ -134,7 +134,29 @@ public class NamedPointSet {
 			return false;
 		}
 	}	
-
+	
+	public boolean saveIGSPointsFile( String savePath, Calibration cal ) {
+		double[] scalings=new double[3];
+		scalings[0]=cal.pixelWidth;
+		scalings[1]=cal.pixelHeight;
+		scalings[2]=cal.pixelDepth;
+		
+		try {
+			FileOutputStream fos = new FileOutputStream(savePath);
+			StringBuffer sb=new StringBuffer("! TYPEDSTREAM 1.1\n");
+			Iterator<NamedPoint> i;
+			for(i=listIterator();i.hasNext();) {
+				NamedPoint p = i.next();
+				if(p.set) sb.append(p.toIGS(scalings)+"\n");
+			}
+			fos.write(sb.toString().getBytes("UTF-8"));
+			fos.close();
+			return true;
+		} catch( IOException e ) {
+			return false;
+		}
+	}
+	
 	public byte [] dataAsBytes( ) {
 
 		int total_bytes = 0;

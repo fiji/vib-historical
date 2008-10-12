@@ -90,6 +90,12 @@ public class NamedPoint {
                         z+" ]";
                 return line;
         }
+        
+        public String toIGS(double[] scalings) {
+         	return "landmark {\n\tname \""+escape(name)+"\"\n\tlocation "+
+        	(x*scalings[0])+" "+(y*scalings[1])+" "+
+        	(z*scalings[2])+"\n}";
+        }
 
 	public String toString() {
 		return ""+name+
