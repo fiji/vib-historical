@@ -227,10 +227,11 @@ public class Job_Server implements PlugIn {
 	private PrintStream logStream;
 
 	public void log( Job job, Exception e ) {
-		String message = "";
+		java.util.Date d = new java.util.Date();
+		String message = d.toString() + "";
 		if( job != null )
-			message += job;
-		message += "[]: " + e;
+			message += " " + job;
+		message += " []: " + e;
 		synchronized(logStream) {
 			logStream.println( message );
 			logStream.flush();
@@ -242,10 +243,11 @@ public class Job_Server implements PlugIn {
 	}
 
 	public void log( Job job, String s ) {
-		String message = "";
+		java.util.Date d = new java.util.Date();
+		String message = d.toString() + "";
 		if( job != null )
-			message += job;
-		message += "[]: " + s;
+			message += " " + job;
+		message += " []: " + s;
 		synchronized(logStream) {
 			logStream.println( message );
 			logStream.flush();

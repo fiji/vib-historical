@@ -104,20 +104,34 @@ public class Extract_Image_Properties implements PlugIn {
 			realArguments = macroArguments;
 		}
 
-		String filename = Macro.getValue(
+		String dataRoot = Macro.getValue(
+			realArguments,
+			"dataroot",
+			"");
+
+		if( dataRoot.equals("") )
+			throw new RuntimeException("No dataroot parameter was supplied");
+
+		String relativeFilename = Macro.getValue(
 			realArguments,
 			"filename",
 			"");
 
-		if( filename.equals("") )
+		if( relativeFilename.equals("") )
 			throw new RuntimeException("No macro parameter 'filename' supplied");
 
+		String filename = dataRoot + File.separator + relativeFilename;
+		File filenameFile = new File( filename );
+		if( ! filenameFile.exists() )
+			throw new RuntimeException( "The uploaded and copied filename '"+
+						    filename+"' doesn't seem to exist. "+
+						    "(The absolute version is '"+
+						    filenameFile.getAbsolutePath()+"'" );
 
 		String original_filename = Macro.getValue(
 			realArguments,
 			"original",
 			"");
-
 
 		String destinationDirectory = Macro.getValue(
 			macroArguments,
