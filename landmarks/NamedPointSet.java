@@ -198,6 +198,7 @@ public class NamedPointSet {
 		"([eE0-9\\.\\-]+) *\\] *$");
 
 	static Pattern p_empty = Pattern.compile("^ *$");		
+	static Pattern p_comment = Pattern.compile("^ *#.*$");		
 
 	static Pattern p_name_no_data = Pattern.compile("^\"(.*)\":.*$");
 
@@ -229,6 +230,7 @@ public class NamedPointSet {
 	static NamedPoint parseLine( String line ) {
 		Matcher m_data = p_data.matcher(line);
 		Matcher m_empty = p_empty.matcher(line);
+		Matcher m_comment = p_comment.matcher(line);
 		Matcher m_name_no_data = p_name_no_data.matcher(line);
 
 		if (m_data.matches()) {
@@ -236,12 +238,12 @@ public class NamedPointSet {
 					Double.parseDouble(m_data.group(2)),
 					Double.parseDouble(m_data.group(3)),
 					Double.parseDouble(m_data.group(4)));
-		} else if (m_empty.matches()) {
+		} else if (m_empty.matches() || m_comment.matches()) {
 			return null;
 		} else if (m_name_no_data.matches()) {
 			return new NamedPoint(m_name_no_data.group(1));
 		} else {
-			IJ.error("There was a malformed line: '"+line+"'. Continuing anyway...");
+			IJ.log("There was a malformed line: '"+line+"'. Continuing anyway...");
 			return null;
 		}
 	}
@@ -253,7 +255,17 @@ public class NamedPointSet {
 		String defaultFilename=fullFileName+".points";
 		// System.out.println("Looking for points file at: "+fullFileName);
 		
-		return NamedPointSet.forPointsFile(defaultFilename);
+		// NB now checks both filename.tif.points and file.points
+		NamedPointSet rval=NamedPointSet.forPointsFile(defaultFilename);
+		if(rval!=null){
+			return rval;
+		} else {
+			int dotIndex = fullFileName.lastIndexOf(".");
+			if (dotIndex>=0){
+				defaultFilename = fullFileName.substring(0, dotIndex)+".points";				
+				return NamedPointSet.forPointsFile(defaultFilename);
+			} else return null;
+		}
 	}
 
 	public static NamedPointSet forPointsFile( String fullFileName ) {
