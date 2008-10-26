@@ -390,7 +390,7 @@ public class Scale_Merge_Unpack implements PlugIn {
 						jpegWriter.writeFullColourJPEG( pixelDataRGB, newWidth, newHeight, outputFileName );
 					} else {
 						ImageProcessor cp = ip.convertToRGB();
-						int [] pixelDataRGB = (int[])ip.getPixels();
+						int [] pixelDataRGB = (int[])cp.getPixels();
 						jpegWriter.writeFullColourJPEG( pixelDataRGB, newWidth, newHeight, outputFileName );
 					}
 				}
