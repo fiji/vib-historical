@@ -260,6 +260,7 @@ public class Scale_Merge_Unpack implements PlugIn {
 			pw.println("var stack_width = "+newWidth+";");
 			pw.println("var stack_height = "+newHeight+";");
 			pw.println("var stack_depth = "+depth+";");
+			pw.println("var output_format = '"+outputFormat+"';");
 			pw.close();
 		} catch( IOException e ) {
 			throw new RuntimeException("IOException: "+e);
