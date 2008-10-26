@@ -52,6 +52,7 @@ import util.Limits;
 import server.Job_Server;
 
 import fastpng.Native_PNG_Writer;
+import fastjpeg.Native_JPEG_Writer;
 
 public class Scale_Merge_Unpack implements PlugIn {
 
@@ -72,7 +73,8 @@ public class Scale_Merge_Unpack implements PlugIn {
 
 	public void run(String pluginArguments) {
 
-		Native_PNG_Writer writer = new Native_PNG_Writer();
+		Native_PNG_Writer pngWriter = new Native_PNG_Writer();
+		Native_JPEG_Writer jpegWriter = new Native_JPEG_Writer();
 
 		String realArguments = null;
 		String macroArguments = Macro.getOptions();
@@ -131,6 +133,17 @@ public class Scale_Merge_Unpack implements PlugIn {
 			realArguments,
 			"b",
 			"" );
+
+		String outputFormat = Macro.getValue(
+			realArguments,
+			"format",
+			"png");
+
+		outputFormat = outputFormat.toLowerCase();
+
+		if( ! (outputFormat.equals("png") || outputFormat.equals("jpg")) ) {
+			throw new RuntimeException("Unknown output format '"+outputFormat+"'");
+		}
 
 		int redIsChannel = -1;
 		int greenIsChannel = -1;
@@ -320,7 +333,7 @@ public class Scale_Merge_Unpack implements PlugIn {
 				ImageProcessor ip = stack.getProcessor(z+1);
 
 				String sliceString = f5.format(z);
-				String outputFileName = destinationDirectory + "/" + channelString + sliceString + ".png";
+				String outputFileName = destinationDirectory + "/" + channelString + sliceString + "." + outputFormat;
 
 				LookUpTable lut = imagePlus.createLut();
 				IndexColorModel cm = null;
@@ -337,37 +350,48 @@ public class Scale_Merge_Unpack implements PlugIn {
 					}
 				}
 
-				if( bitDepth == 8 ) {
-					writer.write8BitPNG( (byte[])ip.getPixels(),
-							     newWidth,
-							     newHeight,
-							     reds,
-							     greens,
-							     blues,
-							     outputFileName );
-				} else if( bitDepth == 16 ) {
-					ImageProcessor bp = ip.convertToByte(true);
-					byte [] pixelData8Bit = (byte[])bp.getPixels();
-					writer.write8BitPNG( pixelData8Bit,
-							     newWidth,
-							     newHeight,
-							     reds,
-							     greens,
-							     blues,
-							     outputFileName);
-				} else if( imageType == ImagePlus.GRAY32 ) {
-					ImageProcessor bp = ip.convertToByte(true);
-					byte [] pixelData8Bit = (byte[])bp.getPixels();
-					writer.write8BitPNG( pixelData8Bit,
-							     newWidth,
-							     newHeight,
-							     reds,
-							     greens,
-							     blues,
-							     outputFileName);
-				} else if( imageType == ImagePlus.COLOR_RGB ) {
-					int [] pixelDataRGB = (int[])ip.getPixels();
-					writer.writeFullColourPNG( pixelDataRGB, newWidth, newHeight, outputFileName );
+				if( outputFormat.equals("png") ) {
+					if( bitDepth == 8 ) {
+						pngWriter.write8BitPNG( (byte[])ip.getPixels(),
+									newWidth,
+									newHeight,
+									reds,
+									greens,
+									blues,
+									outputFileName );
+					} else if( bitDepth == 16 ) {
+						ImageProcessor bp = ip.convertToByte(true);
+						byte [] pixelData8Bit = (byte[])bp.getPixels();
+						pngWriter.write8BitPNG( pixelData8Bit,
+									newWidth,
+									newHeight,
+									reds,
+									greens,
+									blues,
+									outputFileName);
+					} else if( imageType == ImagePlus.GRAY32 ) {
+						ImageProcessor bp = ip.convertToByte(true);
+						byte [] pixelData8Bit = (byte[])bp.getPixels();
+						pngWriter.write8BitPNG( pixelData8Bit,
+									newWidth,
+									newHeight,
+									reds,
+									greens,
+									blues,
+									outputFileName);
+					} else if( imageType == ImagePlus.COLOR_RGB ) {
+						int [] pixelDataRGB = (int[])ip.getPixels();
+						pngWriter.writeFullColourPNG( pixelDataRGB, newWidth, newHeight, outputFileName );
+					}
+				} else { // Must be JPEG:
+					if( imageType == ImagePlus.COLOR_RGB ) {
+						int [] pixelDataRGB = (int[])ip.getPixels();
+						jpegWriter.writeFullColourJPEG( pixelDataRGB, newWidth, newHeight, outputFileName );
+					} else {
+						ImageProcessor cp = ip.convertToRGB();
+						int [] pixelDataRGB = (int[])ip.getPixels();
+						jpegWriter.writeFullColourJPEG( pixelDataRGB, newWidth, newHeight, outputFileName );
+					}
 				}
 				++ slicesDone;
 				reportProgress( slicesDone );
@@ -391,8 +415,10 @@ public class Scale_Merge_Unpack implements PlugIn {
 				String outputFileName = destinationDirectory + "/" + channelString + sliceString + ".png";
 
 				int [] pixelDataRGB = (int[])ip.getPixels();
-				writer.writeFullColourPNG( pixelDataRGB, newWidth, newHeight, outputFileName );
-
+				if( outputFormat.equals("png") )
+					pngWriter.writeFullColourPNG( pixelDataRGB, newWidth, newHeight, outputFileName );
+				else // Must be JPEG:
+					jpegWriter.writeFullColourJPEG( pixelDataRGB, newWidth, newHeight, outputFileName );
 				++ slicesDone;
 				reportProgress( slicesDone );
 			}
