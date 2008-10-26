@@ -413,7 +413,7 @@ public class Scale_Merge_Unpack implements PlugIn {
 				ImageProcessor ip = stack.getProcessor(z+1);
 
 				String sliceString = f5.format(z);
-				String outputFileName = destinationDirectory + "/" + channelString + sliceString + ".png";
+				String outputFileName = destinationDirectory + "/" + channelString + sliceString + "." + outputFormat;
 
 				int [] pixelDataRGB = (int[])ip.getPixels();
 				if( outputFormat.equals("png") )
