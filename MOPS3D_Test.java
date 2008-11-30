@@ -1,3 +1,5 @@
+/* -*- mode: java; c-basic-offset: 8; indent-tabs-mode: t; tab-width: 8 -*- */
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Collections;
@@ -74,56 +76,54 @@ public class MOPS3D_Test implements PlugIn
 	}
 	
 	public void run( String arg ) {
-		GenericDialog gd = new GenericDialog("Test MOPS");
-		int[] wIDs = WindowManager.getIDList();
-		if(wIDs == null){
-			IJ.error("No images open");
-			return;
-		}
-		String[] titles = new String[wIDs.length];
-		for(int i=0;i<wIDs.length;i++){
-			titles[i] = WindowManager.getImage(wIDs[i]).getTitle();
-		}
+		try {
+			GenericDialog gd = new GenericDialog("Test MOPS");
+			int[] wIDs = WindowManager.getIDList();
+			if(wIDs == null){
+				IJ.error("No images open");
+				return;
+			}
+			String[] titles = new String[wIDs.length];
+			for(int i=0;i<wIDs.length;i++){
+				titles[i] = WindowManager.getImage(wIDs[i]).getTitle();
+			}
 
-		gd.addChoice("Template", titles, titles[0]);
-		gd.addChoice("Model", titles, titles[0]);
-		gd.showDialog();
-		if (gd.wasCanceled())
-			return;
+			gd.addChoice("Template", titles, titles[0]);
+			gd.addChoice("Model", titles, titles[0]);
+			gd.showDialog();
+			if (gd.wasCanceled())
+				return;
 
-		templ = WindowManager.getImage(gd.getNextChoice());
-		model = WindowManager.getImage(gd.getNextChoice());
-
-
-		/*
-		 * Roughly align via rigid registration
-		 */
-		TransformedImage trans = new TransformedImage(templ, model);
-		trans.measure = new distance.Euclidean();
-
-		FastMatrix globalRigid = new RigidRegistration_()
-			.rigidRegistration(trans, "", "", -1, -1,
-				false, 4, 3, 1,
-				1, false, false, false, null);
-		trans.setTransformation(globalRigid);
-		model = trans.getTransformed();
+			templ = WindowManager.getImage(gd.getNextChoice());
+			model = WindowManager.getImage(gd.getNextChoice());
 
 
+			/*
+			 * Roughly align via rigid registration
+			 */
+			TransformedImage trans = new TransformedImage(templ, model);
+			trans.measure = new distance.Euclidean();
 
+			FastMatrix globalRigid = new RigidRegistration_()
+				.rigidRegistration(trans, "", "", -1, -1,
+						   false, 4, 3, 1,
+						   1, false, false, false, null);
+			trans.setTransformation(globalRigid);
+			model = trans.getTransformed();
 
-		this.model_org = new InterpolatedImage(model).cloneImage().getImage();
-		this.templ_org = new InterpolatedImage(templ).cloneImage().getImage();
+			this.model_org = new InterpolatedImage(model).cloneImage().getImage();
+			this.templ_org = new InterpolatedImage(templ).cloneImage().getImage();
 
-		PointList tFeatures = extractFeatures(templ);
-		PointList mFeatures = extractFeatures(model);
+			PointList tFeatures = extractFeatures(templ);
+			PointList mFeatures = extractFeatures(model);
 
 // 		HashMap<Point, Feature> tmap = new HashMap<Point, Feature> ();
 // 		HashMap<Point, Feature> mmap = new HashMap<Point, Feature> ();
 
-		List<FeatureMatch> candidates = MOPS3D.createMatches2(
+			List<FeatureMatch> candidates = MOPS3D.createMatches2(
 				mFeatures, tFeatures);
 
-		Collections.sort(candidates);
+			Collections.sort(candidates);
 
 // 		// now fill new PointLists with the inliers
 // 		PointList tInliers = new PointList();
@@ -139,9 +139,9 @@ public class MOPS3D_Test implements PlugIn
 // 		}
 // 		visualizeMatches(mInliers, tInliers);
 
-		visualizeMatches(candidates);
+			visualizeMatches(candidates);
 
-		// filter matches
+			// filter matches
 // 		List<PointMatch> inliers = new ArrayList< PointMatch >();
 // 		Model model = null;
 // 		Class< ? extends Model> modelClass = RigidModel3D.class;
@@ -166,6 +166,11 @@ public class MOPS3D_Test implements PlugIn
 // 		}
 // 
 // 		visualizeMatches(mInliers, tInliers);
+		} catch( OutOfMemoryError e ) {
+			System.out.println("Caught Throwable: "+e);
+			e.printStackTrace();
+			throw e;
+		}
 	}
 
 	public PointList extractFeatures(ImagePlus image) {
