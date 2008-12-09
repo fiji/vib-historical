@@ -22,6 +22,10 @@ import java.io.File;
 import octree.FilePreparer;
 import octree.VolumeOctree;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+
 public class Image3DUniverse extends DefaultAnimatableUniverse {
 
 	private Content selected;
@@ -300,7 +304,18 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		Content content = new Content(name);
 		content.color = color;
 		content.threshold = threshold;
-		content.displayMesh(mesh);
+		try {
+			content.displayMesh(mesh);
+		} catch( javax.media.j3d.BadTransformException bte ) {
+			try {
+				ObjectOutputStream oos = new ObjectOutputStream( new FileOutputStream("/tmp/content-and-mesh") );
+				oos.writeObject(mesh);
+				oos.close();
+			} catch( IOException e ) {
+				IJ.error("Serializing content and mesh on error failed: "+e);
+				return null;
+			}
+		}
 		content.setPointListDialog(pld);
 		scene.addChild(content);
 		contents.put(name, content);
