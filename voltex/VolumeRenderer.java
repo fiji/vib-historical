@@ -116,10 +116,8 @@ public class VolumeRenderer implements AxisConstants {
 	 */
 	private Vector3d eyeVec = new Vector3d();
 	public void eyePtChanged(View view) {
-		Point3d eyePt = getViewPosInLocal(view, root);
-		if (eyePt != null) {
-			Point3d  volRefPt = volume.volRefPt;
-			eyeVec.sub(eyePt, volRefPt);
+
+		if(getViewDirInLocal(view, root, eyeVec) != null) {
 
 			// compensate for different xyz resolution/scale
 // 			eyeVec.x /= volume.pw;
@@ -145,6 +143,7 @@ public class VolumeRenderer implements AxisConstants {
 			int dir = value > 0.0 ? FRONT : BACK;
 
 			if ((axis != curAxis) || (dir != curDir)) {
+				System.out.println("Switched axis: axis " + axis);
 				curAxis = axis;
 				curDir = dir;
 				axisSwitch.setWhichChild(
@@ -274,6 +273,27 @@ public class VolumeRenderer implements AxisConstants {
 	private static Transform3D parentInv = new Transform3D();
 	private static Point3d viewPosition = new Point3d();
 	private static Transform3D t = new Transform3D();
+
+	private static Vector3d getViewDirInLocal(View view, Node node, Vector3d out) {
+		if (node == null )
+			return null;
+		if (!node.isLive())
+			return null;
+		//  get viewplatforms's location in virutal world
+		Canvas3D canvas = (Canvas3D)view.getCanvas3D(0);
+		out.set(0, 0, 1);
+		canvas.getImagePlateToVworld(t);
+		t.transform(out);
+
+		// get parent transform
+		node.getLocalToVworld(parentInv);
+		parentInv.invert();
+
+		// transform the eye position into the parent's coordinate system
+		parentInv.transform(out);
+
+		return out;
+	}
 
 	/** 
 	 * return the eye's position in <node>'s coordinate space
