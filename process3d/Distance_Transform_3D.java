@@ -11,19 +11,22 @@ import ij.process.ImageProcessor;
 import ij.process.ByteProcessor;
 import ij.process.FloatProcessor;
 import ij.plugin.filter.PlugInFilter;
-
-// TODO take calibration into account
+import ij.measure.Calibration;
 
 public class Distance_Transform_3D implements PlugInFilter {
 
-	private static final float SQ1 = 1f;
-	private static final float SQ2 = (float)Math.sqrt(2);
-	private static final float SQ3 = (float)Math.sqrt(3);
+	private float x_spacing = Float.MIN_VALUE;
+	private float y_spacing = Float.MIN_VALUE;
+	private float z_spacing = Float.MIN_VALUE;
 
-	private final float[] ML = {SQ3, SQ2, SQ3, SQ2, SQ1, SQ2, SQ3, SQ2, SQ3,
-		SQ2, SQ1, SQ2, SQ1};
-	private final float[] MR = {SQ1, SQ2, SQ1, SQ2,
-		SQ3, SQ2, SQ3, SQ2, SQ1, SQ2, SQ3, SQ2, SQ3};
+	private float diagonalInX0Plane = Float.MIN_VALUE;
+	private float diagonalInY0Plane = Float.MIN_VALUE;
+	private float diagonalInZ0Plane = Float.MIN_VALUE;
+
+	private  float diagonalLength = Float.MIN_VALUE;
+
+	private float[] ML;
+	private float[] MR;
 
 	private ImagePlus image;
 	private int w, h, d;
@@ -36,7 +39,7 @@ public class Distance_Transform_3D implements PlugInFilter {
 	}
 
 	public ImagePlus getTransformed(ImagePlus image, int fg) {
-		this.image = image;
+		setup(null,image);
 		this.fg = fg;
 		init();
 		forwardPass();
@@ -147,7 +150,9 @@ public class Distance_Transform_3D implements PlugInFilter {
 		for(int z = 0; z < d; z++) {
 			stack.addSlice("",new FloatProcessor(w,h,dist[z],null));
 		}
-		return new ImagePlus("Distance", stack);
+		ImagePlus result = new ImagePlus("Distance", stack);
+		result.setCalibration(image.getCalibration());
+		return result;
 	}
 
 	public ImagePlus rebin() {
@@ -174,6 +179,58 @@ public class Distance_Transform_3D implements PlugInFilter {
 
 	public int setup(String arg, ImagePlus imp) {
 		this.image = imp;
+
+		Calibration c = imp.getCalibration();
+		if( c == null ) {
+			x_spacing = 1;
+			y_spacing = 1;
+			z_spacing = 1;
+		} else {
+			x_spacing = (float) c.pixelWidth;
+			y_spacing = (float) c.pixelHeight;
+			z_spacing = (float) c.pixelDepth;
+		}
+
+		this.diagonalInX0Plane = (float) Math.sqrt( y_spacing * y_spacing + z_spacing * z_spacing );
+		this.diagonalInY0Plane = (float) Math.sqrt( x_spacing * x_spacing + z_spacing * z_spacing );
+		this.diagonalInZ0Plane = (float) Math.sqrt( x_spacing * x_spacing + y_spacing * y_spacing );
+
+		this.diagonalLength =
+		(float)( Math.sqrt( diagonalInZ0Plane * diagonalInZ0Plane + z_spacing * z_spacing ) );
+
+		float [] tmpML = {
+			diagonalLength,    // xdiff 1, ydiff 1, zdiff 1 (was SQ3)
+			diagonalInX0Plane, // xdiff 0, ydiff 1, zdiff 1 (was SQ2)
+			diagonalLength,	   // xdiff 1, ydiff 1, zdiff 1 (was SQ3)
+			diagonalInY0Plane, // xdiff 1, ydiff 0, zdiff 1 (was SQ2)
+			z_spacing,         // xdiff 0, ydiff 0, zdiff 1 (was SQ1)
+			diagonalInY0Plane, // xdiff 1, ydiff 0, zdiff 1 (was SQ2)
+			diagonalLength,    // xdiff 1, ydiff 1, zdiff 1 (was SQ3)
+			diagonalInX0Plane, // xdiff 0, ydiff 1, zdiff 1 (was SQ2)
+			diagonalLength,    // xdiff 1, ydiff 1, zdiff 1 (was SQ3)
+			diagonalInZ0Plane, // xdiff 1, ydiff 1, zdiff 0 (was SQ2)
+			y_spacing,         // xdiff 0, ydiff 1, zdiff 0 (was SQ1)
+			diagonalInZ0Plane, // xdiff 1, ydiff 1, zdiff 0 (was SQ2)
+			x_spacing          // xdiff 1, ydiff 0, zdiff 0 (was SQ1)
+		};
+		this.ML = tmpML;
+
+		float [] tmpMR = {
+			x_spacing,         // xdiff 1, ydiff 0, zdiff 0 (was SQ1)
+			diagonalInZ0Plane, // xdiff 1, ydiff 1, zdiff 0 (was SQ2)
+			y_spacing,         // xdiff 0, ydiff 1, zdiff 0 (was SQ1)
+			diagonalInZ0Plane, // xdiff 1, ydiff 1, zdiff 0 (was SQ2)
+			diagonalLength,    // xdiff 1, ydiff 1, zdiff 1 (was SQ3)
+			diagonalInX0Plane, // xdiff 0, ydiff 1, zdiff 1 (was SQ2)
+			diagonalLength,    // xdiff 1, ydiff 1, zdiff 1 (was SQ3)
+			diagonalInY0Plane, // xdiff 1, ydiff 0, zdiff 1 (was SQ2)
+			z_spacing,         // xdiff 0, ydiff 0, zdiff 1 (was SQ1)
+			diagonalInY0Plane, // xdiff 1, ydiff 0, zdiff 1 (was SQ2)
+			diagonalLength,    // xdiff 1, ydiff 1, zdiff 1 (was SQ3)
+			diagonalInX0Plane, // xdiff 0, ydiff 1, zdiff 1 (was SQ2)
+			diagonalLength };  // xdiff 1, ydiff 1, zdiff 1 (was SQ3)
+		this.MR = tmpMR;
+
 		return DOES_8G;
 	}
 }
