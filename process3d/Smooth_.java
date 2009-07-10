@@ -62,6 +62,8 @@ public class Smooth_ implements PlugInFilter {
 
 		ImageStack stack = Convolve_3d.
 					convolve(image,H_x,H_y,H_z).getStack();
+		// freeing up possibly a lot of memory
+		System.gc();
 		
 		if(image.getType() == ImagePlus.GRAY32) {
 			ImagePlus result = new ImagePlus("Smoothed", stack);

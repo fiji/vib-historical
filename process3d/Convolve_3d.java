@@ -13,9 +13,9 @@ public class Convolve_3d {
 
 	public static ImagePlus convolve(ImagePlus image, 
 					float[] H_x, float[] H_y, float[] H_z) {
-		ImagePlus tmp1 = convolveX(image, H_x);
-		ImagePlus tmp2 = convolveY(tmp1, H_y);
-		return convolveZ(tmp2, H_z);
+		ImagePlus tmp = convolveX(image, H_x);
+		tmp = convolveY(tmp, H_y);
+		return convolveZ(tmp, H_z);
 	}
 
 	public static ImagePlus convolveX(ImagePlus image, float[] H_x) {
@@ -66,11 +66,13 @@ public class Convolve_3d {
 
 		// initialize slices_in and slices_out
 		slices_in = new Object[d];
-		float[][] slices_out = new float[d][];
+		float[] slices_out = new float[w*h];
+
+		// create output image
+		ImageStack stack = new ImageStack(w, h);
 		for(int i = 0; i < d; i++) {
 			slices_in[i] = image.getStack().
 						getProcessor(i+1).getPixels();
-			slices_out[i] = new float[w*h];
 		}
 
 		// determine image type
@@ -87,17 +89,15 @@ public class Convolve_3d {
 			IJ.showProgress(z, d);
 			for(int y = 0; y < h; y++) {
 				for(int x = 0; x < w; x++) {
-					slices_out[z][y*w+x] = 
+					slices_out[y*w+x] =
 						convolvePoint(z,y,x);
 				}
 			}
-		}
-		
-		// create output image
-		ImageStack stack = new ImageStack(w, h);
-		for(int z = 0; z < d; z++) {
+
+			// fill the output image
 			stack.addSlice("", 
-				new FloatProcessor(w, h, slices_out[z], null));
+				new FloatProcessor(w, h, (float[])slices_out.clone(),
+							  null));
 		}
 		ImagePlus result = new ImagePlus("", stack);
 		result.setCalibration(image.getCalibration());
