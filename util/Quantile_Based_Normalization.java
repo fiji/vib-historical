@@ -24,7 +24,7 @@
 package util;
 
 import ij.*;
-import ij.gui.GenericDialog;
+import ij.gui.NonBlockingGenericDialog;
 import ij.gui.YesNoCancelDialog;
 import ij.process.*;
 import ij.plugin.*;
@@ -566,7 +566,7 @@ public class Quantile_Based_Normalization implements PlugIn, ActionListener, Ite
 
 		String defaultMaskFileName = "";
 		
-                GenericDialog gd=new GenericDialog("Quantile Based Normalization (version: "+PLUGIN_VERSION+")");
+                NonBlockingGenericDialog gd=new NonBlockingGenericDialog("Quantile Based Normalization (version: "+PLUGIN_VERSION+")");
 		
 		FileGroup fg = new FileGroup("foo");
 		

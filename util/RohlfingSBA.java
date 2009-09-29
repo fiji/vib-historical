@@ -8,7 +8,7 @@ import java.util.Arrays;
 import process3d.Distance_Transform_3D;
 
 import ij.IJ;
-import ij.gui.GenericDialog;
+import ij.gui.NonBlockingGenericDialog;
 import ij.WindowManager;
 import ij.plugin.PlugIn;
 import ij.process.FloatProcessor;
@@ -36,7 +36,7 @@ public class RohlfingSBA implements PlugIn {
 	private int w, h, d, L, K;
 
 	public void run(String arg) {
-		GenericDialog gd = new GenericDialog("Rohlfing");
+		NonBlockingGenericDialog gd = new NonBlockingGenericDialog("Rohlfing");
 		fg = new FileGroup("files");
 		FileGroupDialog fgd = new FileGroupDialog(fg, false);
 		gd.addPanel(fgd);
