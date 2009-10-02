@@ -76,15 +76,12 @@ public class FileGroupDialog extends Panel
 		gridbag.setConstraints(name, c);
 		this.add(name);
 
-		ScrollPane scroll = new ScrollPane();
-		scroll.add(list);
-		scroll.setPreferredSize(new Dimension(300,100));
 		c.gridx = 0;
 		c.gridy++;
 		c.fill = GridBagConstraints.BOTH;
 		c.weightx = c.weighty = 0.5;
-		gridbag.setConstraints(scroll, c);
-		this.add(scroll);
+		gridbag.setConstraints(list, c);
+		this.add(list);
 
 		Panel buttons = new Panel(new GridLayout(3,1));
 		add = new Button("Add to files");
