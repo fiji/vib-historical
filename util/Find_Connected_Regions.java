@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import amira.AmiraParameters;
 import ij.measure.Calibration;
 import ij.process.FloatProcessor;
+import ij.plugin.ImageCalculator;
 import java.awt.image.ColorModel;
 import ij.measure.ResultsTable;
 import java.awt.Dialog;
@@ -72,7 +73,7 @@ class CancelDialog extends Dialog implements ActionListener {
 
 public class Find_Connected_Regions implements PlugIn {
 
-	public static final String PLUGIN_VERSION = "1.0";
+	public static final String PLUGIN_VERSION = "1.2";
 
 	boolean pleaseStop = false;
 
@@ -141,14 +142,15 @@ public class Find_Connected_Regions implements PlugIn {
 	public void run(String ignored) {
 
 		GenericDialog gd = new GenericDialog("Find Connected Regions Options (version: "+PLUGIN_VERSION+")");
-		gd.addCheckbox("Allow diagonal connections?", false);
-		gd.addCheckbox("Display an image for each region?", true);
-		gd.addCheckbox("Display results table?", true);
-		gd.addCheckbox("Regions must have the same value?", true);
-		gd.addCheckbox("Start from point selection?", false);
-		gd.addNumericField("Regions for values over: ", 0, 0);
-		gd.addNumericField("Minimum number of points in a region", 1, 0);
-		gd.addNumericField("Stop after this number of regions are found: ", 1, 0);
+		gd.addCheckbox("Allow_diagonal connections?", false);
+		gd.addCheckbox("Display_image_for_each region?", true);
+		gd.addCheckbox("Display_results table?", true);
+		gd.addCheckbox("Regions_must have the same value?", true);
+		gd.addCheckbox("Start_from_point selection?", false);
+		gd.addCheckbox("Autosubtract discovered regions from original image?", false);
+		gd.addNumericField("Regions_for_values_over: ", 0, 0);
+		gd.addNumericField("Minimum_number_of_points in a region", 1, 0);
+		gd.addNumericField("Stop_after this number of regions are found: ", 1, 0);
 		gd.addMessage("(If number of regions is -1, find all of them.)");
 
 		gd.showDialog();
@@ -160,10 +162,14 @@ public class Find_Connected_Regions implements PlugIn {
 		boolean showResults = gd.getNextBoolean();
 		boolean mustHaveSameValue = gd.getNextBoolean();
 		boolean startFromPointROI = gd.getNextBoolean();
+		boolean autoSubtract = gd.getNextBoolean();
 		double valuesOverDouble = gd.getNextNumber();
 		double minimumPointsInRegionDouble = gd.getNextNumber();
 		int stopAfterNumberOfRegions = (int) gd.getNextNumber();
 
+		
+		ImageCalculator iCalc = new ImageCalculator();
+		
 		ImagePlus imagePlus = IJ.getImage();
 		if (imagePlus == null) {
 			IJ.error("No image to operate on.");
@@ -517,7 +523,9 @@ public class Find_Connected_Regions implements PlugIn {
 			} else {
 				replacementValue = (byte) 255;
 			}
-			if (display) {
+
+	
+			if (display || autoSubtract) {
 
 				ImageStack newStack = new ImageStack(width, height);
 				for (int z = 0; z < depth; ++z) {
@@ -556,7 +564,17 @@ public class Find_Connected_Regions implements PlugIn {
 				if (parameters != null) {
 					parameters.setParameters(newImagePlus, true);
 				}
-				newImagePlus.show();
+				
+				if (autoSubtract) {
+					iCalc.calculate("Subtract stack", imagePlus, newImagePlus);
+				}
+				
+				if (display) {
+					newImagePlus.show();
+				} else {
+					newImagePlus.changes = false;
+					newImagePlus.close();
+				}
 			}
 
 			if ( (stopAfterNumberOfRegions > 0) && (results.size() >= stopAfterNumberOfRegions) ) {
