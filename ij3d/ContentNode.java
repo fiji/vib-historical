@@ -2,7 +2,9 @@ package ij3d;
 
 import javax.media.j3d.BranchGroup;
 import javax.media.j3d.View;
+
 import javax.vecmath.Tuple3d;
+import javax.vecmath.Color3f;
 
 /**
  * Abstract class which has to be extended by classes that want to define
@@ -52,30 +54,30 @@ public abstract class ContentNode extends BranchGroup {
 	 * This method is called when the channels of the Content
 	 * have changed.
 	 */
-	public abstract void channelsUpdated();
+	public abstract void channelsUpdated(boolean[] channels);
 
 	/**
 	 * This method is called when the threshold of the Content
 	 * has changed.
 	 */
-	public abstract void thresholdUpdated();
+	public abstract void thresholdUpdated(int threshold);
 
 	/**
 	 * This method is called when the color of the Content has changed.
 	 */
-	public abstract void colorUpdated();
+	public abstract void colorUpdated(Color3f color);
 
 	/**
 	 * This method is called when the transparency of the Content
 	 * has changed.
 	 */
-	public abstract void transparencyUpdated();
+	public abstract void transparencyUpdated(float transparency);
 
 	/**
 	 * This method is called when the 'shade' attribute of the
 	 * Content has changed.
 	 */
-	public abstract void shadeUpdated();
+	public abstract void shadeUpdated(boolean shaded);
 
 	/**
 	 * This method is called when the view direction has changed.

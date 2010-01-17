@@ -2,6 +2,7 @@ package voltex;
 
 import java.awt.Polygon;
 
+import javax.vecmath.Color3f;
 import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
 import javax.media.j3d.View;
@@ -110,8 +111,8 @@ public class VoltexGroup extends ContentNode {
 	/**
 	 * @see ContentNode#thresholdUpdated() thresholdUpdated
 	 */
-	public void thresholdUpdated() {
-		renderer.setThreshold(c.getThreshold());
+	public void thresholdUpdated(int threshold) {
+		renderer.setThreshold(threshold);
 	}
 
 	/**
@@ -131,29 +132,29 @@ public class VoltexGroup extends ContentNode {
 	/**
 	 * @see ContentNode#channelsUpdated() channelsUpdated
 	 */
-	public void channelsUpdated() {
-		renderer.setChannels(c.getChannels());
+	public void channelsUpdated(boolean[] channels) {
+		renderer.setChannels(channels);
 	}
 
 	/**
 	 * @see ContentNode#shadeUpdated() shadeUpdated
 	 */
-	public void shadeUpdated() {
+	public void shadeUpdated(boolean shaded) {
 		// do nothing
 	}
 
 	/**
 	 * @see ContentNode#colorUpdated() colorUpdated
 	 */
-	public void colorUpdated() {
-		renderer.setColor(c.getColor());
+	public void colorUpdated(Color3f color) {
+		renderer.setColor(color);
 	}
 
 	/**
 	 * @see ContentNode#transparencyUpdated() transparencyUpdated
 	 */
-	public void transparencyUpdated() {
-		renderer.setTransparency(c.getTransparency());
+	public void transparencyUpdated(float transparency) {
+		renderer.setTransparency(transparency);
 	}
 
 	/**

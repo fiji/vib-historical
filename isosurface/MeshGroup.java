@@ -59,7 +59,7 @@ public class MeshGroup extends ContentNode {
 		// do nothing
 	}
 
-	public void thresholdUpdated() {
+	public void thresholdUpdated(int threshold) {
 		if(c.getImage() == null) {
 			IJ.error("Mesh was not calculated of a grayscale " +
 				"image. Can't change threshold");
@@ -71,7 +71,7 @@ public class MeshGroup extends ContentNode {
 		mesh.setMesh(tri);
 	}
 
-	public void channelsUpdated() {
+	public void channelsUpdated(boolean[] channels) {
 		if(c.getImage() == null) {
 			IJ.error("Mesh was not calculated of a grayscale " +
 				"image. Can't change channels");
@@ -97,12 +97,11 @@ public class MeshGroup extends ContentNode {
 		return mesh.getVolume();
 	}
 
-	public void shadeUpdated() {
-		mesh.setShaded(c.isShaded());
+	public void shadeUpdated(boolean shaded) {
+		mesh.setShaded(shaded);
 	}
 
-	public void colorUpdated() {
-		Color3f newColor = c.getColor();
+	public void colorUpdated(Color3f newColor) {
 		if(newColor == null){
 			int val = c.getImage().getProcessor().
 				getColorModel().getRGB(c.getThreshold());
@@ -111,8 +110,8 @@ public class MeshGroup extends ContentNode {
 		mesh.setColor(newColor);
 	}
 
-	public void transparencyUpdated() {
-		mesh.setTransparency(c.getTransparency());
+	public void transparencyUpdated(float transparency) {
+		mesh.setTransparency(transparency);
 	}
 }
 

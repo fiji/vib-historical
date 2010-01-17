@@ -376,14 +376,14 @@ public class Content extends BranchGroup implements UniverseListener {
 			return;
 		this.channels = channels;
 		if(contentNode != null)
-			contentNode.channelsUpdated();
+			contentNode.channelsUpdated(channels);
 	}
 
 	public void setThreshold(int th) {
 		if(th != threshold) {
 			this.threshold = th;
 			if(contentNode != null)
-				contentNode.thresholdUpdated();
+				contentNode.thresholdUpdated(threshold);
 		}
 	}
 
@@ -391,7 +391,7 @@ public class Content extends BranchGroup implements UniverseListener {
 		if(b != shaded) {
 			this.shaded = b;
 			if(contentNode != null)
-				contentNode.shadeUpdated();
+				contentNode.shadeUpdated(shaded);
 		}
 	}
 
@@ -409,7 +409,7 @@ public class Content extends BranchGroup implements UniverseListener {
 		this.color = color;
  		plShape.setColor(color);
 		if(contentNode != null)
-			contentNode.colorUpdated();
+			contentNode.colorUpdated(this.color);
 	}
 
 	public synchronized void setTransparency(float transparency) {
@@ -419,7 +419,7 @@ public class Content extends BranchGroup implements UniverseListener {
 			return;
 		this.transparency = transparency;
 		if(contentNode != null)
-			contentNode.transparencyUpdated();
+			contentNode.transparencyUpdated(this.transparency);
 	}
 
 	/* ************************************************************

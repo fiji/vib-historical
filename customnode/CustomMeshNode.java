@@ -3,6 +3,7 @@ package customnode;
 import javax.media.j3d.View;
 import javax.vecmath.Point3f;
 import javax.vecmath.Tuple3d;
+import javax.vecmath.Color3f;
 
 import ij3d.Content;
 import ij3d.ContentNode;
@@ -10,12 +11,12 @@ import ij3d.ContentNode;
 public class CustomMeshNode extends ContentNode {
 
 	private CustomMesh mesh;
-	private Content content;
-	private Point3f min, max, center;
 
-	public CustomMeshNode(CustomMesh mesh, Content content) {
+	protected Point3f min, max, center;
+	protected CustomMeshNode() {}
+
+	public CustomMeshNode(CustomMesh mesh) {
 		this.mesh = mesh;
-		this.content = content;
 		calculateMinMaxCenterPoint();
 		addChild(mesh);
 	}
@@ -40,13 +41,13 @@ public class CustomMeshNode extends ContentNode {
 	}
 
 	@Override
-	public void channelsUpdated() {
+	public void channelsUpdated(boolean[] channels) {
 		// do nothing
 	}
 
 	@Override
-	public void colorUpdated() {
-		mesh.setColor(content.getColor());
+	public void colorUpdated(Color3f color) {
+		mesh.setColor(color);
 	}
 
 	@Override
@@ -60,18 +61,18 @@ public class CustomMeshNode extends ContentNode {
 	}
 
 	@Override
-	public void shadeUpdated() {
-		mesh.setShaded(content.isShaded());
+	public void shadeUpdated(boolean shaded) {
+		mesh.setShaded(shaded);
 	}
 
 	@Override
-	public void thresholdUpdated() {
+	public void thresholdUpdated(int threshold) {
 		// do nothing
 	}
 
 	@Override
-	public void transparencyUpdated() {
-		mesh.setTransparency(content.getTransparency());
+	public void transparencyUpdated(float transparency) {
+		mesh.setTransparency(transparency);
 	}
 
 	private void calculateMinMaxCenterPoint() {

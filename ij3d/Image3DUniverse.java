@@ -21,6 +21,7 @@ import customnode.CustomLineMesh;
 import customnode.CustomPointMesh;
 import customnode.CustomQuadMesh;
 import customnode.CustomMesh;
+import customnode.CustomMultiMesh;
 import customnode.CustomMeshNode;
 import customnode.CustomTriangleMesh;
 
@@ -708,6 +709,32 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	}
 
 	/**
+	 * Add a CustomMultiMesh to the universe.
+	 *
+	 * For more details on custom meshes, read the package API docs of
+	 * the package customnode.
+	 * @param mesh the CustomMultiMesh to display
+	 * @param name the name for the added Content
+	 * @return the added Content
+	 */
+	public Content addCustomMesh(CustomMultiMesh mesh, String name) {
+		if(contents.containsKey(name)) {
+			IJ.error("Mesh named '"+name+"' exists already");
+			return null;
+		}
+
+		Content content = new Content(name);
+		content.color = null;
+		content.transparency = 0f;
+		content.shaded = false;
+		content.showCoordinateSystem(
+			UniverseSettings.showLocalCoordinateSystemsByDefault);
+		content.display(mesh);
+		content.setPointListDialog(plDialog);
+		return addContent(content);
+	}
+
+	/**
 	 * Create a Content object from the mesh.
 	 *
 	 * Does not add the Content to the view; it merely creates it
@@ -726,7 +753,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		content.shaded = mesh.isShaded();
 		content.showCoordinateSystem(
 				UniverseSettings.showLocalCoordinateSystemsByDefault);
-		content.display(new CustomMeshNode(mesh, content));
+		content.display(new CustomMeshNode(mesh));
 		content.setPointListDialog(plDialog);
 		return content;
 	}
@@ -1213,7 +1240,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			content.shaded = mesh.isShaded();
 			content.showCoordinateSystem(
 				UniverseSettings.showLocalCoordinateSystemsByDefault);
-			content.display(new CustomMeshNode(mesh, content));
+			content.display(new CustomMeshNode(mesh));
 			content.setPointListDialog(plDialog);
 
 			contents.add(content);

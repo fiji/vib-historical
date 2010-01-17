@@ -14,6 +14,7 @@ import java.awt.event.AdjustmentListener;
 import javax.media.j3d.View;
 import javax.vecmath.Point3d;
 import javax.vecmath.Tuple3d;
+import javax.vecmath.Color3f;
 
 import vib.Resample_;
 
@@ -119,15 +120,15 @@ public class SurfacePlotGroup extends ContentNode implements AdjustmentListener{
 	/**
 	 * @see ContentNode#thresholdUpdated(Tupe3d) thresholdUpdated
 	 */
-	public void thresholdUpdated() {
+	public void thresholdUpdated(int threshold) {
 		// TODO
 	}
 
 	/**
 	 * @see ContentNode#channelsUpdated(Tupe3d) channelsUpdated
 	 */
-	public void channelsUpdated() {
-		surfacep.setChannels(c.getChannels());
+	public void channelsUpdated(boolean[] channels) {
+		surfacep.setChannels(channels);
 	}
 
 	/**
@@ -143,21 +144,21 @@ public class SurfacePlotGroup extends ContentNode implements AdjustmentListener{
 	/**
 	 * @see ContentNode#colorUpdated() colorUpdated
 	 */
-	public void colorUpdated() {
-		surfacep.setColor(c.getColor());
+	public void colorUpdated(Color3f color) {
+		surfacep.setColor(color);
 	}
 
 	/**
 	 * @see ContentNode#transparencyUpdated() transparencyUpdated
 	 */
-	public void transparencyUpdated() {
-		surfacep.setTransparency(c.getTransparency());
+	public void transparencyUpdated(float transparency) {
+		surfacep.setTransparency(transparency);
 	}
 
 	/**
 	 * @see ContentNode#shadeUpdated() shadeUpdated
 	 */
-	public void shadeUpdated() {
-		surfacep.setShaded(c.isShaded());
+	public void shadeUpdated(boolean shaded) {
+		surfacep.setShaded(shaded);
 	}
 }
