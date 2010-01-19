@@ -225,7 +225,6 @@ public abstract class CustomMesh extends Shape3D {
 		setGeometry(createGeometry());
 	}
 
-
 	public void setColor(Color3f color) {
 		this.color = color != null ? color : DEFAULT_COLOR;
 		GeometryArray ga = (GeometryArray)getGeometry();
@@ -237,6 +236,28 @@ public abstract class CustomMesh extends Shape3D {
 			colors[i] = this.color;
 		}
 		ga.setColors(0, colors);
+	}
+
+	public void setColor(List<Color3f> color) {
+		this.color = null;
+		GeometryArray ga = (GeometryArray)getGeometry();
+		if(ga == null)
+			return;
+		int N = ga.getValidVertexCount();
+		if(color.size() != N)
+			throw new IllegalArgumentException(
+				"list of size " + N + " expected");
+		Color3f[] colors = new Color3f[N];
+		color.toArray(colors);
+		ga.setColors(0, colors);
+	}
+
+	public void setColor(int vtxIndex, Color3f color) {
+		this.color = null;
+		GeometryArray ga = (GeometryArray)getGeometry();
+		if(ga == null)
+			return;
+		ga.setColor(vtxIndex, color);
 	}
 
 	public void setTransparency(float transparency) {
