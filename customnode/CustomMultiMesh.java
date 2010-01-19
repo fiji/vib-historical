@@ -7,6 +7,7 @@ import javax.vecmath.Tuple3d;
 import javax.vecmath.Point3f;
 import javax.vecmath.Color3f;
 
+import javax.media.j3d.BranchGroup;
 import javax.media.j3d.View;
 
 public class CustomMultiMesh extends CustomMeshNode {
@@ -14,34 +15,63 @@ public class CustomMultiMesh extends CustomMeshNode {
 	private List<CustomMesh> customMeshes;
 
 	public CustomMultiMesh() {
+		setCapabilities(this);
 		customMeshes = new ArrayList<CustomMesh>();
 		calculateMinMaxCenterPoint();
 	}
 
 	public CustomMultiMesh(CustomMesh customMesh) {
+		setCapabilities(this);
 		customMeshes = new ArrayList<CustomMesh>();
 		customMeshes.add(customMesh);
 		calculateMinMaxCenterPoint();
+		BranchGroup bg = new BranchGroup();
+		setCapabilities(bg);
+
+		bg.addChild(customMesh);
+		addChild(bg);
 	}
 
 	public CustomMultiMesh(List<CustomMesh> meshes) {
 		customMeshes = meshes;
 		calculateMinMaxCenterPoint();
+		for(CustomMesh m : customMeshes) {
+			BranchGroup bg = new BranchGroup();
+			setCapabilities(bg);
+			bg.addChild(m);
+			addChild(bg);
+		}
+	}
+
+	private static void setCapabilities(BranchGroup bg) {
+		bg.setCapability(BranchGroup.ALLOW_DETACH);
+		bg.setCapability(BranchGroup.ALLOW_CHILDREN_WRITE);
+		bg.setCapability(BranchGroup.ALLOW_CHILDREN_EXTEND);
 	}
 
 	public void remove(int i) {
 		customMeshes.remove(i);
 		calculateMinMaxCenterPoint();
+		BranchGroup bg = (BranchGroup)getChild(i);
+		removeChild(i);
+		bg.removeAllChildren();
 	}
 
 	public void remove(CustomMesh mesh) {
 		customMeshes.remove(mesh);
 		calculateMinMaxCenterPoint();
+		BranchGroup bg = (BranchGroup)mesh.getParent();
+		removeChild(bg);
+		bg.removeAllChildren();
 	}
 
 	public void add(CustomMesh mesh) {
 		customMeshes.add(mesh);
 		calculateMinMaxCenterPoint();
+		BranchGroup bg = new BranchGroup();
+		setCapabilities(bg);
+		bg.addChild(mesh);
+		addChild(bg);
 	}
 
 	@Override
