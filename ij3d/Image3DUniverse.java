@@ -758,6 +758,18 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		return content;
 	}
 
+	public Content createContent(CustomMultiMesh node, String name) {
+		Content content = new Content(name);
+		content.color = null;
+		content.transparency = 0f;
+		content.shaded = false;
+		content.showCoordinateSystem(
+				UniverseSettings.showLocalCoordinateSystemsByDefault);
+		content.display(node);
+		content.setPointListDialog(plDialog);
+		return content;
+	}
+
 	/**
 	 * Add a custom mesh, in particular a line mesh (a set of lines in 3D)
 	 * to the universe.
