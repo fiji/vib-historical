@@ -91,6 +91,7 @@ System.out.println("oldEye = " + oldEye);
 		univ.getCenterTG().setTransform(t3d);
 	}
 
+boolean firstPoint = true;
 	/*
 	 * Assumes p to be in vworld coordinates
 	 */
@@ -98,12 +99,18 @@ System.out.println("oldEye = " + oldEye);
 		Point3d p = new Point3d(point);
 		toCamera.transform(p);
 System.out.println("new point: " + p);
+		if(firstPoint) {
+			eye.x = p.x;
+			eye.z = p.z;
+			firstPoint = false;
+			return;
+		}
 
 		double s1 = (p.x - eye.x) / w;
 		double s2 = (eye.z - p.z) / (2 * e);
 
-		double m1 = s1 + s2;
-		double m2 = -s1 + s2;
+		double m1 = s1 - s2;
+		double m2 = -s1 - s2;
 
 System.out.println("m1 = " + m1);
 System.out.println("m2 = " + m2);
@@ -111,12 +118,12 @@ System.out.println("m2 = " + m2);
 		if(m1 > m2) {
 			if(m1 > 0) {
 				eye.x += m1 * w / 2;
-				eye.z -= m1 * e;
+				eye.z += m1 * e;
 			}
 		} else {
 			if(m2 > 0) {
 				eye.x -= m2 * w / 2;
-				eye.z -= m2 * e;
+				eye.z += m2 * e;
 			}
 		}
 System.out.println("eye = " + eye);
