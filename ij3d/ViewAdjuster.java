@@ -17,8 +17,8 @@ class ViewAdjuster {
 	private final Transform3D toCamera = new Transform3D();
 	private final Transform3D toCameraInverse = new Transform3D();
 	
-	private final double e = 1.0;
-	private final double w = 2 * Math.tan(Math.PI/8);
+	private double e = 1.0;
+	private double w = 2 * Math.tan(Math.PI/8);
 
 	public ViewAdjuster(Image3DUniverse univ) {
 		this.univ = univ;
@@ -37,6 +37,26 @@ class ViewAdjuster {
 
 		// save the old eye pos
 		oldEye.set(eye);
+System.out.println("old eye: " + oldEye);
+
+		Transform3D toIpInverse = new Transform3D();
+		canvas.getImagePlateToVworld(toIpInverse);
+		Point3d lu = new Point3d();
+		Point3d rl = new Point3d();
+		canvas.getPixelLocationInImagePlate(0, 0, lu);
+		canvas.getPixelLocationInImagePlate(
+			canvas.getWidth(), canvas.getHeight(), rl);
+		toIpInverse.transform(lu);
+		toIpInverse.transform(rl);
+
+		toCamera.transform(lu);
+		toCamera.transform(rl);
+
+System.out.println("lu = " + lu);
+System.out.println("rl = " + rl);
+
+		w = rl.x - lu.x;
+		e = -rl.z;
 
 		univ.getVworldToCameraInverse(toCameraInverse);
 	}
@@ -77,12 +97,16 @@ System.out.println("oldEye = " + oldEye);
 	public void adjustViewXZ(Point3d point) {
 		Point3d p = new Point3d(point);
 		toCamera.transform(p);
+System.out.println("new point: " + p);
 
 		double s1 = (p.x - eye.x) / w;
 		double s2 = (eye.z - p.z) / (2 * e);
 
 		double m1 = s1 + s2;
 		double m2 = -s1 + s2;
+
+System.out.println("m1 = " + m1);
+System.out.println("m2 = " + m2);
 
 		if(m1 > m2) {
 			if(m1 > 0) {
