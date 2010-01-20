@@ -19,9 +19,9 @@ class ViewAdjuster {
 
 	private boolean firstPoint = true;
 
-	private double e = 1.0;
-	private double w = 2 * Math.tan(Math.PI / 8);
-	private double h = 2 * Math.tan(Math.PI / 8);
+	private final double e = 1.0;
+	private final double w = 2 * Math.tan(Math.PI / 8);
+	private final double h = 2 * Math.tan(Math.PI / 8);
 
 	public ViewAdjuster(Image3DUniverse univ) {
 		this.univ = univ;
@@ -38,27 +38,6 @@ class ViewAdjuster {
 
 		// save the old eye pos
 		oldEye.set(eye);
-
-		Transform3D toIpInverse = new Transform3D();
-		canvas.getImagePlateToVworld(toIpInverse);
-
-		// get the upper left canvas corner in camera coordinates
-		Point3d lu = new Point3d();
-		canvas.getPixelLocationInImagePlate(0, 0, lu);
-		toIpInverse.transform(lu);
-		toCamera.transform(lu);
-
-		// get the lower right canvas corner in camera coordinates
-		Point3d rl = new Point3d();
-		canvas.getPixelLocationInImagePlate(
-			canvas.getWidth(), canvas.getHeight(), rl);
-		toIpInverse.transform(rl);
-		toCamera.transform(rl);
-
-		w = rl.x - lu.x;
-		h = rl.y - lu.y;
-
-		e = -rl.z;
 
 		univ.getVworldToCameraInverse(toCameraInverse);
 	}
