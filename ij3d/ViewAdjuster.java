@@ -16,16 +16,17 @@ class ViewAdjuster {
 
 	private final Transform3D toCamera = new Transform3D();
 	private final Transform3D toCameraInverse = new Transform3D();
-	
+
+	private boolean firstPoint = true;
+
 	private double e = 1.0;
-	private double w = 2 * Math.tan(Math.PI/8);
+	private double w = 2 * Math.tan(Math.PI / 8);
+	private double h = 2 * Math.tan(Math.PI / 8);
 
 	public ViewAdjuster(Image3DUniverse univ) {
 		this.univ = univ;
 		this.canvas = univ.getCanvas();
-	}
 
-	public void init() {
 		// get eye in image plate
 		canvas.getCenterEyeInImagePlate(eye);
 		// transform eye to vworld
@@ -37,33 +38,55 @@ class ViewAdjuster {
 
 		// save the old eye pos
 		oldEye.set(eye);
-System.out.println("old eye: " + oldEye);
 
 		Transform3D toIpInverse = new Transform3D();
 		canvas.getImagePlateToVworld(toIpInverse);
+
+		// get the upper left canvas corner in camera coordinates
 		Point3d lu = new Point3d();
-		Point3d rl = new Point3d();
 		canvas.getPixelLocationInImagePlate(0, 0, lu);
+		toIpInverse.transform(lu);
+		toCamera.transform(lu);
+
+		// get the lower right canvas corner in camera coordinates
+		Point3d rl = new Point3d();
 		canvas.getPixelLocationInImagePlate(
 			canvas.getWidth(), canvas.getHeight(), rl);
-		toIpInverse.transform(lu);
 		toIpInverse.transform(rl);
-
-		toCamera.transform(lu);
 		toCamera.transform(rl);
 
-System.out.println("lu = " + lu);
-System.out.println("rl = " + rl);
-
 		w = rl.x - lu.x;
+		h = rl.y - lu.y;
+
 		e = -rl.z;
 
 		univ.getVworldToCameraInverse(toCameraInverse);
 	}
 
 	public void apply() {
-System.out.println("eye = " + eye);
-System.out.println("oldEye = " + oldEye);
+		/* The camera to vworld transformation is given by
+		 * C * T * R * Z, where
+		 *
+		 * C: center transformation
+		 * T: user defined translation
+		 * R: rotation
+		 * Z: zoom translation
+		 *
+		 * the calculated eye coordinate can be thought of as
+		 * an additional transformation A, so that we have
+		 * C * T * R * Z * A.
+		 *
+		 * A should be split into A_z, the z translation, which
+		 * is incorporated into the Zoom translation Z, and
+		 * A_xy, which should be incorporated into the center
+		 * transformation C.
+		 *
+		 * C * T * R * A * Z_new = C_new * T * R * Z_new
+		 *
+		 * where Z_new = A_z * Z.
+		 *
+		 * C_new is then C * T * R * A_xy * R^-1 * T^-1
+		 */
 		Transform3D t3d = new Transform3D();
 		Vector3d transl = new Vector3d();
 
@@ -91,17 +114,47 @@ System.out.println("oldEye = " + oldEye);
 		univ.getCenterTG().setTransform(t3d);
 	}
 
-boolean firstPoint = true;
+	public void add(Content c) {
+		Transform3D localToVworld = new Transform3D();
+		c.getContent().getLocalToVworld(localToVworld);
+
+		Point3d min = new Point3d();
+		c.getContent().getMin(min);
+
+		Point3d max = new Point3d();
+		c.getContent().getMax(max);
+
+		Point3d tmp = new Point3d();
+
+		// transform each of the 8 corners to vworld
+		// coordinates and feed it to add(Point3d).
+		add(localToVworld, new Point3d(min.x, min.y, min.z));
+		add(localToVworld, new Point3d(max.x, min.y, min.z));
+		add(localToVworld, new Point3d(min.x, max.y, min.z));
+		add(localToVworld, new Point3d(max.x, max.y, min.z));
+		add(localToVworld, new Point3d(min.x, min.y, max.z));
+		add(localToVworld, new Point3d(max.x, min.y, max.z));
+		add(localToVworld, new Point3d(min.x, max.y, max.z));
+		add(localToVworld, new Point3d(max.x, max.y, max.z));
+	}
+
+	/*
+	 * Helper function.
+	 */
+	public void add(Transform3D localToVworld, Point3d local) {
+		localToVworld.transform(local);
+		add(local);
+	}
+
 	/*
 	 * Assumes p to be in vworld coordinates
 	 */
-	public void adjustViewXZ(Point3d point) {
+	public void add(Point3d point) {
 		Point3d p = new Point3d(point);
 		toCamera.transform(p);
-System.out.println("new point: " + p);
+
 		if(firstPoint) {
-			eye.x = p.x;
-			eye.z = p.z;
+			eye.set(p.x, eye.y, p.z);
 			firstPoint = false;
 			return;
 		}
@@ -111,9 +164,6 @@ System.out.println("new point: " + p);
 
 		double m1 = s1 - s2;
 		double m2 = -s1 - s2;
-
-System.out.println("m1 = " + m1);
-System.out.println("m2 = " + m2);
 
 		if(m1 > m2) {
 			if(m1 > 0) {
@@ -126,7 +176,6 @@ System.out.println("m2 = " + m2);
 				eye.z += m2 * e;
 			}
 		}
-System.out.println("eye = " + eye);
 	}
 }
 

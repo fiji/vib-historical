@@ -1086,79 +1086,34 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	}
 
 	/**
-	 * Optimize the view for showing the whole universe.
+	 * Fit all contents optimally into the canvas.
 	 */
 	public void adjustView() {
 		ViewAdjuster adj = new ViewAdjuster(this);
-		adj.init();
-		Transform3D localToVworld = new Transform3D();
-		Point3d min = new Point3d();
-		Point3d max = new Point3d();
-		Point3d tmp = new Point3d();
-		for(Content c : contents.values()) {
-			c.getContent().getLocalToVworld(localToVworld);
-			c.getContent().getMin(min);
-			c.getContent().getMax(max);
-
-			tmp.set(min.x, min.y, min.z);
-			localToVworld.transform(tmp);
-			adj.adjustViewXZ(tmp);
-
-			tmp.set(max.x, min.y, min.z);
-			localToVworld.transform(tmp);
-			adj.adjustViewXZ(tmp);
-
-			tmp.set(min.x, max.y, min.z);
-			localToVworld.transform(tmp);
-			adj.adjustViewXZ(tmp);
-
-			tmp.set(max.x, max.y, min.z);
-			localToVworld.transform(tmp);
-			adj.adjustViewXZ(tmp);
-
-			tmp.set(min.x, min.y, max.z);
-			localToVworld.transform(tmp);
-			adj.adjustViewXZ(tmp);
-
-			tmp.set(max.x, min.y, max.z);
-			localToVworld.transform(tmp);
-			adj.adjustViewXZ(tmp);
-
-			tmp.set(min.x, max.y, max.z);
-			localToVworld.transform(tmp);
-			adj.adjustViewXZ(tmp);
-
-			tmp.set(max.x, max.y, max.z);
-			localToVworld.transform(tmp);
-			adj.adjustViewXZ(tmp);
-		}
+		for(Content c : contents.values())
+			adj.add(c);
 		adj.apply();
 	}
 
-	public void adjustView(Content c) {
-		Point3d min = new Point3d(), max = new Point3d();
-		c.getContent().getMin(min);
-		c.getContent().getMax(max);
-		Point3d minVworld = new Point3d();
-		Point3d maxVworld = new Point3d();
-		Transform3D t3d = new Transform3D();
-		c.getContent().getLocalToVworld(t3d);
-		t3d.transform(min, minVworld);
-		t3d.transform(max, maxVworld);
-		float dx = (float)(minVworld.x - maxVworld.x);
-		float dy = (float)(minVworld.y - maxVworld.y);
-		float dz = (float)(minVworld.z - maxVworld.z);
-		float d  = (float)Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-		Point3d center = new Point3d(
-				minVworld.x - 0.5 * dx,
-				minVworld.y - 0.5 * dy,
-				minVworld.z - 0.5 * dz);
-
-		getViewPlatformTransformer().centerAt(center);
-
-		ensureScale(0.5f * d);
+	/**
+	 * Fit the specified contents optimally into the canvas.
+	 */
+	public void adjustView(Content[] contents) {
+		ViewAdjuster adj = new ViewAdjuster(this);
+		for(Content c : contents)
+			adj.add(c);
+		adj.apply();
 	}
+
+	/**
+	 * Fit the specified content optimally into the canvas.
+	 */
+	public void adjustView(Content c) {
+		ViewAdjuster adj = new ViewAdjuster(this);
+		adj.add(c);
+		adj.apply();
+	}
+
 	/* *************************************************************
 	 * Private methods
 	 * *************************************************************/
