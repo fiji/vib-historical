@@ -6,7 +6,16 @@ import javax.media.j3d.Canvas3D;
 import javax.vecmath.Vector3d;
 import javax.vecmath.Point3d;
 
-class ViewAdjuster {
+public class ViewAdjuster {
+
+	/** Fit the points horizontally */
+	public static final int ADJUST_HORIZONTAL = 0;
+
+	/** Fit the points vertically */
+	public static final int ADJUST_VERTICAL   = 1;
+
+	/** Fit the points both horizontally and vertically */
+	public static final int ADJUST_BOTH       = 2;
 
 	private Canvas3D canvas;
 	private Image3DUniverse univ;
@@ -19,13 +28,40 @@ class ViewAdjuster {
 
 	private boolean firstPoint = true;
 
-	private final double e = 1.0;
-	private final double w = 2 * Math.tan(Math.PI / 8);
-	private final double h = 2 * Math.tan(Math.PI / 8);
+	private double e = 1.0;
+	private double w = 2 * Math.tan(Math.PI / 8);
+	private double h = 2 * Math.tan(Math.PI / 8);
 
-	public ViewAdjuster(Image3DUniverse univ) {
+	private final Adjuster adjuster;
+
+	private interface Adjuster {
+		public void add(Point3d p);
+	}
+
+	/**
+	 * Create a new ViewAdjuster.
+	 * @param dir One of ADJUST_HEIGHT, ADJUST_WIDTH or ADJUST_BOTH.
+	 *        The former adjusts the view so that the added
+	 *        points fit in width, the latter so that they
+	 *        fit in height in the canvas.
+	 */
+	public ViewAdjuster(Image3DUniverse univ, int dir) {
 		this.univ = univ;
 		this.canvas = univ.getCanvas();
+
+		switch(dir) {
+			case ADJUST_HORIZONTAL:
+				adjuster = new HorizontalAdjuster();
+				break;
+			case ADJUST_VERTICAL:
+				adjuster = new VerticalAdjuster();
+				break;
+			case ADJUST_BOTH:
+				adjuster = new BothAdjuster();
+				break;
+			default:
+				throw new IllegalArgumentException();
+		}
 
 		// get eye in image plate
 		canvas.getCenterEyeInImagePlate(eye);
@@ -39,9 +75,34 @@ class ViewAdjuster {
 		// save the old eye pos
 		oldEye.set(eye);
 
+		Transform3D toIpInverse = new Transform3D();
+		canvas.getImagePlateToVworld(toIpInverse);
+
+		// get the upper left canvas corner in camera coordinates
+		Point3d lu = new Point3d();
+		canvas.getPixelLocationInImagePlate(0, 0, lu);
+		toIpInverse.transform(lu);
+		toCamera.transform(lu);
+
+		// get the lower right canvas corner in camera coordinates
+		Point3d rl = new Point3d();
+		canvas.getPixelLocationInImagePlate(
+			canvas.getWidth(), canvas.getHeight(), rl);
+		toIpInverse.transform(rl);
+		toCamera.transform(rl);
+
+		w = rl.x - lu.x;
+		h = rl.y - lu.y;
+
+		e = -rl.z;
+
 		univ.getVworldToCameraInverse(toCameraInverse);
 	}
 
+	/**
+	 * After all points/contents were added, apply() finally
+	 * adjusts center and zoom transformations of the view.
+	 */
 	public void apply() {
 		/* The camera to vworld transformation is given by
 		 * C * T * R * Z, where
@@ -93,6 +154,10 @@ class ViewAdjuster {
 		univ.getCenterTG().setTransform(t3d);
 	}
 
+	/**
+	 * Add another Content which should be completely visible
+	 * in the canvas.
+	 */
 	public void add(Content c) {
 		Transform3D localToVworld = new Transform3D();
 		c.getContent().getLocalToVworld(localToVworld);
@@ -117,42 +182,105 @@ class ViewAdjuster {
 		add(localToVworld, new Point3d(max.x, max.y, max.z));
 	}
 
-	/*
-	 * Helper function.
+	/**
+	 * Add another point which should be visible in the canvas;
+	 * the point is expected to be in local coordinates, with
+	 * the given local-to-vworld transformation.
 	 */
 	public void add(Transform3D localToVworld, Point3d local) {
 		localToVworld.transform(local);
 		add(local);
 	}
 
-	/*
-	 * Assumes p to be in vworld coordinates
+	/**
+	 * Add another point which should be visible in the canvas;
+	 * the point is expected to be in vworld coordinates.
 	 */
-	public void add(Point3d point) {
-		Point3d p = new Point3d(point);
-		toCamera.transform(p);
+	public void add(Point3d p) {
+		adjuster.add(p);
+	}
 
-		if(firstPoint) {
-			eye.set(p.x, eye.y, p.z);
-			firstPoint = false;
-			return;
+	private final class BothAdjuster implements Adjuster {
+		private Adjuster hAdj, vAdj;
+
+		public BothAdjuster() {
+			hAdj = new HorizontalAdjuster();
+			vAdj = new VerticalAdjuster();
 		}
 
-		double s1 = (p.x - eye.x) / w;
-		double s2 = (eye.z - p.z) / (2 * e);
+		public void add(Point3d point) {
+			Point3d p = new Point3d(point);
+			toCamera.transform(p);
 
-		double m1 = s1 - s2;
-		double m2 = -s1 - s2;
-
-		if(m1 > m2) {
-			if(m1 > 0) {
-				eye.x += m1 * w / 2;
-				eye.z += m1 * e;
+			if(firstPoint) {
+				eye.set(p.x, p.y, p.z);
+				firstPoint = false;
+				return;
 			}
-		} else {
-			if(m2 > 0) {
-				eye.x -= m2 * w / 2;
-				eye.z += m2 * e;
+			vAdj.add(point);
+			hAdj.add(point);
+		}
+	}
+
+	private final class HorizontalAdjuster implements Adjuster {
+
+		public void add(Point3d point) {
+			Point3d p = new Point3d(point);
+			toCamera.transform(p);
+
+			if(firstPoint) {
+				eye.set(p.x, eye.y, p.z);
+				firstPoint = false;
+				return;
+			}
+
+			double s1 = (p.x - eye.x) / w;
+			double s2 = (eye.z - p.z) / (2 * e);
+
+			double m1 = s1 - s2;
+			double m2 = -s1 - s2;
+
+			if(m1 > m2) {
+				if(m1 > 0) {
+					eye.x += m1 * w / 2;
+					eye.z += m1 * e;
+				}
+			} else {
+				if(m2 > 0) {
+					eye.x -= m2 * w / 2;
+					eye.z += m2 * e;
+				}
+			}
+		}
+	}
+
+	private final class VerticalAdjuster implements Adjuster {
+		public void add(Point3d point) {
+			Point3d p = new Point3d(point);
+			toCamera.transform(p);
+
+			if(firstPoint) {
+				eye.set(eye.x, p.y, p.z);
+				firstPoint = false;
+				return;
+			}
+
+			double s1 = (p.y - eye.y) / h;
+			double s2 = (eye.z - p.z) / (2 * e);
+
+			double m1 = s1 - s2;
+			double m2 = -s1 - s2;
+
+			if(m1 > m2) {
+				if(m1 > 0) {
+					eye.y += m1 * h / 2;
+					eye.z += m1 * e;
+				}
+			} else {
+				if(m2 > 0) {
+					eye.y -= m2 * h / 2;
+					eye.z += m2 * e;
+				}
 			}
 		}
 	}

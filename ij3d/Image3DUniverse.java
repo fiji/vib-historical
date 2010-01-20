@@ -1089,7 +1089,16 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * Fit all contents optimally into the canvas.
 	 */
 	public void adjustView() {
-		ViewAdjuster adj = new ViewAdjuster(this);
+		adjustView(ViewAdjuster.ADJUST_BOTH);
+	}
+
+	/**
+	 * Fit all contents optimally into the canvas.
+	 * @param dir One of ViewAdjuster.ADJUST_HORIZONTAL,
+	 *            ViewAdjuster.ADJUST_VERTICAL or ViewAdjuster.ADJUST_BOTH
+	 */
+	public void adjustView(int dir) {
+		ViewAdjuster adj = new ViewAdjuster(this, dir);
 		for(Content c : contents.values())
 			adj.add(c);
 		adj.apply();
@@ -1099,7 +1108,16 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * Fit the specified contents optimally into the canvas.
 	 */
 	public void adjustView(Content[] contents) {
-		ViewAdjuster adj = new ViewAdjuster(this);
+		adjustView(contents, ViewAdjuster.ADJUST_BOTH);
+	}
+
+	/**
+	 * Fit the specified contents optimally into the canvas.
+	 * @param dir One of ViewAdjuster.ADJUST_HORIZONTAL,
+	 *            ViewAdjuster.ADJUST_VERTICAL or ViewAdjuster.ADJUST_BOTH
+	 */
+	public void adjustView(Content[] contents, int dir) {
+		ViewAdjuster adj = new ViewAdjuster(this, dir);
 		for(Content c : contents)
 			adj.add(c);
 		adj.apply();
@@ -1107,11 +1125,20 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 
 	/**
 	 * Fit the specified content optimally into the canvas.
+	 * @param dir One of ViewAdjuster.ADJUST_HORIZONTAL,
+	 *            ViewAdjuster.ADJUST_VERTICAL or ViewAdjuster.ADJUST_BOTH
 	 */
-	public void adjustView(Content c) {
-		ViewAdjuster adj = new ViewAdjuster(this);
+	public void adjustView(Content c, int dir) {
+		ViewAdjuster adj = new ViewAdjuster(this, dir);
 		adj.add(c);
 		adj.apply();
+	}
+
+	/**
+	 * Fit the specified content optimally into the canvas.
+	 */
+	public void adjustView(Content c) {
+		adjustView(c, ViewAdjuster.ADJUST_BOTH);
 	}
 
 	/* *************************************************************
