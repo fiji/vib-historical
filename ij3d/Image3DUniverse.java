@@ -1089,13 +1089,50 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * Optimize the view for showing the whole universe.
 	 */
 	public void adjustView() {
-		recalculateGlobalMinMax();
-		float dx = (float)(globalMin.x - globalMax.x);
-		float dy = (float)(globalMin.y - globalMax.y);
-		float dz = (float)(globalMin.z - globalMax.z);
-		float d  = (float)Math.sqrt(dx * dx + dy * dy + dz * dz);
-		centerAt(globalCenter);
-		ensureScale(0.5f * d);
+		ViewAdjuster adj = new ViewAdjuster(this);
+		adj.init();
+		Transform3D localToVworld = new Transform3D();
+		Point3d min = new Point3d();
+		Point3d max = new Point3d();
+		Point3d tmp = new Point3d();
+		for(Content c : contents.values()) {
+			c.getContent().getLocalToVworld(localToVworld);
+			c.getContent().getMin(min);
+			c.getContent().getMax(max);
+
+			tmp.set(min.x, min.y, min.z);
+			localToVworld.transform(tmp);
+			adj.adjustViewXZ(tmp);
+
+			tmp.set(max.x, min.y, min.z);
+			localToVworld.transform(tmp);
+			adj.adjustViewXZ(tmp);
+
+			tmp.set(min.x, max.y, min.z);
+			localToVworld.transform(tmp);
+			adj.adjustViewXZ(tmp);
+
+			tmp.set(max.x, max.y, min.z);
+			localToVworld.transform(tmp);
+			adj.adjustViewXZ(tmp);
+
+			tmp.set(min.x, min.y, max.z);
+			localToVworld.transform(tmp);
+			adj.adjustViewXZ(tmp);
+
+			tmp.set(max.x, min.y, max.z);
+			localToVworld.transform(tmp);
+			adj.adjustViewXZ(tmp);
+
+			tmp.set(min.x, max.y, max.z);
+			localToVworld.transform(tmp);
+			adj.adjustViewXZ(tmp);
+
+			tmp.set(max.x, max.y, max.z);
+			localToVworld.transform(tmp);
+			adj.adjustViewXZ(tmp);
+		}
+		adj.apply();
 	}
 
 	public void adjustView(Content c) {
