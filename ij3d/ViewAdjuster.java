@@ -202,6 +202,29 @@ public class ViewAdjuster {
 	}
 
 	/**
+	 * Make sure that the average center of all contents is visible in
+	 * the canvas.
+	 */
+	public void addCenterOf(Iterable<Content> contents) {
+		Point3d center = new Point3d();
+		Point3d tmp = new Point3d();
+		int counter = 0;
+		for (Content c : contents) {
+			Transform3D localToVworld = new Transform3D();
+			c.getContent().getLocalToVworld(localToVworld);
+			c.getContent().getMin(tmp);
+			center.add(tmp);
+			c.getContent().getMax(tmp);
+			center.add(tmp);
+			counter += 2;
+		}
+		center.x /= counter;
+		center.y /= counter;
+		center.z /= counter;
+		add(center);
+	}
+
+	/**
 	 * Add another Content which should be completely visible
 	 * in the canvas.
 	 */
