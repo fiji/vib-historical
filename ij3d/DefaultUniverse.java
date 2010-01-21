@@ -303,6 +303,39 @@ public abstract class DefaultUniverse extends SimpleUniverse
 	}
 
 	/**
+	 * Copy the whole transformation, which transforms any
+	 * point from the vworld coordinate system to the observer
+	 * coordinate system.
+	 */
+	public void getVworldToCamera(Transform3D transform) {
+		Transform3D tmp = new Transform3D();
+		getCenterTG().getTransform(transform);
+		getTranslateTG().getTransform(tmp);
+		transform.mul(tmp);
+		getRotationTG().getTransform(tmp);
+		transform.mul(tmp);
+		getZoomTG().getTransform(tmp);
+		transform.mul(tmp);
+		transform.invert();
+	}
+
+	/**
+	 * Copy the inverse vworld to camera transformation, which transforms
+	 * any point from the observer coordinate system to vworld coordinate
+	 * system to the
+	 */
+	public void getVworldToCameraInverse(Transform3D transform) {
+		Transform3D tmp = new Transform3D();
+		getCenterTG().getTransform(transform);
+		getTranslateTG().getTransform(tmp);
+		transform.mul(tmp);
+		getRotationTG().getTransform(tmp);
+		transform.mul(tmp);
+		getZoomTG().getTransform(tmp);
+		transform.mul(tmp);
+	}
+
+	/**
 	 * Returns the TransformGroup of the viewing platform's
 	 * MultiTransformGroup which is responsible for zooming.
 	 */
