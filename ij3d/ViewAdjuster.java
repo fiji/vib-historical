@@ -6,6 +6,53 @@ import javax.media.j3d.Canvas3D;
 import javax.vecmath.Vector3d;
 import javax.vecmath.Point3d;
 
+/*
+ * The idea of the adjuster is to translate the eye such that all added points
+ * are within the field of view.
+ *
+ * To this end, the field of view is modeled as an infinite pyramid with the
+ * eye as tip and the four sides cutting through the borders of the window
+ * (i.e. the canvas onto which everything is projected).
+ *
+ * The optimal such pyramid is the one which wraps all the points just so.  To
+ * achieve this, the tip is set to the first point, and then the tip is only
+ * translated when necessary, along the side of the pyramid that is _opposite_
+ * of the point which is not yet inside, an the tip is only moved until the
+ * closest side touches the point.
+ *
+ * The problem can be actually split into translations in the xz and the yz
+ * plane, respectively, in which case we only have to take care of projections,
+ * i.e. the points are still points, but the pyramid is actually a triangle.
+ *
+ * For simplicity, we just calculate the factor by which the tip would have
+ * to move for _every_ side, and only move if that factor is positive.
+ *
+ * Example: assume that the projection P of a point into the xz plane is to
+ * the right of the triangle (which is the projected pyramid) defined by the
+ * eye (x, z), the distance (0, -e) of the eye to the canvas, and the canvas
+ * width w.
+ *
+ * Then the eye has to be moved along the left side of the triangle to
+ * (x', z') = (x, z) + m * (w/2, e) such that P lies on the new right side,
+ * i.e. (P - (x', z')) is parallel to (-w/2, e), or in other words, the
+ * scalar product between (P - (x', z')) and (e, w/2) is 0.
+ *
+ * It turns out that m = (P - (x, z)) (1 / w, -1 / 2e) fulfills that
+ * requirement.
+ *
+ * If m <= 0, then the point P was not right of the triangle to begin with,
+ * and no adjustment is necessary (actually, the eye must not be moved in
+ * that case, because otherwise some other point would no longer be inside
+ * the triangle afterwards, as the triangle was chosen such that it just so
+ * fits the previous points).
+ *
+ * Substituting -w for w gives handles the case when the point was to the
+ * left of the triangle.  Since the vectors for the right and left side have
+ * the exact same length, we only need to consider only the larger m between
+ * the right and left one.
+ *
+ * See HorizontalAdjuster for the implementation.
+ */
 public class ViewAdjuster {
 
 	/** Fit the points horizontally */
