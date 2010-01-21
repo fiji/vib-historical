@@ -1099,6 +1099,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 */
 	public void adjustView(int dir) {
 		ViewAdjuster adj = new ViewAdjuster(this, dir);
+		adj.addCenterOf(contents.values());
 		for(Content c : contents.values())
 			adj.add(c);
 		adj.apply();
