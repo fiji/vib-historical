@@ -1108,7 +1108,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	/**
 	 * Fit the specified contents optimally into the canvas.
 	 */
-	public void adjustView(Content[] contents) {
+	public void adjustView(Iterable<Content> contents) {
 		adjustView(contents, ViewAdjuster.ADJUST_BOTH);
 	}
 
@@ -1117,8 +1117,9 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * @param dir One of ViewAdjuster.ADJUST_HORIZONTAL,
 	 *            ViewAdjuster.ADJUST_VERTICAL or ViewAdjuster.ADJUST_BOTH
 	 */
-	public void adjustView(Content[] contents, int dir) {
+	public void adjustView(Iterable<Content> contents, int dir) {
 		ViewAdjuster adj = new ViewAdjuster(this, dir);
+		adj.addCenterOf(contents);
 		for(Content c : contents)
 			adj.add(c);
 		adj.apply();
