@@ -9,6 +9,7 @@ import ij3d.Content;
 import ij3d.DefaultUniverse;
 import ij3d.ImageCanvas3D;
 import java.awt.event.MouseEvent;
+import javax.media.j3d.BranchGroup;
 import javax.media.j3d.PickInfo;
 import javax.media.j3d.SceneGraphPath;
 import javax.vecmath.Point3d;
@@ -205,6 +206,26 @@ public class Picker {
 					return intersection;
 			}
 			return null;
+		} catch(Exception ex) {
+			ex.printStackTrace();
+			return null;
+		}
+	}
+
+	public int[] getPickedVertexIndices(BranchGroup bg, int x, int y) {
+		PickCanvas pickCanvas = new PickCanvas(univ.getCanvas(), bg);
+		pickCanvas.setTolerance(3f);
+		pickCanvas.setMode(PickInfo.PICK_GEOMETRY);
+		pickCanvas.setFlags(PickInfo.CLOSEST_GEOM_INFO);
+		pickCanvas.setShapeLocation(x, y);
+		try {
+			PickInfo result = pickCanvas.pickClosest();
+			if(result == null)
+				return null;
+
+			PickInfo.IntersectionInfo info =
+					result.getIntersectionInfos()[0];
+			return info.getVertexIndices();
 		} catch(Exception ex) {
 			ex.printStackTrace();
 			return null;
