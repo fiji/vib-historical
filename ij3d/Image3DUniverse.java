@@ -722,15 +722,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			IJ.error("Mesh named '"+name+"' exists already");
 			return null;
 		}
-
-		Content content = new Content(name);
-		content.color = null;
-		content.transparency = 0f;
-		content.shaded = false;
-		content.showCoordinateSystem(
-			UniverseSettings.showLocalCoordinateSystemsByDefault);
-		content.display(mesh);
-		content.setPointListDialog(plDialog);
+		Content content = createContent(mesh, name);
 		return addContent(content);
 	}
 
@@ -752,7 +744,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		content.transparency = mesh.getTransparency();
 		content.shaded = mesh.isShaded();
 		content.showCoordinateSystem(
-				UniverseSettings.showLocalCoordinateSystemsByDefault);
+			UniverseSettings.showLocalCoordinateSystemsByDefault);
 		content.display(new CustomMeshNode(mesh));
 		content.setPointListDialog(plDialog);
 		return content;
@@ -764,7 +756,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		content.transparency = 0f;
 		content.shaded = false;
 		content.showCoordinateSystem(
-				UniverseSettings.showLocalCoordinateSystemsByDefault);
+			UniverseSettings.showLocalCoordinateSystemsByDefault);
 		content.display(node);
 		content.setPointListDialog(plDialog);
 		return content;
