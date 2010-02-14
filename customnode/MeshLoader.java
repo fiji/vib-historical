@@ -27,7 +27,8 @@ public class MeshLoader {
 			return null;
 		}
 
-		Map<String,CustomMesh> meshes = new TreeMap<String,CustomMesh>();
+		Map<String, CustomMesh> meshes =
+			new TreeMap<String, CustomMesh>();
 
 		BranchGroup root = scene.getSceneGroup();
 		int n = root.numChildren();
@@ -40,16 +41,18 @@ public class MeshLoader {
 			Shape3D shape = (Shape3D)node;
 			Geometry geom = shape.getGeometry();
 			if(!(geom instanceof GeometryArray)) {
-				System.out.println("Skipping node " + i + ", since " +
-					"geometry is not a GeometryArray.");
+				System.out.println("Skipping node " + i +
+					", since geometry is not a " +
+					"GeometryArray.");
 				continue;
 			}
 
 			GeometryArray ga = (GeometryArray)geom;
 			int fmt = ga.getVertexFormat();
 			if((fmt & GeometryArray.INTERLEAVED) == 0) {
-				System.out.println("Skipping node " + i + ", since " +
-					"geometry data is not in interleaved format.");
+				System.out.println("Skipping node " + i +
+					", since geometry data is not in " +
+					"interleaved format.");
 				continue;
 			}
 
@@ -72,15 +75,16 @@ public class MeshLoader {
 					CustomLineMesh.PAIRWISE));
 			// TODO LineStripArray
 			else
-				System.out.println("Skipping node " + i + ", since " +
-					"geometry data is not one of TriangleArray, " +
-					"QuadArray, PointArray or LineArray.");
+				System.out.println("Skipping node " + i +
+					", since geometry data is not one of " +
+					"TriangleArray, QuadArray, PointArray" +
+					" or LineArray.");
 		}
 		return meshes;
 	}
 
 	private static List<Point3f> readCoordinatesFromInterleaved(
-								GeometryArray geom) {
+							GeometryArray geom) {
 		List<Point3f>vertices = new ArrayList<Point3f>();
 		int valid = geom.getValidVertexCount();
 		float[] data = geom.getInterleavedVertices();
