@@ -6,6 +6,7 @@ import javax.vecmath.*;
 import com.sun.j3d.loaders.objectfile.ObjectFile;
 import com.sun.j3d.loaders.Scene;
 
+import java.util.Hashtable;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -30,18 +31,17 @@ public class MeshLoader {
 		Map<String, CustomMesh> meshes =
 			new TreeMap<String, CustomMesh>();
 
-		BranchGroup root = scene.getSceneGroup();
-		int n = root.numChildren();
+		Hashtable<String, Node> objects = scene.getNamedObjects();
 
-		for(int i = 0; i < n; i++) {
-			Node node = root.getChild(i);
+		for(String name : objects.keySet()) {
+			Node node = objects.get(name);
 			if(!(node instanceof Shape3D))
 				continue;
 
 			Shape3D shape = (Shape3D)node;
 			Geometry geom = shape.getGeometry();
 			if(!(geom instanceof GeometryArray)) {
-				System.out.println("Skipping node " + i +
+				System.out.println("Skipping node " + name +
 					", since geometry is not a " +
 					"GeometryArray.");
 				continue;
@@ -50,15 +50,11 @@ public class MeshLoader {
 			GeometryArray ga = (GeometryArray)geom;
 			int fmt = ga.getVertexFormat();
 			if((fmt & GeometryArray.INTERLEAVED) == 0) {
-				System.out.println("Skipping node " + i +
+				System.out.println("Skipping node " + name +
 					", since geometry data is not in " +
 					"interleaved format.");
 				continue;
 			}
-
-			String name = shape.getName();
-			if (null == name)
-				name = "Mesh-" + (1 + meshes.size());
 
 			if(ga instanceof TriangleArray)
 				meshes.put(name, new CustomTriangleMesh(
@@ -75,7 +71,7 @@ public class MeshLoader {
 					CustomLineMesh.PAIRWISE));
 			// TODO LineStripArray
 			else
-				System.out.println("Skipping node " + i +
+				System.out.println("Skipping node " + name +
 					", since geometry data is not one of " +
 					"TriangleArray, QuadArray, PointArray" +
 					" or LineArray.");
