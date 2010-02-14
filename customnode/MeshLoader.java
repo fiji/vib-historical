@@ -56,25 +56,37 @@ public class MeshLoader {
 				continue;
 			}
 
+			CustomMesh mesh = null;
 			if(ga instanceof TriangleArray)
-				meshes.put(name, new CustomTriangleMesh(
-					readCoordinatesFromInterleaved(ga)));
+				mesh =  new CustomTriangleMesh(
+					readCoordinatesFromInterleaved(ga));
 			else if(ga instanceof QuadArray)
-				meshes.put(name, new CustomQuadMesh(
-					readCoordinatesFromInterleaved(ga)));
+				mesh = new CustomQuadMesh(
+					readCoordinatesFromInterleaved(ga));
 			else if(ga instanceof PointArray)
-				meshes.put(name, new CustomPointMesh(
-					readCoordinatesFromInterleaved(ga)));
+				mesh = new CustomPointMesh(
+					readCoordinatesFromInterleaved(ga));
 			else if(ga instanceof LineArray)
-				meshes.put(name, new CustomLineMesh(
+				mesh = new CustomLineMesh(
 					readCoordinatesFromInterleaved(ga),
-					CustomLineMesh.PAIRWISE));
+					CustomLineMesh.PAIRWISE);
 			// TODO LineStripArray
-			else
+			else {
 				System.out.println("Skipping node " + name +
 					", since geometry data is not one of " +
 					"TriangleArray, QuadArray, PointArray" +
 					" or LineArray.");
+				continue;
+			}
+
+			Appearance app = shape.getAppearance();
+			// MeshExporter sets the color of the objects as
+			// diffuse color of the material. So let's read
+			// it from there.
+			Color3f col = new Color3f();
+			app.getMaterial().getDiffuseColor(col);
+			mesh.setColor(col);
+			meshes.put(name, mesh);
 		}
 		return meshes;
 	}
