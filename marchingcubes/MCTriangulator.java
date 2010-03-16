@@ -11,8 +11,12 @@ import java.util.List;
 import vib.Resample_;
 
 import ij3d.Volume;
+import ij3d.ImgLibVolume;
 
 import isosurface.Triangulator;
+
+import mpicbg.imglib.image.Image;
+import mpicbg.imglib.type.NumericType;
 
 public class MCTriangulator implements Triangulator {
 
@@ -32,6 +36,15 @@ public class MCTriangulator implements Triangulator {
 		// get triangles
 		List l = MCCube.getTriangles(volume, threshold);
 		return l;
+	}
+
+	/**
+	 * @param img The Image<? extends NumericType> instance to use.
+	 * @param threshold The cut-off (inclusive) of pixel values considered inside.
+	 * @param origin The translation of the origin, in 3D.
+	 */
+	public List getTriangles(Image<? extends NumericType> img, int threshold, float[] origin) throws Exception {
+		return MCCube.getTriangles(new ImgLibVolume(img, origin), threshold);
 	}
 
 	static public void zeroPad(final ImagePlus imp) {
