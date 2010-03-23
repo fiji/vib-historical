@@ -57,6 +57,10 @@ public class CustomLineMesh extends CustomMesh {
 		this.update();
 	}
 
+	public int getMode() {
+		return mode;
+	}
+
 	public void setPattern(int pattern) {
 		this.pattern = pattern;
 		getAppearance().getLineAttributes().setLinePattern(pattern);
