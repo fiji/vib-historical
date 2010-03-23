@@ -25,6 +25,7 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	private MenuItem threshold;
 	private MenuItem fill;
 	private MenuItem slices;
+	private MenuItem updateVol;
 	private MenuItem delete;
 	private MenuItem properties;
 	private MenuItem resetView;
@@ -157,6 +158,10 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 		slices.addActionListener(this);
 		edit.add(slices);
 		
+		updateVol = new MenuItem("Upate Volume");
+		updateVol.addActionListener(this);
+		edit.add(updateVol);
+
 		fill = new MenuItem("Fill selection");
 		fill.addActionListener(this);
 		edit.add(fill);
@@ -489,6 +494,8 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 		else if(src == displayAsSurfacePlot)
 			executer.displayAs(
 				univ.getSelected(), Content.SURFACE_PLOT2D);
+		else if(src == updateVol)
+			executer.updateVolume(univ.getSelected());
 		else if(src == slices)
 			executer.changeSlices(univ.getSelected());
 		else if(src == fill)
@@ -600,6 +607,7 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	public void contentSelected(Content c) {
 		delete.setEnabled(c != null);
 		centerSelected.setEnabled(c != null);
+		updateVol.setEnabled(c != null);
 		fill.setEnabled(c != null);
 		smoothMesh.setEnabled(c != null);
 
@@ -636,6 +644,8 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 		int t = c.getType();
 		
 		slices.setEnabled(t == Content.ORTHO);
+		updateVol.setEnabled(t == Content.VOLUME ||
+			t == Content.ORTHO);
 		fill.setEnabled(t == Content.VOLUME);
 		shaded.setEnabled(t == Content.SURFACE_PLOT2D ||
 			t == Content.SURFACE || t == Content.CUSTOM);
