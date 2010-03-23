@@ -194,7 +194,7 @@ SOURCES(VIB_Protocol.jar)=vib/app/*.java \
 	vib/IDT_Interpolate_Binary.java \
 	vib/Local_Threshold.java \
 	VIB_Protocol.java
-SOURCES(Average_Color.jar)=Average_Color.java CIELAB.java
+SOURCES(Average_Color.jar)=Average_Color.java color/CIELAB.java
 SOURCES(Bilateral_Filter.jar)=Bilateral_Filter.java \
 	vib/InterpolatedImage.java math3d/Point3d.java
 SOURCES(Lasso_.jar)=plugin/Lasso_.java plugin/FibonacciHeapDouble.java

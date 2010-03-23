@@ -275,7 +275,7 @@ VIB_Protocol.jar: SOURCES=$(wildcard vib/app/*.java) \
 	vib/Local_Threshold.java \
 	VIB_Protocol.java
 
-Average_Color.jar: SOURCES=Average_Color.java CIELAB.java
+Average_Color.jar: SOURCES=Average_Color.java color/CIELAB.java
 
 Bilateral_Filter.jar: SOURCES=Bilateral_Filter.java \
 	vib/InterpolatedImage.java math3d/Point3d.java
