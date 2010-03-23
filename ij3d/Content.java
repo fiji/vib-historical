@@ -503,6 +503,14 @@ public class Content extends BranchGroup implements UniverseListener {
 		return localTranslate;
 	}
 
+	public void getLocalRotate(Transform3D t) {
+		localRotate.getTransform(t);
+	}
+
+	public void getLocalTranslate(Transform3D t) {
+		localTranslate.getTransform(t);
+	}
+
 	public boolean isLocked() {
 		return locked;
 	}
@@ -513,6 +521,10 @@ public class Content extends BranchGroup implements UniverseListener {
 
 	public boolean hasCoord() {
 		return coordVisible;
+	}
+
+	public boolean hasBoundingBox() {
+		return bbVisible;
 	}
 
 	public boolean isPLVisible() {
