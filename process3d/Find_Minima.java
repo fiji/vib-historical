@@ -12,7 +12,7 @@ import java.util.Stack;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-public class Find_Minima2 implements PlugInFilter {
+public class Find_Minima implements PlugInFilter {
 
 	private static final int NO_MINIMUM = 0;
 	private static final int UNLABELLED = 100;
@@ -25,9 +25,9 @@ public class Find_Minima2 implements PlugInFilter {
 	private byte[][] data;
 	private byte[][] minima;
 
-	public Find_Minima2() {}
+	public Find_Minima() {}
 
-	public Find_Minima2(ImagePlus imp) {
+	public Find_Minima(ImagePlus imp) {
 		this.init(imp);
 	}
 
