@@ -1241,7 +1241,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 				}
 				univ.fireContentAdded(c);
 				univ.addUniverseListener(c);
-// 				univ.waitForNextFrame();
+				univ.waitForNextFrame();
 				univ.fireTransformationUpdated();
 				return c;
 			}
