@@ -326,6 +326,10 @@ public class Content extends BranchGroup implements UniverseListener {
 		locked = b;
 	}
 
+	public void applyTransform(double[] matrix) {
+		applyTransform(new Transform3D(matrix));
+	}
+
 	public void applyTransform(Transform3D transform) {
 		Transform3D t1 = new Transform3D();
 		localTranslate.getTransform(t1);
@@ -335,6 +339,12 @@ public class Content extends BranchGroup implements UniverseListener {
 
 		t1.mul(transform, t1);
 		setTransform(t1);
+	}
+
+	public void setTransform(double[] matrix) {
+		if(contentNode == null)
+			return;
+		setTransform(new Transform3D(matrix));
 	}
 
 	public void setTransform(Transform3D transform) {

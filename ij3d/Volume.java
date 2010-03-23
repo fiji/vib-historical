@@ -44,10 +44,10 @@ public class Volume {
 	protected boolean[] channels = new boolean[] {true, true, true};
 
 	/** The dimensions of the data */
-	public final int xDim, yDim, zDim;
+	public int xDim, yDim, zDim;
 
 	/** The calibration of the data */
-	public final double pw, ph, pd;
+	public double pw, ph, pd;
 
 
 	/** The minimum coordinate of the data */
@@ -55,6 +55,11 @@ public class Volume {
 
 	/** The maximum coordinate of the data */
 	public final Point3d maxCoord = new Point3d();
+
+	/** Create instance with a null imp. */
+	protected Volume() {
+		this.imp = null;
+	}
 
 	/**
 	 * Initializes this Volume with the specified image.

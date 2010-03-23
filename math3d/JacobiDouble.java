@@ -1,7 +1,12 @@
 /**
 	This class implements Jacobi's algorithm to find the eigenvectors
 	of a symmetric real matrix.
-	It is based on Numerical Recipes in C, ch. 11, sec. 1
+
+	It is based on the description of the maths in
+
+		Numerical Recipes in C, ch. 11, sec. 1
+
+	It was not derived from the source code therein.
 */
 
 package math3d;
