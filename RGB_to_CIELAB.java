@@ -1,3 +1,5 @@
+import color.CIELAB;
+
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;

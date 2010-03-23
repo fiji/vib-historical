@@ -1,3 +1,5 @@
+package color;
+
 public class CIELAB {
 	/* White point D65, CIE 1964 */
 	final static float luminance = 0.54f;

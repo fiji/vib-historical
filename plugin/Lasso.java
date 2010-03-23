@@ -20,6 +20,8 @@ import ij.plugin.filter.ThresholdToSelection;
 
 import java.util.TreeMap;
 
+import util.FibonacciHeapDouble;
+
 public class Lasso {
 	public final static int BLOW = 0;
 	public final static int LASSO = 1;

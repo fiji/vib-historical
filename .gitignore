@@ -1,7 +1,7 @@
 .R*
 .DS_Store
-*.class
 CVS
+*.swp
 *~
 nbproject
 test-images/output
@@ -34,3 +34,4 @@ test-images/output
 /VIB_.jar
 /VIB_Protocol.jar
 /VIB_compat.jar
+/VIB-lib.jar

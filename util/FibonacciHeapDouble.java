@@ -1,3 +1,4 @@
+package util;
 /*
  * This class does not implement a complete Fibonacci Heap:
  *
@@ -6,16 +7,16 @@
  * of the queue, we do not need DecreaseKey, Union, and Cut.
  */
 
-public class FibonacciHeap implements Comparable
+public class FibonacciHeapDouble
 {
 	private static class Node {
-		Comparable key;
+		double key;
 		Object object;
 		Node next, previous, parent, firstChild;
 		int degree;
 		boolean marked;
 
-		public Node(Comparable key, Object object, Node parent) {
+		public Node(double key, Object object, Node parent) {
 			this.key = key;
 			this.object = object;
 			this.parent = parent;
@@ -70,13 +71,13 @@ public class FibonacciHeap implements Comparable
 	private Node min;
 	int count;
 
-	public FibonacciHeap() {
-		root = new Node(null, null, null);
+	public FibonacciHeapDouble() {
+		root = new Node(0, null, null);
 	}
 
-	public void add(Comparable key, Object object) {
+	public void add(double key, Object object) {
 		Node node = new Node(key, object, root);
-		if (min == null || min.key.compareTo(key) > 0)
+		if (min == null || min.key- key > 0)
 			min = node;
 		root.insertChild(node);
 		count++;
@@ -116,12 +117,12 @@ public class FibonacciHeap implements Comparable
 		return root.firstChild != null;
 	}
 
-	public int compareTo(Object other) {
-		return min == null ? 1 : min.key.compareTo(other);
+	public double compareTo(double other) {
+		return min == null ? 1 : min.key- other;
 	}
 
 	final private Node link(Node a, Node b) {
-		if (a.key.compareTo(b.key) > 0)
+		if (a.key- b.key > 0)
 			return link(b, a);
 		b.extract();
 		b.parent = a;
@@ -165,20 +166,20 @@ public class FibonacciHeap implements Comparable
 					list[i].previous = last;
 					last = list[i];
 					last.next = null;
-					if (min.key.compareTo(last.key) > 0)
+					if (min.key- last.key > 0)
 						min = last;
 				}
 			}
 	}
 
 	public static void main(String[] args) {
-		FibonacciHeap heap = new FibonacciHeap();
+		FibonacciHeapDouble heap = new FibonacciHeapDouble();
 		double[] prios = {
 			9, -5, Math.PI, 132, 15.223, 9e5, 1997, 0.001, 0.0012, 0
 		};
 		for (int i = 0; i < prios.length; i++) {
 			Double p = new Double(prios[i]);
-			heap.add(p, p);
+			heap.add(prios[i], new Double((int)prios[i]));
 		}
 		int i = 0;
 		while (heap.hasMore()) {
