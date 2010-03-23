@@ -74,6 +74,14 @@ public class CustomMultiMesh extends CustomMeshNode {
 		addChild(bg);
 	}
 
+	public int size() {
+		return customMeshes.size();
+	}
+
+	public CustomMesh getMesh(int i) {
+		return customMeshes.get(i);
+	}
+
 	@Override
 	public void getMin(Tuple3d min) {
 		min.set(this.min);
