@@ -272,6 +272,7 @@ public class Viewer4D {
 			c[j] = univ.addContent(image, null, image.getTitle(),
 				thresh, new boolean[] {true, true, true},
 				resf, type);
+			c[j].setLocked(true);
 			c[j].showCoordinateSystem(false);
 
 			if(j != 0) c[j].setVisible(false);
