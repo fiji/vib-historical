@@ -1,4 +1,5 @@
-package plugin;
+package util;
+
 /*
  * This class does not implement a complete Fibonacci Heap:
  *
@@ -7,16 +8,16 @@ package plugin;
  * of the queue, we do not need DecreaseKey, Union, and Cut.
  */
 
-public class FibonacciHeapInt
+public class FibonacciHeap implements Comparable
 {
 	private static class Node {
-		int key;
+		Comparable key;
 		Object object;
 		Node next, previous, parent, firstChild;
 		int degree;
 		boolean marked;
 
-		public Node(int key, Object object, Node parent) {
+		public Node(Comparable key, Object object, Node parent) {
 			this.key = key;
 			this.object = object;
 			this.parent = parent;
@@ -71,13 +72,13 @@ public class FibonacciHeapInt
 	private Node min;
 	int count;
 
-	public FibonacciHeapInt() {
-		root = new Node(0, null, null);
+	public FibonacciHeap() {
+		root = new Node(null, null, null);
 	}
 
-	public void add(int key, Object object) {
+	public void add(Comparable key, Object object) {
 		Node node = new Node(key, object, root);
-		if (min == null || min.key- key > 0)
+		if (min == null || min.key.compareTo(key) > 0)
 			min = node;
 		root.insertChild(node);
 		count++;
@@ -117,12 +118,12 @@ public class FibonacciHeapInt
 		return root.firstChild != null;
 	}
 
-	public int compareTo(int other) {
-		return min == null ? 1 : min.key- other;
+	public int compareTo(Object other) {
+		return min == null ? 1 : min.key.compareTo(other);
 	}
 
 	final private Node link(Node a, Node b) {
-		if (a.key- b.key > 0)
+		if (a.key.compareTo(b.key) > 0)
 			return link(b, a);
 		b.extract();
 		b.parent = a;
@@ -166,20 +167,20 @@ public class FibonacciHeapInt
 					list[i].previous = last;
 					last = list[i];
 					last.next = null;
-					if (min.key- last.key > 0)
+					if (min.key.compareTo(last.key) > 0)
 						min = last;
 				}
 			}
 	}
 
 	public static void main(String[] args) {
-		FibonacciHeapInt heap = new FibonacciHeapInt();
+		FibonacciHeap heap = new FibonacciHeap();
 		double[] prios = {
 			9, -5, Math.PI, 132, 15.223, 9e5, 1997, 0.001, 0.0012, 0
 		};
 		for (int i = 0; i < prios.length; i++) {
 			Double p = new Double(prios[i]);
-			heap.add((int)prios[i], new Double((int)prios[i]));
+			heap.add(p, p);
 		}
 		int i = 0;
 		while (heap.hasMore()) {

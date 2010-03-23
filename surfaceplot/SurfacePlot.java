@@ -108,6 +108,13 @@ public final class SurfacePlot extends Shape3D {
 	}
 
 	/**
+	 * Returns the currently displayed slice.
+	 */
+	public int getSlice() {
+		return slice;
+	}
+
+	/**
 	 * Change the transparency of this surface plot.
 	 * @param t
 	 */

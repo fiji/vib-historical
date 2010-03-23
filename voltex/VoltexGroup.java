@@ -77,6 +77,16 @@ public class VoltexGroup extends ContentNode {
 	}
 
 	/**
+	 * Update the volume rendering from the image
+	 * (only if the resampling factor is 1.
+	 */
+	public void update() {
+		if(c.getResamplingFactor() != 1)
+			return;
+		renderer.getVolume().updateData();
+	}
+
+	/**
 	 * Get a reference VolumeRenderer which is used by this class
 	 */
 	public VolumeRenderer getRenderer() {

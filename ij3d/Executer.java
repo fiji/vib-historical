@@ -294,6 +294,20 @@ public class Executer {
 	/* **********************************************************
 	 * Edit menu
 	 * *********************************************************/
+	public void updateVolume(final Content c) {
+		if(!checkSel(c))
+			return;
+		if(c.getType() != Content.VOLUME &&
+			c.getType() != Content.ORTHO)
+			return;
+		if(c.getResamplingFactor() != 1) {
+			IJ.error("Object must be loaded " +
+				"with resamplingfactor 1");
+			return;
+		}
+		((VoltexGroup)c.getContent()).update();
+	}
+
 	public void changeSlices(final Content c) {
 		if(!checkSel(c))
 			return;
