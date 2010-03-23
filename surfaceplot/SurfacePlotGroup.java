@@ -81,6 +81,13 @@ public class SurfacePlotGroup extends ContentNode implements AdjustmentListener{
 	}
 
 	/**
+	 * Returns the currently displayed slice.
+	 */
+	public int getSlice() {
+		return surfacep.getSlice();
+	}
+
+	/**
 	 * Implements AdjustmentListener interface to automatically update the
 	 * surface plot when the slice slider in the stack window is dragged.
 	 * @param e
