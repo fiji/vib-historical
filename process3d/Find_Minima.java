@@ -1,36 +1,33 @@
 package process3d;
 
-import ij.text.TextWindow;
-import ij.gui.GenericDialog;
-import ij.WindowManager;
-
 import ij.ImageStack;
 import ij.ImagePlus;
 import ij.IJ;
 import ij.plugin.filter.PlugInFilter;
 import ij.process.ImageProcessor;
-import ij.process.ByteProcessor;
-import ij.process.ColorProcessor;
 
-import java.util.Stack;
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.Stack;
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Set;
-import java.util.Map;
-import java.util.HashMap;
 
-public class Find_Minima implements PlugInFilter {
+public class Find_Minima2 implements PlugInFilter {
+
+	private static final int NO_MINIMUM = 0;
+	private static final int UNLABELLED = 100;
+	private static final int MINIMUM    = 255;
+	private static final int IN_QUEUE   = 25;
 
 	private ImagePlus image;
+	private ImagePlus result;
 	private int w, h, d;
 	private byte[][] data;
 	private byte[][] minima;
 
-	public Find_Minima() {}
+	public Find_Minima2() {}
 
-	public Find_Minima(ImagePlus imp) {
+	public Find_Minima2(ImagePlus imp) {
 		this.init(imp);
 	}
 
@@ -42,6 +39,17 @@ public class Find_Minima implements PlugInFilter {
 		data = new byte[d][];
 		for(int z = 0; z < d; z++)
 			data[z] = (byte[])imp.getStack().getPixels(z+1);
+
+		minima = new byte[d][w * h];
+		ImageStack stack = new ImageStack(w, h);
+
+		for(int z = 0; z < d; z++) {
+			Arrays.fill(minima[z], (byte)UNLABELLED);
+			stack.addSlice("", minima[z]);
+		}
+
+		result = new ImagePlus("Minima", stack);
+		result.setCalibration(image.getCalibration());
 	}
 
 	public int setup(String arg, ImagePlus imp) {
@@ -50,148 +58,141 @@ public class Find_Minima implements PlugInFilter {
 	}
 
 	public void run(ImageProcessor ip) {
+		init(image);
 		classify().show();
 	}
 
+	private final int get(Point p) {
+		return (int)(data[p.z][p.y * w + p.x] & 0xff);
+	}
 
-	public ImagePlus classify() {
-		minima = new byte[d][w * h];
+	private final int getLabel(Point p) {
+		return (int)(minima[p.z][p.y * w + p.x] & 0xff);
+	}
+
+	private final void label(Point p) {
+		minima[p.z][p.y * w + p.x] = (byte)MINIMUM;
+	}
+
+	private final void unlabel(Point p) {
+		minima[p.z][p.y * w + p.x] = (byte)NO_MINIMUM;
+	}
+
+	private final void inQueue(Point p) {
+		minima[p.z][p.y * w + p.x] = (byte)IN_QUEUE;
+	}
+
+	private final boolean isLabelled(Point p) {
+		return minima[p.z][p.y * w + p.x] != UNLABELLED;
+	}
+
+	public ImagePlus createOverlay() {
 		ImageStack stack = new ImageStack(w, h);
-
+		int RED = 0xff0000;
 		for(int z = 0; z < d; z++) {
-			for(int y = 0; y < h; y++) {
-				for(int x = 0; x < w; x++) {
-					classifyPixel(x, y, z);
-				}
+			ImageProcessor ip = image.getStack().
+				getProcessor(z + 1).convertToRGB();
+			for(int i = 0; i < w * h; i++) {
+				if(minima[z][i] == (byte)MINIMUM)
+					ip.set(i, RED);
 			}
-			stack.addSlice("", minima[z]);
-			IJ.showProgress(z, d);
+			stack.addSlice("", ip);
 		}
-
-		ImagePlus ret = new ImagePlus("Minima", stack);
+		ImagePlus ret = new ImagePlus("overlay", stack);
 		ret.setCalibration(image.getCalibration());
 		return ret;
 	}
 
-	private void classifyPixel(int x, int y, int z) {
-		int v = getD(x, y, z);
-		int min = isMinimum(x, y, z, v);
-
-		if(min == NO_MIN) {
-			for(int i = 0; i < 13; i++) {
-				int ax = i % 3 - 1 + x;
-				int ay = (i / 3) % 3 - 1 + y;
-				int az = i / 9 - 1 + z;
-				int av = getD(ax, ay, az);
-				byte ci = getC(ax, ay, az);
-
-				if(ci == LABEL && av > v)
-					unlabel(ax, ay, az);
-			}
-		} else if(min == STRICT_MIN) {
-			for(int i = 0; i < 13; i++) {
-				int ax = i % 3 - 1 + x;
-				int ay = (i / 3) % 3 - 1 + y;
-				int az = i / 9 - 1 + z;
-				int av = getD(ax, ay, az);
-
-				byte ci = getC(ax, ay, az);
-
-				if(ci == LABEL)
-					unlabel(ax, ay, az);
-			}
-			label(x, y, z);
-		} else if(min == NON_STRICT_MIN) {
-			for(int i = 0; i < 13; i++) {
-				int ax = i % 3 - 1 + x;
-				int ay = (i / 3) % 3 - 1 + y;
-				int az = i / 9 - 1 + z;
-				int av = getD(ax, ay, az);
-
-				byte ci = getC(ax, ay, az);
-
-				if(ci == LABEL && av > v)
-					unlabel(ax, ay, az);
-			}
-			label(x, y, z);
+	public ImagePlus classify() {
+		for(int z = 0; z < d; z++) {
+			for(int y = 0; y < h; y++)
+				for(int x = 0; x < w; x++)
+					classifyPixel(x, y, z);
+			IJ.showProgress(z, d);
 		}
+		return result;
 	}
 
-
-	private static final int NO_MIN = 0;
-	private static final int NON_STRICT_MIN = 1;
-	private static final int STRICT_MIN = 2;
-
-	private static final byte LABEL = (byte)255;
-	private static final byte CLEAR = (byte)0;
-
-	private final int isMinimum(int x, int y, int z, int v) {
-		for(int i = 0; i < 13; i++) {
-			if(getD(i % 3 - 1 + x, (i / 3) % 3 - 1 + y, i / 9 - 1 + z) < v)
-				return NO_MIN;
-		}
-		for(int i = 0; i < 13; i++) {
-			if(getD(i % 3 - 1 + x, (i / 3) % 3 - 1 + y, i / 9 - 1 + z) == v)
-				return NON_STRICT_MIN;
-		}
-		return STRICT_MIN;
-	}
-
-	private final int getD(int x, int y, int z) {
-		if(x >= 0 && x < w && y >= 0 && y < h && z >= 0 && z < d)
-			return (int)(data[z][y * w + x] & 0xff);
-		return 0;
-	}
-
-	private final byte getC(int x, int y, int z) {
-		if(x >= 0 && x < w && y >= 0 && y < h && z >= 0 && z < d)
-			return minima[z][y * w + x];
-		return -1;
-	}
-
-	private final void label(int x, int y, int z) {
-		minima[z][y * w + x] = LABEL;
-	}
-
-	private final void unlabel(int x, int y, int z) {
-		Stack<Point> s = new Stack<Point>();
-		s.push(new Point(x, y, z));
+	/*
+	 * If x, y, z is a nonstrict min, put it into a stack.
+	 * iteratively,
+	 *     pop first point
+	 *     add point to closed.
+	 *     check its neighbors:
+	 *         if there is a neighbor with a smaller value, label the whole
+	 *         region as non-minimum.
+	 *
+	 *         else if there is a neighbor with same value, push it onto
+	 *         the stack.
+	 */
+	public void classifyPixel(int x, int y, int z) {
+		Point start = new Point(x, y, z);
+		if(isLabelled(start))
+			return;
+// 		Stack<Point> s = new Stack<Point>();
+		LinkedList<Point> s = new LinkedList<Point>();
+// 		HashSet<Point> closed = new HashSet<Point>();
+		ArrayList<Point> closed = new ArrayList<Point>();
+// 		s.push(start);
+		s.add(start);
+		closed.add(start);
+		minima[start.z][start.y * w + start.x] = (byte)IN_QUEUE;
 		while (!s.isEmpty()){
-			Point n = s.pop();
-			if ((n.x >= 0) && (n.x < w) &&
-				(n.y >= 0) && (n.y < h) &&
-				(n.z >= 0) && (n.z < d) &&
-				minima[n.z][n.y * w + n.x] == LABEL) {
+// 			Point p = s.pop();
+			Point p = s.removeLast();
+			int v = get(p);
+			for(int iz = -1; iz <= +1; iz++) {
+				int zIdx = p.z + iz;
+				if(zIdx < 0 || zIdx >= d)
+					continue;
+				for(int iy = -1; iy <= +1; iy++) {
+					int yIdx = p.y + iy;
+					if(yIdx < 0 || yIdx >= h)
+						continue;
+					for(int ix = -1; ix <= +1; ix++) {
+						int xIdx = p.x + ix;
+						if(xIdx < 0 || xIdx >= w)
+							continue;
+						Point nPoint = new Point(
+							xIdx, yIdx, zIdx);
+						// point is already in the stack
+// 						if(closed.contains(nPoint))
+						if(getLabel(nPoint) == IN_QUEUE)
+							continue;
 
-				minima[n.z][n.y * w + n.x] = CLEAR;
-				s.push(new Point(n.x - 1, n.y - 1, n.z - 1));
-				s.push(new Point(n.x    , n.y - 1, n.z - 1));
-				s.push(new Point(n.x + 1, n.y - 1, n.z - 1));
-				s.push(new Point(n.x - 1, n.y    , n.z - 1));
-				s.push(new Point(n.x    , n.y    , n.z - 1));
-				s.push(new Point(n.x + 1, n.y    , n.z - 1));
-				s.push(new Point(n.x - 1, n.y + 1, n.z - 1));
-				s.push(new Point(n.x    , n.y + 1, n.z - 1));
-				s.push(new Point(n.x + 1, n.y + 1, n.z - 1));
-				s.push(new Point(n.x - 1, n.y - 1, n.z    ));
-				s.push(new Point(n.x    , n.y - 1, n.z    ));
-				s.push(new Point(n.x + 1, n.y - 1, n.z    ));
-				s.push(new Point(n.x - 1, n.y    , n.z    ));
-				s.push(new Point(n.x + 1, n.y    , n.z    ));
-				s.push(new Point(n.x - 1, n.y + 1, n.z    ));
-				s.push(new Point(n.x    , n.y + 1, n.z    ));
-				s.push(new Point(n.x + 1, n.y + 1, n.z    ));
-				s.push(new Point(n.x - 1, n.y - 1, n.z + 1));
-				s.push(new Point(n.x    , n.y - 1, n.z + 1));
-				s.push(new Point(n.x + 1, n.y - 1, n.z + 1));
-				s.push(new Point(n.x - 1, n.y    , n.z + 1));
-				s.push(new Point(n.x    , n.y    , n.z + 1));
-				s.push(new Point(n.x + 1, n.y    , n.z + 1));
-				s.push(new Point(n.x - 1, n.y + 1, n.z + 1));
-				s.push(new Point(n.x    , n.y + 1, n.z + 1));
-				s.push(new Point(n.x + 1, n.y + 1, n.z + 1));
+						int vt = get(nPoint);
+						if(vt < v) {
+							for(Point c : closed)
+								unlabel(c);
+							return;
+						}
+						if(vt > v)
+							continue;
+						// vt == v:
+						int l = getLabel(nPoint);
+						switch(l) {
+						case MINIMUM:
+							for(Point c : closed)
+								label(c);
+							return;
+						case NO_MINIMUM:
+							for(Point c : closed)
+								unlabel(c);
+							return;
+						default:
+// 							s.push(nPoint);
+							s.add(nPoint);
+							closed.add(nPoint);
+							inQueue(nPoint);
+						}
+					}
+				}
 			}
 		}
+		// if we reached that point, the queue is empty,
+		// which means that we indeed found a minimum region.
+		for(Point c : closed)
+			label(c);
 	}
 
 	private final static class Point {
@@ -201,6 +202,15 @@ public class Find_Minima implements PlugInFilter {
 			this.x = x;
 			this.y = y;
 			this.z = z;
+		}
+
+		public boolean equals(Object o) {
+			Point p = (Point)o;
+			return x == p.x && y == p.y && z == p.z;
+		}
+
+		public int hashCode() {
+			return z * y * x;
 		}
 	}
 }
