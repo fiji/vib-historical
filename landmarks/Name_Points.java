@@ -55,7 +55,7 @@ import vib.FastMatrix;
 import vib.oldregistration.RegistrationAlgorithm;
 import util.Overlay_Registered;
 
-public class Name_Points implements PlugIn extends NamePoints {
+public class Name_Points extends NamePoints implements PlugIn {
 	public void run( String arguments ) {
 
 		boolean promptForTemplate = IJ.altKeyDown();

@@ -267,14 +267,14 @@ public class PathWindow extends JFrame implements PathAndFillListener, TreeSelec
 	JButton makePrimaryButton;
 	JButton deleteButton;
 
-	Simple_Neurite_Tracer plugin;
+	SimpleNeuriteTracer plugin;
 	PathAndFillManager pathAndFillManager;
 
-	public PathWindow(PathAndFillManager pathAndFillManager, Simple_Neurite_Tracer plugin) {
+	public PathWindow(PathAndFillManager pathAndFillManager, SimpleNeuriteTracer plugin) {
 		this( pathAndFillManager, plugin, 200, 60 );
 	}
 
-	public PathWindow(PathAndFillManager pathAndFillManager, Simple_Neurite_Tracer plugin, int x, int y) {
+	public PathWindow(PathAndFillManager pathAndFillManager, SimpleNeuriteTracer plugin, int x, int y) {
 		super("All Paths");
 
 		this.pathAndFillManager = pathAndFillManager;

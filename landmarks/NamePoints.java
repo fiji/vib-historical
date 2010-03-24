@@ -1902,13 +1902,13 @@ public class NamePoints implements FineTuneProgressListener {
 		RegistrationAlgorithm r = null;
 		switch( method ) {
 		case AFFINE:
-			r = new Affine_From_Landmarks();
+			r = new AffineFromLandmarks();
 			break;
 		case RIGID:
-			r = new Rigid_From_Landmarks();
+			r = new RigidFromLandmarks();
 			break;
 		case BOOKSTEIN:
-			r = new Bookstein_From_Landmarks();
+			r = new BooksteinFromLandmarks();
 			break;
 		default:
 			IJ.error("BUG: unknown registration method requested");

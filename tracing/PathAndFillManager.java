@@ -71,9 +71,9 @@ class TracesFileFormatException extends SAXException {
 
 public class PathAndFillManager extends DefaultHandler implements UniverseListener {
 
-	static final boolean verbose = Simple_Neurite_Tracer.verbose;
+	static final boolean verbose = SimpleNeuriteTracer.verbose;
 
-	Simple_Neurite_Tracer plugin;
+	SimpleNeuriteTracer plugin;
 	ImagePlus imagePlus;
 
 	int maxUsedID = -1;
@@ -112,7 +112,7 @@ public class PathAndFillManager extends DefaultHandler implements UniverseListen
 		needImageDataFromTracesFile = false;
 	}
 
-	public PathAndFillManager( Simple_Neurite_Tracer plugin ) {
+	public PathAndFillManager( SimpleNeuriteTracer plugin ) {
 		this();
 		this.plugin = plugin;
 		this.x_spacing = plugin.x_spacing;
