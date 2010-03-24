@@ -8,7 +8,6 @@ import vib.app.Options;
 import vib.DiffusionInterpol2;
 import vib.FloatMatrix;
 import vib.InterpolatedImage;
-import vib.RigidRegistration_;
 import vib.TransformedImage;
 
 public class LabelDiffusionTransformation extends Module {

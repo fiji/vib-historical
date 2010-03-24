@@ -9,7 +9,7 @@ import vib.app.Options;
 
 import vib.FastMatrix;
 import vib.FloatMatrix;
-import vib.RigidRegistration_;
+import vib.RigidRegistration;
 import vib.TransformedImage;
 
 public class GreyTransformation extends Module {
@@ -51,7 +51,7 @@ public class GreyTransformation extends Module {
 		if (stopLevel > 0)
 			trans = trans.resample(1 << stopLevel);
 		trans.measure = new Euclidean();
-		RigidRegistration_ rr = new RigidRegistration_();
+		RigidRegistration rr = new RigidRegistration();
 
 		console.append("...rigidRegistration");
 		FastMatrix matrix2 = rr.rigidRegistration(trans,

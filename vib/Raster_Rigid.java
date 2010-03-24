@@ -70,7 +70,7 @@ public class Raster_Rigid implements PlugIn {
 		TransformedImage trans = new TransformedImage(t, m);
 		trans.measure = new distance.Euclidean();
 
-		globalRigid = new RigidRegistration_()
+		globalRigid = new RigidRegistration()
 			.rigidRegistration(trans, "", "", -1, -1,
 				false, STARTL + 1, STOPL + 1, TOLERANCE,
 				1, false, false, false, null);
@@ -97,7 +97,7 @@ float meanV = getMeanValue(trans.orig.image, x, y, z, tw, th, td);
 // only use transformation if the image is not black
 if(meanV <= 10.0)
 	continue;
-FastMatrix fm = new RigidRegistration_().rigidRegistration(
+FastMatrix fm = new RigidRegistration().rigidRegistration(
 	trans, "", globalRigid.toString(), -1, -1, false, 
 	STARTL, STARTL, TOLERANCE, 1, false, false, false, null);
 fm = fm.times(globalRigid);
