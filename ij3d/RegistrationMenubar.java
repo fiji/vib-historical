@@ -8,8 +8,6 @@ import ij.ImagePlus;
 import ij.text.TextWindow;
 import ij.gui.Toolbar;
 
-import math3d.Transform_IO;
-
 import java.text.DecimalFormat;
 
 import java.awt.event.*;
