@@ -3,6 +3,7 @@ package isosurface;
 
 import ij3d.Content;
 import ij3d.ContentNode;
+import customnode.WavefrontExporter;
 import customnode.CustomMeshNode;
 import customnode.CustomMesh;
 
@@ -23,6 +24,7 @@ import java.util.Iterator;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.vecmath.Point3f;
 import javax.vecmath.Color3f;
@@ -237,23 +239,10 @@ public class MeshExporter {
 	}
 
 	static public void writeAsWaveFront(Collection contents, String mtl_filename, Writer w_obj, Writer w_mtl) throws IOException {
-		w_obj.write("# OBJ File\n");
-		w_obj.write("mtllib ");
-		w_obj.write(mtl_filename);
-		w_obj.write('\n');
+		HashMap<String, CustomMesh> meshes = new HashMap<String, CustomMesh>();
 
-		final Hashtable ht_mat = new Hashtable();
-
-		int j = 1; // Vert indices in .obj files are global, not reset for every object.
-				// starting at '1' because vert indices start at one.
-
-		final StringBuffer tmp = new StringBuffer(100);
-
-		for (Iterator it = contents.iterator(); it.hasNext(); ) {
+		for(Iterator it = contents.iterator(); it.hasNext(); ) {
 			Content mob = (Content)it.next();
-
-			int t = mob.getType();
-
 			CustomMesh cmesh=null;
 
 			if (mob.getContent() instanceof CustomMeshNode) {
@@ -264,73 +253,9 @@ public class MeshExporter {
 				cmesh = mg.getMesh();
 			} else
 				continue;
-
-			final List triangles = cmesh.getMesh();
-			// make material, and see whether it exists already
-			Mtl mat = new Mtl(1 - mob.getTransparency(), cmesh.getColor());
-			Object mat2 = ht_mat.get(mat);
-			if (null != mat2) mat = (Mtl)mat2; // recycling
-			else ht_mat.put(mat, mat); // !@#$% Can't get the object in a HashSet easily
-			// make list of vertices
-			String title = mob.getName().replaceAll(" ", "_").replaceAll("#", "--");
-			Hashtable ht_points = new Hashtable(); // because we like inefficiency
-			w_obj.write("g ");
-			w_obj.write(title);
-			w_obj.write('\n');
-			final int len = triangles.size();
-			int[] index = new int[len];
-			if (0 != len % 3) System.out.println("WARNING: list of triangles not multiple of 3");
-			int k = 0; // iterate over index array, to make faces later
-			// j is tag for each new vert, which start at 1 (for some ridiculous reason)
-			for (Iterator tt = triangles.iterator(); tt.hasNext(); ) {
-				Point3f p = (Point3f)tt.next();
-				// check if point already exists
-				Object ob = ht_points.get(p);
-				if (null != ob) {
-					index[k] = ((Integer)ob).intValue();
-				} else {
-					// new point
-					index[k] = j;
-					// record
-					ht_points.put(p, new Integer(j));
-					// append vertex
-					tmp.append('v').append(' ')
-					   .append(p.x).append(' ')
-					   .append(p.y).append(' ')
-					   .append(p.z).append('\n');
-					w_obj.write(tmp.toString());
-					tmp.setLength(0);
-					j++;
-				}
-				k++;
-			}
-			w_obj.write("usemtl "); w_obj.write(mat.name); w_obj.write('\n');
-			w_obj.write("s 1\n");
-			// print faces
-			int len_p = ht_points.size();
-			for (int i=0; i<len; i+=3) {
-				tmp.append('f').append(' ')
-				   .append(index[i]).append(' ')
-				   .append(index[i+1]).append(' ')
-				   .append(index[i+2]).append('\n');
-				w_obj.write(tmp.toString());
-				tmp.setLength(0);
-				//if (index[i] > len_p) Utils.log2("WARNING: face vert index beyond range"); // range is from 1 to len_p inclusive
-				//if (index[i+1] > len_p) Utils.log2("WARNING: face vert index beyond range");
-				//if (index[i+2] > len_p) Utils.log2("WARNING: face vert index beyond range");
-				//System.out.println("j: " + index[i]);
-				// checks passed
-			}
-			w_obj.write('\n');
+			meshes.put(mob.getName(), cmesh);
 		}
-		// make mtl file
-		w_mtl.write("# MTL File\n");
-		for (Iterator it = ht_mat.keySet().iterator(); it.hasNext(); ) {
-			Mtl mat = (Mtl)it.next();
-			StringBuffer sb = new StringBuffer(150);
-			mat.fill(sb);
-			w_mtl.write(sb.toString());
-		}
+		WavefrontExporter.save(meshes, mtl_filename, w_obj, w_mtl);
 	}
 
 	/** A Material, but avoiding name colisions. Not thread-safe. */
@@ -371,6 +296,15 @@ public class MeshExporter {
 			}
 			return false;
 		}
+		public int hashCode() {
+			long bits = 1L;
+			bits = 31L * bits + (long)Float.floatToIntBits(alpha);
+			bits = 31L * bits + (long)Float.floatToIntBits(R);
+			bits = 31L * bits + (long)Float.floatToIntBits(G);
+			bits = 31L * bits + (long)Float.floatToIntBits(B);
+			return (int) (bits ^ (bits >> 32));
+		}
+
 		void fill(StringBuffer sb) {
 			sb.append("\nnewmtl ").append(name).append('\n')
 			  .append("Ns 96.078431\n")
