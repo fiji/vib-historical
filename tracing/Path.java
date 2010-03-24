@@ -38,7 +38,7 @@ import stacks.ThreePanes;
 import ij3d.Image3DUniverse;
 import ij3d.Content;
 import ij3d.Pipe;
-import ij3d.Mesh_Maker;
+import ij3d.MeshMaker;
 import javax.vecmath.Color3f;
 import javax.vecmath.Point3f;
 
@@ -50,8 +50,6 @@ import java.util.Iterator;
 import java.util.HashSet;
 import java.util.Arrays;
 import java.util.List;
-
-import util.CMTK_Transformation;
 
 /* This class represents a list of points, and has methods for drawing
  * them onto ThreePanes-style image canvases. */

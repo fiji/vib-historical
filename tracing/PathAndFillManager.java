@@ -63,8 +63,6 @@ import javax.vecmath.Color3f;
 import ij3d.Content;
 import ij3d.UniverseListener;
 
-import util.CMTK_Transformation;
-
 class TracesFileFormatException extends SAXException {
 	public TracesFileFormatException(String message) {
 		super(message);

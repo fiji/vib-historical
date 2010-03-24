@@ -27,7 +27,7 @@ public class ProgressWindow extends StackWindow implements ActionListener {
 	DecimalFormat scoreFormatter;
 	DecimalFormat distanceFormatter;
 
-	Name_Points plugin;
+	NamePoints plugin;
 
 	ArrayList<FineTuneThread> fineTuneThreads;
 	
@@ -103,7 +103,7 @@ public class ProgressWindow extends StackWindow implements ActionListener {
 	
 	protected ProgressCanvas progressCanvas;
 	
-	public ProgressWindow(ImagePlus imp, ImageCanvas ic, Name_Points plugin) {
+	public ProgressWindow(ImagePlus imp, ImageCanvas ic, NamePoints plugin) {
 		super( imp, ic );
 		ImageCanvas icAfter = getCanvas();
 		if( (icAfter != null) && (ic instanceof ProgressCanvas) )

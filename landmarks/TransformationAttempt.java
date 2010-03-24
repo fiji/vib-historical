@@ -57,7 +57,7 @@ public class TransformationAttempt implements MultivariateFunction {
 
 	public double evaluate( double[] argument ) {
 
-		RegistrationResult r = Name_Points.mapImageWith( croppedTemplate, newImage, templatePoint, guessedPoint, argument, cubeSide, similarityMeasure, "");
+		RegistrationResult r = NamePoints.mapImageWith( croppedTemplate, newImage, templatePoint, guessedPoint, argument, cubeSide, similarityMeasure, "");
 
 		if( listener != null )
 			listener.fineTuneNewBestResult( r );

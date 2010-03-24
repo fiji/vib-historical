@@ -106,7 +106,7 @@ public class FineTuneThread extends Thread {
 
 		/*
 		System.out.println("startValues now: ");
-		Name_Points.printParameters(startValues);
+		NamePoints.printParameters(startValues);
 		*/
 
 		if( pleaseStop ) {
@@ -116,7 +116,7 @@ public class FineTuneThread extends Thread {
 
 		// Now reproduce those results; they might be good...
 
-		RegistrationResult r = Name_Points.mapImageWith(
+		RegistrationResult r = NamePoints.mapImageWith(
 			croppedTemplate,
 			newImage,
 			templatePoint,
