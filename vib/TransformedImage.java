@@ -11,7 +11,7 @@ import java.util.StringTokenizer;
 import math3d.Point3d;
 
 public class TransformedImage {
-	InterpolatedImage orig, transform;
+	public InterpolatedImage orig, transform;
 	FastMatrix fromOrig;
 	private FastMatrix transformation;
 	FastMatrix toTransform;
@@ -23,7 +23,7 @@ public class TransformedImage {
 	 * transforms pixel coordinates in the original onto pixel
 	 * coordinates in the "transformed" stack.
 	 */
-	FastMatrix matrix;
+	public FastMatrix matrix;
 
 	public TransformedImage(ImagePlus orig, ImagePlus transform) {
                 this.orig = new InterpolatedImage(orig);
@@ -156,13 +156,13 @@ public class TransformedImage {
 
 	public class Iterator implements java.util.Iterator {
 		// these are the original coordinates
-		int i, j, k;
+		public int i, j, k;
 		// these are the transformed coordinates
-		double x, y, z;
+		public double x, y, z;
 
 		public boolean showProgress;
-		int x0, y0, z0, x1, y1, z1, xd, zd;
-		private boolean isIdentity;
+		public int x0, y0, z0, x1, y1, z1, xd, zd;
+		protected boolean isIdentity;
 
 		public Iterator(boolean showProgress, int x0, int y0, int z0,
 				int x1, int y1, int z1) {
