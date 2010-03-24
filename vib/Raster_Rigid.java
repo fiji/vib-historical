@@ -123,7 +123,7 @@ if(verbose) {
 		if(rz == 0) rz = 1;
 
 		if(rx != 1 || ry != 1 || rz != 1)
-			img = Resample_.resample(img, rx, ry, rz);
+			img = NaiveResampler.resample(img, rx, ry, rz);
 
 		img = Smooth_.smooth(img, true, SMOOTH, true);
 		img = Gradient_.calculateGrad(img, true);

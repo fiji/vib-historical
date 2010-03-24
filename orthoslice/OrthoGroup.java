@@ -3,7 +3,7 @@ package orthoslice;
 import ij.ImagePlus;
 import ij3d.Content;
 
-import vib.Resample_;
+import vib.NaiveResampler;
 import voltex.*;
 
 /**
@@ -24,7 +24,7 @@ public class OrthoGroup extends VoltexGroup {
 		super();
 		this.c = c;
 		ImagePlus imp = c.getResamplingFactor() == 1 ? c.getImage() 
-			: Resample_.resample(c.getImage(),
+			: NaiveResampler.resample(c.getImage(),
 				c.getResamplingFactor());
 		renderer = new Orthoslice(imp, c.getColor(), 
 				c.getTransparency(), c.getChannels());

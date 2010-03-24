@@ -19,7 +19,7 @@ import ij3d.Content;
 import ij3d.ContentNode;
 
 import javax.vecmath.Tuple3d;
-import vib.Resample_;
+import vib.NaiveResampler;
 
 /**
  * This class extends ContentNode to display a Content as a
@@ -68,7 +68,7 @@ public class VoltexGroup extends ContentNode {
 		this.c = c;
 		ImagePlus imp = c.getResamplingFactor() == 1
 			? c.getImage()
-			: Resample_.resample(c.getImage(), c.getResamplingFactor());
+			: NaiveResampler.resample(c.getImage(), c.getResamplingFactor());
 		renderer = new VolumeRenderer(imp, c.getColor(),
 				c.getTransparency(), c.getChannels());
 		renderer.fullReload();

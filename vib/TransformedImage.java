@@ -135,12 +135,12 @@ public class TransformedImage {
 		ImagePlus resOrig, resTran;
 		
 		if (measure instanceof distance.MutualInformation) {
-			resOrig = Resample_.resampleMinEnt(orig.image, factor);
-			resTran = Resample_.resampleMinEnt(transform.image,
+			resOrig = NaiveResampler.resampleMinEnt(orig.image, factor);
+			resTran = NaiveResampler.resampleMinEnt(transform.image,
 							   factor);
 		} else {
-			resOrig = Resample_.resample(orig.image, factor);
-			resTran = Resample_.resample(transform.image, factor);
+			resOrig = NaiveResampler.resample(orig.image, factor);
+			resTran = NaiveResampler.resample(transform.image, factor);
 		}
 		TransformedImage res = new TransformedImage(resOrig, resTran);
 		res.transformation = transformation;
