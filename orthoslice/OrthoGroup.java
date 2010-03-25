@@ -2,6 +2,7 @@ package orthoslice;
 
 import ij.ImagePlus;
 import ij3d.Content;
+import ij3d.ContentInstant;
 
 import vib.Resample_;
 import voltex.*;
@@ -21,6 +22,14 @@ public class OrthoGroup extends VoltexGroup {
 	 * @param c
 	 */
 	public OrthoGroup(Content c) {
+		this(c.getCurrent());
+	}
+
+	/**
+	 * Construct a OrthoGroup from the given ContentInstant.
+	 * @param c
+	 */
+	public OrthoGroup(ContentInstant c) {
 		super();
 		this.c = c;
 		ImagePlus imp = c.getResamplingFactor() == 1 ? c.getImage() 

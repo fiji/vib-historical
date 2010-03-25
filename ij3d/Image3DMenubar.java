@@ -673,7 +673,7 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 		pl_show.setState(c.isPLVisible());
 		shaded.setState(c.isShaded());
 
-		ImagePlus i = c.image;
+		ImagePlus i = c.getImage();
 		displayAsVolume.setEnabled(t != Content.VOLUME && i != null);
 		displayAsOrtho.setEnabled(t != Content.ORTHO && i != null);
 		displayAsSurface.setEnabled(t != Content.SURFACE && i != null);

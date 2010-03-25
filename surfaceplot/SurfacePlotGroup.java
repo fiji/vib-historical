@@ -2,6 +2,7 @@ package surfaceplot;
 
 import ij.ImagePlus;
 import ij.gui.StackWindow;
+import ij3d.ContentInstant;
 import ij3d.Content;
 import ij3d.ContentNode;
 import ij3d.Volume;
@@ -32,7 +33,7 @@ public class SurfacePlotGroup extends ContentNode implements AdjustmentListener{
 	private SurfacePlot surfacep;
 
 	/** The content which is displayed */
-	private Content c;
+	private ContentInstant c;
 
 	/** The min coordinate */
 	private Point3d min = new Point3d();
@@ -42,10 +43,18 @@ public class SurfacePlotGroup extends ContentNode implements AdjustmentListener{
 	private Point3d center = new Point3d();
 
 	/**
+	 * Constructs a surface plot for the given ContentInstant.
+	 * @param c
+	 */
+	public SurfacePlotGroup(Content c) {
+		this(c.getCurrent());
+	}
+
+	/**
 	 * Constructs a surface plot for the given Content.
 	 * @param c
 	 */
-	public SurfacePlotGroup (Content c) {
+	public SurfacePlotGroup (ContentInstant c) {
 		super();
 		this.c = c;
 		int res = c.getResamplingFactor();

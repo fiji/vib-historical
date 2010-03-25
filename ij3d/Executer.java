@@ -197,14 +197,16 @@ public class Executer {
 		if(c == null)
 			return null;
 		// record
+		boolean[] ch = c.getChannels();
 		String[] arg = new String[] {
-			c.image.getTitle(), ColorTable.getColorName(c.color),
-			c.name, Integer.toString(c.threshold),
-			Boolean.toString(c.channels[0]), 
-			Boolean.toString(c.channels[1]),
-			Boolean.toString(c.channels[2]),
-			Integer.toString(c.resamplingF),
-			Integer.toString(c.type)};
+			c.getImage().getTitle(),
+			ColorTable.getColorName(c.getColor()),
+			c.getName(), Integer.toString(c.getThreshold()),
+			Boolean.toString(ch[0]), 
+			Boolean.toString(ch[1]),
+			Boolean.toString(ch[2]),
+			Integer.toString(c.getResamplingFactor()),
+			Integer.toString(c.getType())};
 		record(ADD, arg);
 
 		return c;
@@ -213,7 +215,7 @@ public class Executer {
 	public void delete(Content c) {
 		if(!checkSel(c))
 			return;
-		univ.removeContent(c.name);
+		univ.removeContent(c.getName());
 		record(DELETE);
 	}
 
@@ -353,7 +355,7 @@ public class Executer {
 		final boolean vis1 = os.isVisible(VolumeRenderer.X_AXIS);
 		final boolean vis2 = os.isVisible(VolumeRenderer.Y_AXIS);
 		final boolean vis3 = os.isVisible(VolumeRenderer.Z_AXIS);
-		ImagePlus imp = c.image;
+		ImagePlus imp = c.getImage();
 		int w = imp.getWidth() / c.getResamplingFactor();
 		int h = imp.getHeight() / c.getResamplingFactor();
 		int d = imp.getStackSize() / c.getResamplingFactor();
@@ -498,7 +500,7 @@ public class Executer {
 			return;
 		final GenericDialog gd = 
 			new GenericDialog("Adjust color ...", univ.getWindow());
-		final Color3f oldC = c.color;
+		final Color3f oldC = c.getColor();
 
 		gd.addCheckbox("Use default color", oldC == null);
 		gd.addSlider("Red",0,255,oldC == null ? 255 : oldC.x*255);
@@ -708,7 +710,7 @@ public class Executer {
 	public void changeThreshold(final Content c) {
 		if(!checkSel(c))
 			return;
-		if(c.image == null) {
+		if(c.getImage() == null) {
 			IJ.error("The selected object contains no image data,\n" +
 					"therefore the threshold can't be changed");
 			return;
@@ -754,7 +756,7 @@ public class Executer {
 					} else {
 						record(SET_THRESHOLD, 
 							Integer.toString(
-								c.threshold));
+							c.getThreshold()));
 					}
 				} finally {
 					// [ This code block executes even when
@@ -923,7 +925,7 @@ public class Executer {
 		if(!checkSel(c))
 			return;
 		if(c.isLocked()) {
-			IJ.error(c.name + " is locked");
+			IJ.error(c.getName() + " is locked");
 			return;
 		}
 		univ.fireTransformationStarted();
@@ -936,7 +938,7 @@ public class Executer {
 		if(!checkSel(c))
 			return;
 		if(c.isLocked()) {
-			IJ.error(c.name + " is locked");
+			IJ.error(c.getName() + " is locked");
 			return;
 		}
 		univ.fireTransformationStarted();
@@ -952,7 +954,7 @@ public class Executer {
 		if(!checkSel(c))
 			return;
 		if(c.isLocked()) {
-			IJ.error(c.name + " is locked");
+			IJ.error(c.getName() + " is locked");
 			return;
 		}
 		univ.fireTransformationStarted();

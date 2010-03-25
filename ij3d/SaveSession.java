@@ -7,7 +7,6 @@ import ij.IJ;
 
 import orthoslice.OrthoGroup;
 import surfaceplot.SurfacePlotGroup;
-// import isosurface.MeshExporter;
 
 import customnode.MeshLoader;
 import customnode.WavefrontExporter;
@@ -80,26 +79,28 @@ public class SaveSession {
 		// meshes file-wise.
 		HashMap<String, ArrayList<CMesh>> custommeshes =
 			new HashMap<String, ArrayList<CMesh>>();
-		for(Content c : contents) {
-			int t = c.getType();
-			if(t != Content.CUSTOM) {
-				FileInfo fi = c.image.getOriginalFileInfo();
-				if(fi == null || c.image.changes)
-					new FileSaver(c.image).save();
-				continue;
-			}
-			CustomMeshNode cn = (CustomMeshNode)c.getContent();
-			ArrayList<CustomMesh> meshes = getMeshes(cn);
-			for(CustomMesh cm : meshes) {
-				String file = cm.getFile();
-				boolean changed = cm.hasChanged();
-				if(!changed)
+		for(Content content : contents) {
+			for(ContentInstant c : content.getInstants()) {
+				int t = c.getType();
+				if(t != Content.CUSTOM) {
+					FileInfo fi = c.getImage().getOriginalFileInfo();
+					if(fi == null || c.image.changes)
+						new FileSaver(c.image).save();
 					continue;
-				if(!custommeshes.containsKey(file))
-					custommeshes.put(file,
-						new ArrayList<CMesh>());
-				custommeshes.get(file).add(
-					new CMesh(cm, c.name));
+				}
+				CustomMeshNode cn = (CustomMeshNode)c.getContent();
+				ArrayList<CustomMesh> meshes = getMeshes(cn);
+				for(CustomMesh cm : meshes) {
+					String file = cm.getFile();
+					boolean changed = cm.hasChanged();
+					if(!changed)
+						continue;
+					if(!custommeshes.containsKey(file))
+						custommeshes.put(file,
+							new ArrayList<CMesh>());
+					custommeshes.get(file).add(
+						new CMesh(cm, c.name));
+				}
 			}
 		}
 
@@ -218,6 +219,11 @@ public class SaveSession {
 	}
 
 	void saveContent(PrintWriter out, Content c) {
+		for(ContentInstant ci : c.getInstants())
+			saveContentInstant(out, ci);
+	}
+
+	void saveContentInstant(PrintWriter out, ContentInstant c) {
 		// color string
 		String col = c.color == null ? null : Integer.toString(
 			c.color.get().getRGB());
@@ -431,7 +437,7 @@ System.out.println("loading " + sp[0]);
 		return meshes;
 	}
 
-	private static final String getMeshString(Content c) {
+	private static final String getMeshString(ContentInstant c) {
 		ArrayList<CustomMesh> meshes = getMeshes(
 				(CustomMeshNode)c.getContent());
 		String ret = "";
@@ -453,7 +459,7 @@ System.out.println("loading " + sp[0]);
 		return xSlide + "%%%" + ySlide + "%%%" + zSlide;
 	}
 
-	private static final String getImageFile(Content c) {
+	private static final String getImageFile(ContentInstant c) {
 		if(c.image == null)
 			return null;
 		FileInfo fi = c.image.getOriginalFileInfo();

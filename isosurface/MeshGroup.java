@@ -2,6 +2,7 @@ package isosurface;
 
 import ij.IJ;
 import ij3d.Content;
+import ij3d.ContentInstant;
 import ij3d.ContentNode;
 
 import java.awt.Color;
@@ -19,10 +20,14 @@ public class MeshGroup extends ContentNode {
 
 	private CustomTriangleMesh mesh;
 	private Triangulator triangulator = new MCTriangulator();
-	private Content c;
+	private ContentInstant c;
 	private Point3f min, max, center;
 
 	public MeshGroup (Content c) {
+		this(c.getCurrent());
+	}
+
+	public MeshGroup (ContentInstant c) {
 		super();
 		this.c = c;
 		Color3f color = c.getColor();

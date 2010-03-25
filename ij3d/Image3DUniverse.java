@@ -117,7 +117,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 				Content c = picker.getPickedContent(
 						e.getX(), e.getY());
 				if(c != null)
-					IJ.showStatus(c.name);
+					IJ.showStatus(c.getName());
 				else
 					IJ.showStatus("");
 			}
@@ -236,14 +236,14 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			c.setSelected(true);
 			selected = c;
 		}
-		String st = c != null ? c.name : "none";
+		String st = c != null ? c.getName() : "none";
 		IJ.showStatus("selected: " + st);
 
 		fireContentSelected(c);
 
 		if(c != null && ij.plugin.frame.Recorder.record)
 			ij.plugin.frame.Recorder.record(
-				"call", "ImageJ_3D_Viewer.select", c.name);
+				"call", "ImageJ_3D_Viewer.select", c.getName());
 	}
 
 	/**
@@ -508,7 +508,8 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			IJ.error("Content named '" + name + "' exists already");
 			return null;
 		}
-		Content content = new Content(name);
+		Content c = new Content(name);
+		ContentInstant content = c.getInstant(0);
 		content.image = image;
 		content.color = color;
 		content.threshold = thresh;
@@ -519,7 +520,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 				showLocalCoordinateSystemsByDefault);
 		content.displayAs(type);
 		content.compile();
-		return addContent(content);
+		return addContent(c);
 	}
 
 	/**
@@ -753,7 +754,8 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * @return the created Content
 	 */
 	public Content createContent(CustomMesh mesh, String name) {
-		Content content = new Content(name);
+		Content c = new Content(name);
+		ContentInstant content = c.getInstant(0);
 		content.color = mesh.getColor();
 		content.transparency = mesh.getTransparency();
 		content.shaded = mesh.isShaded();
@@ -761,11 +763,12 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			UniverseSettings.showLocalCoordinateSystemsByDefault);
 		content.display(new CustomMeshNode(mesh));
 		content.setPointListDialog(plDialog);
-		return content;
+		return c;
 	}
 
 	public Content createContent(CustomMultiMesh node, String name) {
-		Content content = new Content(name);
+		Content c = new Content(name);
+		ContentInstant content = c.getInstant(0);
 		content.color = null;
 		content.transparency = 0f;
 		content.shaded = false;
@@ -773,7 +776,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			UniverseSettings.showLocalCoordinateSystemsByDefault);
 		content.display(node);
 		content.setPointListDialog(plDialog);
-		return content;
+		return c;
 	}
 
 	/**
@@ -1201,12 +1204,13 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	/** Returns true on success. */
 	private boolean addContentToScene(Content c) {
 		synchronized (lock) {
-			if(contents.containsKey(c.name)) {
-				IJ.log("Mesh named '" + c.name + "' exists already");
+			String name = c.getName();
+			if(contents.containsKey(name)) {
+				IJ.log("Mesh named '" + name + "' exists already");
 				return false;
 			}
 			this.scene.addChild(c);
-			this.contents.put(c.name, c);
+			this.contents.put(name, c);
 			this.recalculateGlobalMinMax(c);
 		}
 		return true;
@@ -1273,15 +1277,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			name = getSafeContentName(name);
 			CustomMesh mesh = entry.getValue();
 
-			Content content = new Content(name);
-			content.color = mesh.getColor();
-			content.transparency = mesh.getTransparency();
-			content.shaded = mesh.isShaded();
-			content.showCoordinateSystem(
-				UniverseSettings.showLocalCoordinateSystemsByDefault);
-			content.display(new CustomMeshNode(mesh));
-			content.setPointListDialog(plDialog);
-
+			Content content = createContent(mesh, name);
 			contents.add(content);
 		}
 		return addContentLater(contents);
