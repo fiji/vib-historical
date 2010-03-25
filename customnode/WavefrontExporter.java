@@ -45,8 +45,11 @@ public class WavefrontExporter {
 			save(meshes, mtlname, dos_obj, dos_mtl);
 			dos_obj.flush();
 			dos_obj.flush();
-			for(CustomMesh m : meshes.values()) {
-				m.loadedFrom = objFile;
+			for(String n : meshes.keySet()) {
+				CustomMesh m = meshes.get(n);
+				m.loadedFromFile = objFile;
+				m.loadedFromName = n.replaceAll(" ", "_").
+					replaceAll("#", "__");
 				m.changed = false;
 			}
 		} catch (IOException e) {

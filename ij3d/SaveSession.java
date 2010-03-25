@@ -92,14 +92,17 @@ public class SaveSession {
 			ArrayList<CustomMesh> meshes = getMeshes(cn);
 			for(CustomMesh cm : meshes) {
 				String file = cm.getFile();
-				boolean changed = cm.hasChanged();
+				boolean changed = cm.hasChanged() ||
+					cm.getFile() == null;
 				if(!changed)
 					continue;
 				if(!custommeshes.containsKey(file))
 					custommeshes.put(file,
 						new ArrayList<CMesh>());
+				String name = cm.getName() != null ?
+					cm.getName() : c.getName();
 				custommeshes.get(file).add(
-					new CMesh(cm, c.name));
+					new CMesh(cm, name));
 			}
 		}
 
@@ -435,10 +438,13 @@ System.out.println("loading " + sp[0]);
 		ArrayList<CustomMesh> meshes = getMeshes(
 				(CustomMeshNode)c.getContent());
 		String ret = "";
-		String name = c.name.replaceAll(" ", "_").
+		for(CustomMesh cm : meshes) {
+			String name = cm.getName();
+			if(name == null) name = c.name;
+			name.replaceAll(" ", "_").
 				replaceAll("#", "--");
-		for(CustomMesh cm : meshes)
 			ret += "%%%" + cm.getFile() + "%%%" + name;
+		}
 		return ret.substring(3, ret.length());
 	}
 

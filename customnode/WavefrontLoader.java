@@ -102,7 +102,8 @@ public class WavefrontLoader {
 			default: throw new RuntimeException(
 				"Unexpected number of vertices for faces");
 		}
-		cm.loadedFrom = objfile;
+		cm.loadedFromFile = objfile;
+		cm.loadedFromName = name;
 		cm.changed = false;
 		if(material == null)
 			return cm;

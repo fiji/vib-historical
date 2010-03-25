@@ -29,7 +29,8 @@ public abstract class CustomMesh extends Shape3D {
 	protected float transparency = 0;
 	protected boolean shaded = true;
 
-	protected String loadedFrom = null;
+	protected String loadedFromName = null;
+	protected String loadedFromFile = null;
 	protected boolean changed = false;
 
 	protected CustomMesh() {}
@@ -51,7 +52,11 @@ public abstract class CustomMesh extends Shape3D {
 	}
 
 	public String getFile() {
-		return loadedFrom;
+		return loadedFromFile;
+	}
+
+	public String getName() {
+		return loadedFromName;
 	}
 
 	public boolean hasChanged() {
