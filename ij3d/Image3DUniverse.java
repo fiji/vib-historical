@@ -237,6 +237,10 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	/* *************************************************************
 	 * Timeline stuff
 	 * *************************************************************/
+	public Timeline getTimeline() {
+		return timeline;
+	}
+
 	public void showTimepoint(int tp) {
 		this.currentTimepoint = tp;
 		for(Content c : contents.values())
