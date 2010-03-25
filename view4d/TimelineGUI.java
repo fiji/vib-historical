@@ -47,17 +47,35 @@ public class TimelineGUI implements ActionListener {
 	public TimelineGUI(Timeline timeline) {
 		this.timeline = timeline;
 
-		p = new Panel(new FlowLayout());
+		GridBagLayout gridbag = new GridBagLayout();
+		GridBagConstraints c = new GridBagConstraints();
+
+		p = new Panel(gridbag);
+		c.gridx = c.gridy = 0;
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.anchor = GridBagConstraints.EAST;
+		c.weightx = c.weighty = 0.0;
+
 		for(int i = 0; i < FILES.length; i++) {
 			buttons[i] = new ImageButton(loadIcon(FILES[i]));
+			buttons[i].setUnarmedBorder(new Border(false));
+			buttons[i].setArmedBorder(new Border(true));
+			buttons[i].setOverBorder(new Border(true));
+			buttons[i].setDisabledBorder(new Border(true));
 			buttons[i].addActionListener(this);
 			buttons[i].setActionCommand(COMMANDS[i]);
+			gridbag.setConstraints(buttons[i], c);
 			p.add(buttons[i]);
+			c.gridx++;
 		}
 		// set up scroll bar
 		int min = timeline.getUniverse().getStartTime();
 		int max = timeline.getUniverse().getEndTime() + 1;
+		
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.weightx = 1.0;
 		scroll = new Scrollbar(Scrollbar.HORIZONTAL, 0, 1, min, max);
+		gridbag.setConstraints(scroll, c);
 		p.add(scroll);
 	}
 
@@ -110,6 +128,23 @@ public class TimelineGUI implements ActionListener {
 			timeline.faster();
 		} else if(command.equals("SLOWER")) {
 			timeline.slower();
+		}
+	}
+
+	static class Border extends vib.segment.Border {
+		public Border(boolean armed) {
+// 			setBorderThickness(2);
+			setBorderThickness(0);
+			if (armed) {
+				setType(THREED_IN);
+// 				setMargins(4, 4, 2, 2);
+				setMargins(0, 0, 0, 0);
+			}
+			else {
+				setType( THREED_OUT );
+// 				setMargins(3);
+				setMargins(0);
+			}
 		}
 	}
 }
