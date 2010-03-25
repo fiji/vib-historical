@@ -77,6 +77,11 @@ public class TimelineGUI implements ActionListener {
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.weightx = 1.0;
 		scroll = new Scrollbar(Scrollbar.HORIZONTAL, cur, 1, min, max);
+		scroll.addAdjustmentListener(new AdjustmentListener() {
+			public void adjustmentValueChanged(AdjustmentEvent e) {
+				showTimepoint(scroll.getValue());
+			}
+		});
 		gridbag.setConstraints(scroll, c);
 		p.add(scroll);
 
