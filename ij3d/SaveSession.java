@@ -53,13 +53,15 @@ public class SaveSession {
 		BufferedReader in = new BufferedReader(new FileReader(path));
 		SaveSession sase = new SaveSession();
 		univ.removeAllContents();
-		sase.readView(in, univ);
+		HashMap<String, String> view = sase.readView(in, univ);
+		boolean b = univ.getAutoAdjustView();
 		Content c = null;
 		while((c = sase.readContent(in)) != null) {
 			c.setPointListDialog(univ.getPointListDialog());
 			univ.addContent(c);
 		}
 		in.close();
+		sase.apply(view, univ);
 	}
 
 	private class CMesh {
@@ -177,8 +179,8 @@ public class SaveSession {
 		out.println("EndView");
 	}
 
-	void readView(BufferedReader in, Image3DUniverse univ)
-						throws IOException {
+	HashMap<String, String> readView(BufferedReader in,
+			Image3DUniverse univ) throws IOException {
 		String line;
 		boolean foundNext = false;
 		while((line = in.readLine()) != null) {
@@ -188,7 +190,7 @@ public class SaveSession {
 			}
 		}
 		if(!foundNext)
-			return;
+			return null;
 
 		HashMap<String, String> props = new HashMap<String, String>();
 		while((line = in.readLine()) != null) {
@@ -197,6 +199,10 @@ public class SaveSession {
 			String[] keyval = line.split("=");
 			props.put(keyval[0].trim(), keyval[1].trim());
 		}
+		return props;
+	}
+
+	public void apply(HashMap<String, String> props, Image3DUniverse univ) {
 		String tmp;
 		// Set up new Content
 		if((tmp = props.get("center")) != null)
@@ -281,20 +287,12 @@ public class SaveSession {
 
 		// Set up new Content
 		Content c = new Content(props.get("name"));
-		if((tmp = props.get("color")) != null)
-			c.color = new Color3f(new Color(i(tmp)));
 		if((tmp = props.get("channels")) != null) {
 			sp= tmp.split("%%%");
 			c.channels = new boolean[] {b(sp[0]),b(sp[1]),b(sp[2])};
 		}
-		if((tmp = props.get("transparency")) != null)
-			c.transparency = f(tmp);
-		if((tmp = props.get("threshold")) != null)
-			c.threshold = i(tmp);
 		if((tmp = props.get("resampling")) != null)
 			c.resamplingF = i(tmp);
-		if((tmp = props.get("shaded")) != null)
-			c.shaded = b(tmp);
 		if((tmp = props.get("rotation")) != null)
 			c.getLocalRotate().setTransform(t(tmp));
 		if((tmp = props.get("translation")) != null)
@@ -326,9 +324,9 @@ public class SaveSession {
 
 				slice = i(sp[2]);
 				if(slice == -1)
-					og.setVisible(1, false);
+					og.setVisible(2, false);
 				else
-					og.setSlice(1, slice);
+					og.setSlice(2, slice);
 
 			}
 		} else {
@@ -336,6 +334,14 @@ public class SaveSession {
 			c.display(createCustomNode(tmp));
 		}
 
+		if((tmp = props.get("color")) != null)
+			c.setColor(new Color3f(new Color(i(tmp))));
+		if((tmp = props.get("transparency")) != null)
+			c.setTransparency(f(tmp));
+		if((tmp = props.get("threshold")) != null)
+			c.setThreshold(i(tmp));
+		if((tmp = props.get("shaded")) != null)
+			c.setShaded(b(tmp));
 		if((tmp = props.get("visible")) != null)
 			c.setVisible(b(tmp));
 		if((tmp = props.get("coordVisible")) != null)
@@ -444,7 +450,7 @@ System.out.println("loading " + sp[0]);
 			og.getSlice(AxisConstants.Y_AXIS) : -1;
 		int zSlide = og.isVisible(AxisConstants.Z_AXIS) ? 
 			og.getSlice(AxisConstants.Z_AXIS) : -1;
-		return "ortho = " + xSlide + "%%%" + ySlide + "%%%" + zSlide;
+		return xSlide + "%%%" + ySlide + "%%%" + zSlide;
 	}
 
 	private static final String getImageFile(Content c) {

@@ -2,6 +2,7 @@ package ij3d;
 
 import ij3d.shapes.Scalebar;
 import ij.gui.GenericDialog;
+import ij.io.SaveDialog;
 import ij.io.OpenDialog;
 import ij.IJ;
 import ij.WindowManager;
@@ -282,6 +283,38 @@ public class Executer {
 
 	public void saveAsWaveFront() {
 		MeshExporter.saveAsWaveFront(univ.getContents());
+	}
+
+	public void loadSession() {
+		OpenDialog sd = new OpenDialog(
+			"Open session...", "session", ".scene");
+		final String dir = sd.getDirectory();
+		final String name = sd.getFileName();
+		if(dir == null || name == null)
+			return;
+		new Thread() {
+			public void run() {
+				try {
+					univ.loadSession(dir + name);
+				} catch(Exception e) {
+					IJ.error(e.getMessage());
+				}
+			}
+		}.start();
+	}
+
+	public void saveSession() {
+		SaveDialog sd = new SaveDialog(
+			"Save session...", "session", ".scene");
+		String dir = sd.getDirectory();
+		String name = sd.getFileName();
+		if(dir == null || name == null)
+			return;
+		try {
+			univ.saveSession(dir + name);
+		} catch(Exception e) {
+			IJ.error(e.getMessage());
+		}
 	}
 
 	public void close() {

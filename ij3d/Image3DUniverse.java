@@ -28,6 +28,7 @@ import customnode.CustomTriangleMesh;
 import javax.media.j3d.*;
 import javax.vecmath.*;
 
+import java.io.IOException;
 import java.io.File;
 import octree.FilePreparer;
 import octree.VolumeOctree;
@@ -204,6 +205,19 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	public PointListDialog getPointListDialog() {
 		return plDialog;
 	}
+
+	/* *************************************************************
+	 * Session methods
+	 * *************************************************************/
+	public void saveSession(String file) throws IOException {
+		SaveSession.saveScene(this, file);
+	}
+
+	public void loadSession(final String file) throws IOException {
+		removeAllContents();
+		SaveSession.loadScene(this, file);
+	}
+
 
 	/* *************************************************************
 	 * Selection methods
