@@ -38,6 +38,7 @@ public class TimelineGUI implements ActionListener {
 	private ImageButton[] buttons = new ImageButton[FILES.length];
 	private final Timeline timeline;
 	private final Scrollbar scroll;
+	private final TextField tf;
 
 	/**
 	 * Initializes a new Viewer4DController;
@@ -77,6 +78,15 @@ public class TimelineGUI implements ActionListener {
 		scroll = new Scrollbar(Scrollbar.HORIZONTAL, 0, 1, min, max);
 		gridbag.setConstraints(scroll, c);
 		p.add(scroll);
+
+		// set up text field
+		tf = new TextField(2);
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.anchor = GridBagConstraints.EAST;
+		c.weightx = c.weighty = 0.0;
+		c.gridx++;
+		gridbag.setConstraints(tf, c);
+		p.add(tf);
 	}
 
 	public Panel getPanel() {
@@ -85,6 +95,7 @@ public class TimelineGUI implements ActionListener {
 
 	public void updateTimepoint(int val) {
 		scroll.setValue(val);
+		tf.setText(Integer.toString(val));
 	}
 
 	public void updateStartAndEnd(int start, int end) {
