@@ -4,6 +4,7 @@ import ij3d.pointlist.PointListDialog;
 import ij.ImagePlus;
 import ij.IJ;
 
+import java.awt.BorderLayout;
 import java.awt.MenuBar;
 import java.awt.event.*;
 
@@ -26,6 +27,7 @@ import customnode.CustomMultiMesh;
 import customnode.CustomMeshNode;
 import customnode.CustomTriangleMesh;
 
+import view4d.TimelineGUI;
 import view4d.Timeline;
 
 import javax.media.j3d.*;
@@ -58,6 +60,9 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 
 	/** The timeline object for animation accross 4D */
 	private final Timeline timeline;
+
+	/** The GUI controlling the timeline */
+	private TimelineGUI timelineGUI;
 
 	/** The selected Content */
 	private Content selected;
@@ -120,6 +125,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		canvas = (ImageCanvas3D)getCanvas();
 		executer = new Executer(this);
 		this.timeline = new Timeline(this);
+		this.timelineGUI = new TimelineGUI(timeline);
 
 		BranchGroup bg = new BranchGroup();
 		scene.addChild(bg);
@@ -179,8 +185,8 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * @param text
 	 */
 	public void setStatus(String text) {
-		if(win != null)
-			win.getStatusLabel().setText("  " + text);
+// 		if(win != null)
+// 			win.getStatusLabel().setText("  " + text);
 	}
 
 	/**
@@ -245,6 +251,8 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		this.currentTimepoint = tp;
 		for(Content c : contents.values())
 			c.showTimepoint(tp);
+		if(timelineGUIVisible)
+			timelineGUI.updateTimepoint(tp);
 	}
 
 	public int getCurrentTimepoint() {
@@ -259,14 +267,43 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		return endTime;
 	}
 
+	public void updateStartAndEndTime(int st, int e) {
+		this.startTime = st;
+		this.endTime = e;
+		updateTimelineGUI();
+	}
+
 	public void updateTimeline() {
-		startTime = Integer.MAX_VALUE;
-		endTime = Integer.MIN_VALUE;
-		for(Content c : contents.values()) {
-			if(c.getStartTime() < startTime)
-				startTime = c.getStartTime();
-			if(c.getEndTime() > endTime)
-				endTime = c.getEndTime();
+		if(contents.size() == 0)
+			startTime = endTime = 0;
+		else {
+			startTime = Integer.MAX_VALUE;
+			endTime = Integer.MIN_VALUE;
+			for(Content c : contents.values()) {
+				if(c.getStartTime() < startTime)
+					startTime = c.getStartTime();
+				if(c.getEndTime() > endTime)
+					endTime = c.getEndTime();
+			}
+		}
+		updateTimelineGUI();
+	}
+
+	boolean timelineGUIVisible = false;
+	public void updateTimelineGUI() {
+		if(win == null)
+			return;
+		if(endTime != startTime && !timelineGUIVisible) {
+			win.add(timelineGUI.getPanel(), BorderLayout.SOUTH, -1);
+			timelineGUIVisible = true;
+			win.pack();
+		} else if(endTime == startTime && timelineGUIVisible) {
+			win.remove(timelineGUI.getPanel());
+			timelineGUIVisible = false;
+			win.pack();
+		}
+		if(timelineGUIVisible) {
+			timelineGUI.updateStartAndEnd(startTime, endTime);
 		}
 	}
 
@@ -965,6 +1002,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 				clearSelection();
 			fireContentRemoved(content);
 			this.removeUniverseListener(content);
+			updateTimeline();
 		}
 	}
 
@@ -1243,10 +1281,13 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			if(instants.firstKey() == -1)
 				c.startAt(currentTimepoint);
 			// update start and end time
+			int st = startTime;
+			int e = endTime;
 			if(c.getStartTime() < startTime)
-				startTime = c.getStartTime();
+				st = c.getStartTime();
 			if(c.getEndTime() > endTime)
-				endTime = c.getEndTime();
+				e = c.getEndTime();
+			updateStartAndEndTime(st, e);
 
 			this.scene.addChild(c);
 			this.contents.put(name, c);

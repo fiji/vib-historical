@@ -17,6 +17,9 @@ import vib.segment.ImageButton;
  */
 public class TimelineGUI implements ActionListener {
 
+	private final Panel p;
+	private boolean visible = false;
+
 	private static final String[] FILES = new String[] {
 				"icons/first.png",
 				"icons/previous.png",
@@ -33,7 +36,8 @@ public class TimelineGUI implements ActionListener {
 
 
 	private ImageButton[] buttons = new ImageButton[FILES.length];
-	private Timeline timeline;
+	private final Timeline timeline;
+	private final Scrollbar scroll;
 
 	/**
 	 * Initializes a new Viewer4DController;
@@ -43,17 +47,31 @@ public class TimelineGUI implements ActionListener {
 	public TimelineGUI(Timeline timeline) {
 		this.timeline = timeline;
 
-		GenericDialog gd = new GenericDialog("4D Viewer");
-		Panel p = new Panel(new FlowLayout());
+		p = new Panel(new FlowLayout());
 		for(int i = 0; i < FILES.length; i++) {
 			buttons[i] = new ImageButton(loadIcon(FILES[i]));
 			buttons[i].addActionListener(this);
 			buttons[i].setActionCommand(COMMANDS[i]);
 			p.add(buttons[i]);
 		}
-		gd.addPanel(p);
-		gd.setModal(false);
-		gd.showDialog();
+		// set up scroll bar
+		int min = timeline.getUniverse().getStartTime();
+		int max = timeline.getUniverse().getEndTime() + 1;
+		scroll = new Scrollbar(Scrollbar.HORIZONTAL, 0, 1, min, max);
+		p.add(scroll);
+	}
+
+	public Panel getPanel() {
+		return p;
+	}
+
+	public void updateTimepoint(int val) {
+		scroll.setValue(val);
+	}
+
+	public void updateStartAndEnd(int start, int end) {
+		scroll.setMinimum(start);
+		scroll.setMaximum(end + 1);
 	}
 
 	private Image loadIcon(String name) {
