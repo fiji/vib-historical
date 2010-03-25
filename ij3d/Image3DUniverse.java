@@ -1246,6 +1246,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			this.scene.addChild(c);
 			this.contents.put(name, c);
 			this.recalculateGlobalMinMax(c);
+			c.showTimepoint(currentTimepoint);
 		}
 		return true;
 	}

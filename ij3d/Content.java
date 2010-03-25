@@ -41,7 +41,6 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 		timepointToSwitchIndex.put(tp, 0);
 		contentSwitch = new Switch();
 		contentSwitch.setCapability(Switch.ALLOW_SWITCH_WRITE);
-		contentSwitch.setWhichChild(Switch.CHILD_ALL);
 		contentSwitch.addChild(ci);
 		addChild(contentSwitch);
 	}
@@ -54,7 +53,6 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 		timepointToSwitchIndex = new HashMap<Integer, Integer>();
 		contentSwitch = new Switch();
 		contentSwitch.setCapability(Switch.ALLOW_SWITCH_WRITE);
-		contentSwitch.setWhichChild(Switch.CHILD_ALL);
 		for(int i : contents.keySet()) {
 			ContentInstant c = contents.get(i);
 			c.timepoint = i;
