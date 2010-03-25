@@ -38,7 +38,7 @@ import stacks.ThreePanes;
 import ij3d.Image3DUniverse;
 import ij3d.Content;
 import ij3d.Pipe;
-import ij3d.Mesh_Maker;
+import ij3d.MeshMaker;
 import javax.vecmath.Color3f;
 import javax.vecmath.Point3f;
 
@@ -50,8 +50,6 @@ import java.util.Iterator;
 import java.util.HashSet;
 import java.util.Arrays;
 import java.util.List;
-
-import util.CMTK_Transformation;
 
 /* This class represents a list of points, and has methods for drawing
  * them onto ThreePanes-style image canvases. */
@@ -78,7 +76,7 @@ public class Path implements Comparable {
 		this.id = id;
 	}
 
-	static final boolean verbose = Simple_Neurite_Tracer.verbose;
+	static final boolean verbose = SimpleNeuriteTracer.verbose;
 
 	boolean selected;
 
@@ -939,7 +937,7 @@ public class Path implements Comparable {
 		setUseFitted( useFitted, null );
 	}
 
-	public void setUseFitted( boolean useFitted, Simple_Neurite_Tracer plugin ) {
+	public void setUseFitted( boolean useFitted, SimpleNeuriteTracer plugin ) {
 
 		if( useFitted && fitted == null )
 			throw new RuntimeException("BUG: setUseFitted(true) was called, but the 'fitted' member was null");
@@ -1180,7 +1178,7 @@ public class Path implements Comparable {
 		return fitCircles( side, image, display, null );
 	}
 
-	public Path fitCircles( int side, ImagePlus image, boolean display, Simple_Neurite_Tracer plugin ) {
+	public Path fitCircles( int side, ImagePlus image, boolean display, SimpleNeuriteTracer plugin ) {
 
 		Path fitted = new Path( x_spacing, y_spacing, z_spacing, spacing_units );
 
@@ -1964,7 +1962,7 @@ public class Path implements Comparable {
 		List<Point3f> allTriangles = new ArrayList<Point3f>(edges*points);
 		for( int i = 0; i < points; ++i ) {
 			List<Point3f> discMesh =
-				Mesh_Maker.createDisc( precise_x_positions[i],
+				MeshMaker.createDisc( precise_x_positions[i],
 						       precise_y_positions[i],
 						       precise_z_positions[i],
 						       tangents_x[i],
@@ -1997,12 +1995,12 @@ public class Path implements Comparable {
 			return;
 		}
 
-		if( paths3DDisplay == Simple_Neurite_Tracer.DISPLAY_PATHS_LINES ||
-		    paths3DDisplay == Simple_Neurite_Tracer.DISPLAY_PATHS_LINES_AND_DISCS ) {
+		if( paths3DDisplay == SimpleNeuriteTracer.DISPLAY_PATHS_LINES ||
+		    paths3DDisplay == SimpleNeuriteTracer.DISPLAY_PATHS_LINES_AND_DISCS ) {
 			content3D = addAsLinesTo3DViewer(univ,realColor);
 			content3D.setLocked(true);
 			nameWhenAddedToViewer = content3D.getName();
-			if( paths3DDisplay == Simple_Neurite_Tracer.DISPLAY_PATHS_LINES_AND_DISCS ) {
+			if( paths3DDisplay == SimpleNeuriteTracer.DISPLAY_PATHS_LINES_AND_DISCS ) {
 				content3DExtra = addDiscsTo3DViewer(univ,realColor);
 				if( content3DExtra == null ) {
 					nameWhenAddedToViewerExtra = null;

@@ -35,7 +35,7 @@ import stacks.ThreePanes;
 
 public class InteractiveTracerCanvas extends TracerCanvas implements KeyListener {
 
-	static final boolean verbose = Simple_Neurite_Tracer.verbose;
+	static final boolean verbose = SimpleNeuriteTracer.verbose;
 
 	boolean fillTransparent = false;
 
@@ -47,16 +47,16 @@ public class InteractiveTracerCanvas extends TracerCanvas implements KeyListener
 
 	// -------------------------------------------------------------
 
-	private Simple_Neurite_Tracer tracerPlugin;
+	private SimpleNeuriteTracer tracerPlugin;
 
-	public Simple_Neurite_Tracer getTracerPlugin() {
+	public SimpleNeuriteTracer getTracerPlugin() {
 		return tracerPlugin;
 	}
 
-	InteractiveTracerCanvas( ImagePlus imp, Simple_Neurite_Tracer plugin, int plane, PathAndFillManager pathAndFillManager ) {
+	InteractiveTracerCanvas( ImagePlus imp, SimpleNeuriteTracer plugin, int plane, PathAndFillManager pathAndFillManager ) {
 		super(imp,plugin,plane,pathAndFillManager);
 		tracerPlugin = plugin;
-		// Simple_Neurite_Tracer.toastKeyListeners( IJ.getInstance(), "InteractiveTracerCanvas constructor" );
+		// SimpleNeuriteTracer.toastKeyListeners( IJ.getInstance(), "InteractiveTracerCanvas constructor" );
 		// addKeyListener( this );
 	}
 

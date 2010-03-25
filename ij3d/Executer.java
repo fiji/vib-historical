@@ -14,7 +14,7 @@ import ij.process.ImageConverter;
 import view4d.Viewer4D;
 import view4d.Viewer4DController;
 
-import math3d.Transform_IO;
+import math3d.TransformIO;
 
 import java.awt.event.*;
 import java.awt.*;
@@ -976,7 +976,7 @@ public class Executer {
 		t1.mul(t2);
 		float[] matrix = new float[16];
 		t1.get(matrix);
-		if(new Transform_IO().saveAffineTransform(matrix))
+		if(new TransformIO().saveAffineTransform(matrix))
 			record(SAVE_TRANSFORM, affine2string(matrix));
 	}
 
@@ -1190,7 +1190,7 @@ public class Executer {
 		Button b = new Button("Open from file");
 		b.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				float[] m = new Transform_IO().
+				float[] m = new TransformIO().
 						openAffineTransform();
 				if(m != null) {
 					TextField tf = (TextField)gd.

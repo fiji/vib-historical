@@ -8,11 +8,11 @@ import java.io.DataOutputStream;
 
 import java.util.Arrays;
 import java.util.Properties;
-import vib.Resample_;
+import vib.NaiveResampler;
 
 public class FilePreparer {
 
-	private static final Resample_.Averager accu = new Resample_.Averager();
+	private static final NaiveResampler.Averager accu = new NaiveResampler.Averager();
 
 	private static final class Volume {
 		private int w, h, d;

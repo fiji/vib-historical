@@ -5,10 +5,9 @@ import ij.ImagePlus;
 import vib.app.ImageMetaData;
 import vib.app.Options;
 
-import vib.DiffusionInterpol2_;
+import vib.DiffusionInterpol2;
 import vib.FloatMatrix;
 import vib.InterpolatedImage;
-import vib.RigidRegistration_;
 import vib.TransformedImage;
 
 public class LabelDiffusionTransformation extends Module {
@@ -25,7 +24,7 @@ public class LabelDiffusionTransformation extends Module {
 
 		ImagePlus templateLabels = null;
 
-		DiffusionInterpol2_ interpol = new DiffusionInterpol2_();
+		DiffusionInterpol2 interpol = new DiffusionInterpol2();
 		boolean rememberDistortion = true;
 		boolean reuseDistortion = false;
 		float tolerance = 0.5f;
@@ -56,7 +55,7 @@ public class LabelDiffusionTransformation extends Module {
 
 			/*
 			 * Copy transformations because they get transformed
-			 * in DiffusionInterpol2_.
+			 * in DiffusionInterpol2.
 			 */
 			FloatMatrix[] trans = copyMatrices(transformations);
 			interpol.initialize(scratch, templateLabels, model,

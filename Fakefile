@@ -1,7 +1,6 @@
 javaVersion=1.5
 all <- VIB_.jar
 
-CLASSPATH=$CLASSPATH:junit-4.4.jar:.
 CLASSPATH(VIB_.jar)=VIB-lib.jar
 VIB_.jar <- **/*_*.java
 

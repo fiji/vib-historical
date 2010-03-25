@@ -43,7 +43,7 @@ import java.io.PrintWriter;
 
 public abstract class SearchThread extends Thread {
 
-	boolean verbose = Simple_Neurite_Tracer.verbose;
+	boolean verbose = SimpleNeuriteTracer.verbose;
 
 	public static final byte OPEN_FROM_START   = 1;
 	public static final byte CLOSED_FROM_START = 2;

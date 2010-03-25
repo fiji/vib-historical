@@ -8,8 +8,6 @@ import ij.process.ByteProcessor;
 import ij.measure.Calibration;
 import java.util.List;
 
-import vib.Resample_;
-
 import ij3d.Volume;
 import ij3d.ImgLibVolume;
 
@@ -18,13 +16,15 @@ import isosurface.Triangulator;
 import mpicbg.imglib.image.Image;
 import mpicbg.imglib.type.NumericType;
 
+import vib.NaiveResampler;
+
 public class MCTriangulator implements Triangulator {
 
 	public List getTriangles(ImagePlus image, int threshold, 
 					boolean[] channels, int resamplingF) {
 
 		if(resamplingF != 1)
-			image = Resample_.resample(image, resamplingF);
+			image = NaiveResampler.resample(image, resamplingF);
 		// There is no need to zero pad any more. MCCube automatically
 		// scans one pixel more in each direction, assuming a value
 		// of zero outside the image.

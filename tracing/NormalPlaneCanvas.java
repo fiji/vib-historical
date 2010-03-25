@@ -35,7 +35,7 @@ class NormalPlaneCanvas extends ImageCanvas {
 	HashMap<Integer,Integer> indexToValidIndex = new HashMap<Integer,Integer>();
 
 	public NormalPlaneCanvas( ImagePlus imp,
-				  Simple_Neurite_Tracer plugin,
+				  SimpleNeuriteTracer plugin,
 				  double [] centre_x_positions,
 				  double [] centre_y_positions,
 				  double [] radiuses,
@@ -79,7 +79,7 @@ class NormalPlaneCanvas extends ImageCanvas {
 
 	Path fittedPath;
 
-	Simple_Neurite_Tracer tracerPlugin;
+	SimpleNeuriteTracer tracerPlugin;
 
 	/* Keep another Graphics for double-buffering... */
 

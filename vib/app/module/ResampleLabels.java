@@ -2,7 +2,7 @@ package vib.app.module;
 
 import ij.ImagePlus;
 
-import vib.Resample_;
+import vib.NaiveResampler;
 
 public class ResampleLabels extends Module {
 	public String getName() { return "ResampleLabels"; }
@@ -22,7 +22,7 @@ public class ResampleLabels extends Module {
 			return;
 
 		ImagePlus image = state.getImage(labelPath);
-		ImagePlus resampled = Resample_.resample(image,
+		ImagePlus resampled = NaiveResampler.resample(image,
 				state.options.resamplingFactor);
 		if(!state.save(resampled, resampledPath))
 			throw new RuntimeException("Could not save " + 

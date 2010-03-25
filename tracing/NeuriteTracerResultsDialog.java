@@ -35,16 +35,16 @@ import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import features.Sigma_Palette;
+import features.SigmaPalette;
 import ij.gui.GenericDialog;
 
 import java.text.DecimalFormat;
 
 class NeuriteTracerResultsDialog
 	extends Dialog
-	implements ActionListener, WindowListener, ItemListener, PathAndFillListener, TextListener, Sigma_Palette.SigmaPaletteListener {
+	implements ActionListener, WindowListener, ItemListener, PathAndFillListener, TextListener, SigmaPalette.SigmaPaletteListener {
 
-	static final boolean verbose = Simple_Neurite_Tracer.verbose;
+	static final boolean verbose = SimpleNeuriteTracer.verbose;
 
 	PathWindow pw;
 	FillWindow fw;
@@ -81,7 +81,7 @@ class NeuriteTracerResultsDialog
 
 	private int currentState;
 
-	Simple_Neurite_Tracer plugin;
+	SimpleNeuriteTracer plugin;
 
 	Panel statusPanel;
 	TextArea statusText;
@@ -145,7 +145,7 @@ class NeuriteTracerResultsDialog
 	}
 
 	// ------------------------------------------------------------------------
-	// FIXME: consider moving these into Simple_Neurite_Tracer
+	// FIXME: consider moving these into SimpleNeuriteTracer
 
 	public void setPathList( String [] newList, Path justAdded, boolean expandAll ) { }
 
@@ -466,7 +466,7 @@ class NeuriteTracerResultsDialog
 	boolean launchedByArchive;
 
 	public NeuriteTracerResultsDialog( String title,
-					   Simple_Neurite_Tracer plugin,
+					   SimpleNeuriteTracer plugin,
 					   boolean launchedByArchive ) {
 
 		super( IJ.getInstance(), title, false );

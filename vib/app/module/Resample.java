@@ -4,7 +4,7 @@ import ij.ImagePlus;
 
 import vib.app.Options;
 
-import vib.Resample_;
+import vib.NaiveResampler;
 
 public class Resample extends Module {
 	public String getName() { return "Resample"; }
@@ -39,7 +39,7 @@ public class Resample extends Module {
 		ImagePlus image = state.getImage(imagePath);
 		if (image == null)
 			return;
-		ImagePlus resampled = Resample_.resample(image,
+		ImagePlus resampled = NaiveResampler.resample(image,
 				state.options.resamplingFactor);
 	
 		if(!state.save(resampled, resampledPath))
