@@ -61,7 +61,9 @@ public class WavefrontLoader {
 				materials = readMaterials(f, mtlName);
 			} else if(line.startsWith("g ")) {
 				if(name != null) {
-					meshes.put(name, createCustomMesh());
+					CustomMesh cm = createCustomMesh();
+					if(cm != null)
+						meshes.put(name, cm);
 					indices = new ArrayList<Point3f>();
 					material = null;
 				}
@@ -80,13 +82,17 @@ public class WavefrontLoader {
 			}
 		}
 		if(name != null && indices.size() > 0) {
-			meshes.put(name, createCustomMesh());
+			CustomMesh cm = createCustomMesh();
+			if(cm != null)
+				meshes.put(name, cm);
 			indices = new ArrayList<Point3f>();
 			material = null;
 		}
 	}
 
 	private CustomMesh createCustomMesh() {
+		if(indices.size() == 0)
+			return null;
 		CustomMesh cm = null;
 		switch(type) {
 			case 1: cm = new CustomPointMesh(indices); break;
