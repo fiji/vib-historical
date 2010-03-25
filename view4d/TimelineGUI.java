@@ -72,21 +72,40 @@ public class TimelineGUI implements ActionListener {
 		// set up scroll bar
 		int min = timeline.getUniverse().getStartTime();
 		int max = timeline.getUniverse().getEndTime() + 1;
+		int cur = timeline.getUniverse().getCurrentTimepoint();
 		
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.weightx = 1.0;
-		scroll = new Scrollbar(Scrollbar.HORIZONTAL, 0, 1, min, max);
+		scroll = new Scrollbar(Scrollbar.HORIZONTAL, cur, 1, min, max);
 		gridbag.setConstraints(scroll, c);
 		p.add(scroll);
 
 		// set up text field
 		tf = new TextField(2);
+		tf.setText(Integer.toString(cur));
+		tf.addKeyListener(new KeyAdapter() {
+			public void keyReleased(KeyEvent e) {
+				if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+					int v = 0;
+					try {
+						v = Integer.parseInt(
+							tf.getText());
+						showTimepoint(v);
+						tf.selectAll();
+					} catch(Exception ex) {}
+				}
+			}
+		});
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.anchor = GridBagConstraints.EAST;
 		c.weightx = c.weighty = 0.0;
 		c.gridx++;
 		gridbag.setConstraints(tf, c);
 		p.add(tf);
+	}
+
+	private void showTimepoint(int v) {
+		timeline.getUniverse().showTimepoint(v);
 	}
 
 	public Panel getPanel() {
