@@ -96,7 +96,7 @@ public class WavefrontLoader {
 		CustomMesh cm = null;
 		switch(type) {
 			case 1: cm = new CustomPointMesh(indices); break;
-			case 2: cm = new CustomLineMesh(indices); break;
+			case 2: cm = new CustomLineMesh(indices, CustomLineMesh.PAIRWISE); break;
 			case 3: cm = new CustomTriangleMesh(indices); break;
 			case 4: cm = new CustomQuadMesh(indices); break;
 			default: throw new RuntimeException(
