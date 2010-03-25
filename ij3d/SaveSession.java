@@ -248,6 +248,7 @@ public class SaveSession {
 		out.println("name = "         + c.name);
 		if(col != null)
 			out.println("color = "        + col);
+		out.println("timepoint = "    + c.timepoint);
 		out.println("channels = "     + chan);
 		out.println("transparency = " + c.transparency);
 		out.println("threshold = "    + c.threshold);
@@ -297,10 +298,8 @@ public class SaveSession {
 		HashMap<Integer, ContentInstant> cis =
 			new HashMap<Integer, ContentInstant>();
 		ContentInstant ci = null;
-		// TODO read real timepoint
-		int i = 0;
 		while((ci = readContentInstant(in)) != null)
-			cis.put(i++, ci);
+			cis.put(ci.timepoint, ci);
 		if(name == null)
 			throw new RuntimeException("no name for content");
 		return new Content(name, cis);
@@ -336,6 +335,8 @@ public class SaveSession {
 			sp= tmp.split("%%%");
 			c.channels = new boolean[] {b(sp[0]),b(sp[1]),b(sp[2])};
 		}
+		if((tmp = props.get("timepoint")) != null)
+			c.timepoint = i(tmp);
 		if((tmp = props.get("resampling")) != null)
 			c.resamplingF = i(tmp);
 		if((tmp = props.get("rotation")) != null)

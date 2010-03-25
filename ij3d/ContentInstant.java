@@ -31,6 +31,9 @@ import javax.vecmath.Vector3d;
 
 public class ContentInstant extends BranchGroup implements UniverseListener, ContentConstants {
 
+	// time point for this ContentInstant
+	int timepoint = 0;
+
 	// attributes
 	protected String name;
 	protected Color3f color = null;
@@ -458,6 +461,10 @@ public class ContentInstant extends BranchGroup implements UniverseListener, Con
 	@Override
 	public String getName() {
 		return name;
+	}
+
+	public int getTimepoint() {
+		return timepoint;
 	}
 
 	public int getType() {

@@ -28,6 +28,7 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 		this.name = name;
 		contents = new HashMap<Integer, ContentInstant>();
 		ContentInstant ci = new ContentInstant(name + "_#0");
+		ci.timepoint = 0;
 		contents.put(0, ci);
 		contentSwitch = new Switch();
 		contentSwitch.setWhichChild(Switch.CHILD_ALL);
@@ -42,6 +43,7 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 		contentSwitch.setWhichChild(Switch.CHILD_ALL);
 		for(int i : contents.keySet()) {
 			ContentInstant c = contents.get(i);
+			c.timepoint = i;
 			c.name = name + "_#" + i;
 			contentSwitch.addChild(c);
 			addChild(contentSwitch);
