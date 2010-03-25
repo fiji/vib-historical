@@ -26,6 +26,7 @@ import java.io.FileWriter;
 import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.ArrayList;
 
 import javax.media.j3d.Transform3D;
@@ -295,8 +296,8 @@ public class SaveSession {
 				break;
 			}
 		}
-		HashMap<Integer, ContentInstant> cis =
-			new HashMap<Integer, ContentInstant>();
+		TreeMap<Integer, ContentInstant> cis =
+			new TreeMap<Integer, ContentInstant>();
 		ContentInstant ci = null;
 		while((ci = readContentInstant(in)) != null)
 			cis.put(ci.timepoint, ci);

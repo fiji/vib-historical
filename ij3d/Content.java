@@ -14,25 +14,29 @@ import javax.media.j3d.View;
 import javax.vecmath.Color3f;
 import javax.vecmath.Point3d;
 
+import java.util.TreeMap;
 import java.util.HashMap;
 
 public class Content extends BranchGroup implements UniverseListener, ContentConstants {
 
 	private HashMap<Integer, Integer> timepointToSwitchIndex;
-	private HashMap<Integer, ContentInstant> contents;
+	private TreeMap<Integer, ContentInstant> contents;
 	private int currentTimePoint;
 	private Switch contentSwitch;
 	private final String name;
 
-
 	public Content(String name) {
+		this(name, 0);
+	}
+
+	public Content(String name, int tp) {
 		this.name = name;
 		timepointToSwitchIndex = new HashMap<Integer, Integer>();
-		contents = new HashMap<Integer, ContentInstant>();
-		ContentInstant ci = new ContentInstant(name + "_#0");
-		ci.timepoint = 0;
-		contents.put(0, ci);
-		timepointToSwitchIndex.put(0, 0);
+		contents = new TreeMap<Integer, ContentInstant>();
+		ContentInstant ci = new ContentInstant(name + "_#" + tp);
+		ci.timepoint = tp;
+		contents.put(tp, ci);
+		timepointToSwitchIndex.put(tp, 0);
 		contentSwitch = new Switch();
 		contentSwitch.setCapability(Switch.ALLOW_SWITCH_WRITE);
 		contentSwitch.setWhichChild(Switch.CHILD_ALL);
@@ -40,9 +44,10 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 		addChild(contentSwitch);
 	}
 
-	public Content(String name, HashMap<Integer, ContentInstant> contents) {
+	public Content(String name, TreeMap<Integer, ContentInstant> contents) {
 		this.name = name;
 		this.contents = contents;
+		timepointToSwitchIndex = new HashMap<Integer, Integer>();
 		contentSwitch = new Switch();
 		contentSwitch.setCapability(Switch.ALLOW_SWITCH_WRITE);
 		contentSwitch.setWhichChild(Switch.CHILD_ALL);
@@ -50,7 +55,7 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 			ContentInstant c = contents.get(i);
 			c.timepoint = i;
 			c.name = name + "_#" + i;
-			timepointToSwitchIndex.put(0, contentSwitch.numChildren());
+			timepointToSwitchIndex.put(i, contentSwitch.numChildren());
 			contentSwitch.addChild(c);
 		}
 		addChild(contentSwitch);
@@ -64,7 +69,7 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 		return contents.get(i);
 	}
 
-	public HashMap<Integer, ContentInstant> getInstants() {
+	public TreeMap<Integer, ContentInstant> getInstants() {
 		return contents;
 	}
 
