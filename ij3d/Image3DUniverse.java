@@ -45,6 +45,18 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	public static ArrayList<Image3DUniverse> universes =
 				new ArrayList<Image3DUniverse>();
 
+	/** The current time point */
+	private int currentTimepoint = 0;
+
+	/** The global start time */
+	private int startTime = 0;
+
+	/** The global end time */
+	private int endTime = 0;
+
+	/** The timeline object for animation accross 4D */
+	private final Timeline timeline;
+
 	/** The selected Content */
 	private Content selected;
 
@@ -105,6 +117,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		super(width, height);
 		canvas = (ImageCanvas3D)getCanvas();
 		executer = new Executer(this);
+		this.timeline = new Timeline(this);
 
 		BranchGroup bg = new BranchGroup();
 		scene.addChild(bg);
@@ -223,8 +236,32 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * Timeline stuff
 	 * *************************************************************/
 	public void showTimepoint(int tp) {
+		this.currentTimepoint = tp;
 		for(Content c : contents.values())
 			c.showTimepoint(tp);
+	}
+
+	public int getCurrentTimepoint() {
+		return currentTimepoint;
+	}
+
+	public int getStartTime() {
+		return startTime;
+	}
+
+	public int getEndTime() {
+		return endTime;
+	}
+
+	public void updateTimeline() {
+		startTime = Integer.MAX_VALUE;
+		endTime = Integer.MIN_VALUE;
+		for(Content c : contents.values()) {
+			if(c.getStartTime() < startTime)
+				startTime = c.getStartTime();
+			if(c.getEndTime() > endTime)
+				endTime = c.getEndTime();
+		}
 	}
 
 
