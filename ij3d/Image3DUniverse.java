@@ -1242,6 +1242,11 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			// in case the time point is not set, do so now
 			if(instants.firstKey() == -1)
 				c.startAt(currentTimepoint);
+			// update start and end time
+			if(c.getStartTime() < startTime)
+				startTime = c.getStartTime();
+			if(c.getEndTime() > endTime)
+				endTime = c.getEndTime();
 
 			this.scene.addChild(c);
 			this.contents.put(name, c);
