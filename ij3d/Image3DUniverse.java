@@ -26,6 +26,8 @@ import customnode.CustomMultiMesh;
 import customnode.CustomMeshNode;
 import customnode.CustomTriangleMesh;
 
+import view4d.Timeline;
+
 import javax.media.j3d.*;
 import javax.vecmath.*;
 

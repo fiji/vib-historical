@@ -1,4 +1,4 @@
-package ij3d;
+package view4d;
 
 import ij3d.Image3DUniverse;
 
