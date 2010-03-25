@@ -18,6 +18,7 @@ import java.util.HashMap;
 
 public class Content extends BranchGroup implements UniverseListener, ContentConstants {
 
+	private HashMap<Integer, Integer> timepointToSwitchIndex;
 	private HashMap<Integer, ContentInstant> contents;
 	private int currentTimePoint;
 	private Switch contentSwitch;
@@ -26,11 +27,14 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 
 	public Content(String name) {
 		this.name = name;
+		timepointToSwitchIndex = new HashMap<Integer, Integer>();
 		contents = new HashMap<Integer, ContentInstant>();
 		ContentInstant ci = new ContentInstant(name + "_#0");
 		ci.timepoint = 0;
 		contents.put(0, ci);
+		timepointToSwitchIndex.put(0, 0);
 		contentSwitch = new Switch();
+		contentSwitch.setCapability(Switch.ALLOW_SWITCH_WRITE);
 		contentSwitch.setWhichChild(Switch.CHILD_ALL);
 		contentSwitch.addChild(ci);
 		addChild(contentSwitch);
@@ -40,14 +44,16 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 		this.name = name;
 		this.contents = contents;
 		contentSwitch = new Switch();
+		contentSwitch.setCapability(Switch.ALLOW_SWITCH_WRITE);
 		contentSwitch.setWhichChild(Switch.CHILD_ALL);
 		for(int i : contents.keySet()) {
 			ContentInstant c = contents.get(i);
 			c.timepoint = i;
 			c.name = name + "_#" + i;
+			timepointToSwitchIndex.put(0, contentSwitch.numChildren());
 			contentSwitch.addChild(c);
-			addChild(contentSwitch);
 		}
+		addChild(contentSwitch);
 	}
 
 	public ContentInstant getCurrent() {
@@ -62,6 +68,21 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 		return contents;
 	}
 
+	public void showTimepoint(int tp) {
+		Integer idx = timepointToSwitchIndex.get(tp);
+		if(idx == null)
+			contentSwitch.setWhichChild(Switch.CHILD_NONE);
+		else
+			contentSwitch.setWhichChild(idx);
+	}
+
+
+
+	// ==========================================================
+	// From here begins the 'Content Instant interface', i.e.
+	// methods which are delegated to the individual
+	// ContentInstants.
+	//
 	public void displayAs(int type) {
 		for(ContentInstant c : contents.values())
 			c.displayAs(type);

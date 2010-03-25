@@ -218,6 +218,14 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		SaveSession.loadScene(this, file);
 	}
 
+	/* *************************************************************
+	 * Timeline stuff
+	 * *************************************************************/
+	public void showTimepoint(int tp) {
+		for(Content c : contents.values())
+			c.showTimepoint(tp);
+	}
+
 
 	/* *************************************************************
 	 * Selection methods
