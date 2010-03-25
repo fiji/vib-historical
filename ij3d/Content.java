@@ -76,6 +76,7 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 	}
 
 	public void showTimepoint(int tp) {
+		currentTimePoint = tp;
 		Integer idx = timepointToSwitchIndex.get(tp);
 		if(idx == null)
 			contentSwitch.setWhichChild(Switch.CHILD_NONE);
@@ -310,6 +311,20 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 
 	public void transformationFinished(View view) {
 		eyePtChanged(view);
+		// apply same transformation to all other time points
+		ContentInstant curr = getCurrent();
+		Transform3D t = new Transform3D();
+		Transform3D r = new Transform3D();
+		curr.getLocalTranslate(t);
+		curr.getLocalRotate(r);
+
+		for(ContentInstant c : contents.values()) {
+			if(c == getCurrent())
+				continue;
+			c.getLocalRotate().setTransform(r);
+			c.getLocalTranslate().setTransform(t);
+			c.transformationFinished(view);
+		}
 	}
 
 	public void eyePtChanged(View view) {
