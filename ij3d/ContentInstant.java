@@ -32,7 +32,7 @@ import javax.vecmath.Vector3d;
 public class ContentInstant extends BranchGroup implements UniverseListener, ContentConstants {
 
 	// attributes
-	protected final String name;
+	protected String name;
 	protected Color3f color = null;
 	protected ImagePlus image;
 	protected boolean[] channels = new boolean[] {true, true, true};

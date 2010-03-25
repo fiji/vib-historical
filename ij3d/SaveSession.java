@@ -56,6 +56,7 @@ public class SaveSession {
 		boolean b = univ.getAutoAdjustView();
 		Content c = null;
 		while((c = sase.readContent(in)) != null) {
+			// TODO
 			c.setPointListDialog(univ.getPointListDialog());
 			univ.addContent(c);
 		}
@@ -81,7 +82,7 @@ public class SaveSession {
 			new HashMap<String, ArrayList<CMesh>>();
 
 		for(Content content : contents) {
-			for(ContentInstant c : content.getInstants()) {
+			for(ContentInstant c : content.getInstants().values()) {
 				int t = c.getType();
 				if(t != Content.CUSTOM) {
 					FileInfo fi = c.getImage().getOriginalFileInfo();
@@ -222,8 +223,11 @@ public class SaveSession {
 	}
 
 	void saveContent(PrintWriter out, Content c) {
-		for(ContentInstant ci : c.getInstants())
+		out.println("BeginContent");
+		out.println("name = " + c.getName());
+		for(ContentInstant ci : c.getInstants().values())
 			saveContentInstant(out, ci);
+		out.println("EndContent");
 	}
 
 	void saveContentInstant(PrintWriter out, ContentInstant c) {
@@ -240,7 +244,7 @@ public class SaveSession {
 		c.getLocalTranslate(t);
 		String trans = toString(t);
 
-		out.println("BeginContent");
+		out.println("BeginContentInstant");
 		out.println("name = "         + c.name);
 		if(col != null)
 			out.println("color = "        + col);
@@ -269,10 +273,11 @@ public class SaveSession {
 		} else if(type == Content.CUSTOM) {
 			out.println("surffiles = " + getMeshString(c));
 		}
-		out.println("EndContent");
+		out.println("EndContentInstant");
 	}
 
 	public Content readContent(BufferedReader in) throws IOException {
+		String name = null;
 		String line;
 		boolean foundNext = false;
 		while((line = in.readLine()) != null) {
@@ -283,10 +288,41 @@ public class SaveSession {
 		}
 		if(!foundNext)
 			return null;
+		while((line = in.readLine()) != null) {
+			if(line.startsWith("name")) {
+				name = line.split("=")[1].trim();
+				break;
+			}
+		}
+		HashMap<Integer, ContentInstant> cis =
+			new HashMap<Integer, ContentInstant>();
+		ContentInstant ci = null;
+		// TODO read real timepoint
+		int i = 0;
+		while((ci = readContentInstant(in)) != null)
+			cis.put(i++, ci);
+		if(name == null)
+			throw new RuntimeException("no name for content");
+		return new Content(name, cis);
+	}
+
+	public ContentInstant readContentInstant(BufferedReader in) throws IOException {
+		String line;
+		boolean foundNext = false;
+		while((line = in.readLine()) != null) {
+			if(line.startsWith("EndContent"))
+				break;
+			if(line.startsWith("BeginContentInstant")) {
+				foundNext = true;
+				break;
+			}
+		}
+		if(!foundNext)
+			return null;
 
 		HashMap<String, String> props = new HashMap<String, String>();
 		while((line = in.readLine()) != null) {
-			if(line.startsWith("EndContent"))
+			if(line.startsWith("EndContentInstant"))
 				break;
 			String[] keyval = line.split("=");
 			props.put(keyval[0].trim(), keyval[1].trim());
@@ -295,7 +331,7 @@ public class SaveSession {
 		String[] sp;
 
 		// Set up new Content
-		Content c = new Content(props.get("name"));
+		ContentInstant c = new ContentInstant(props.get("name"));
 		if((tmp = props.get("channels")) != null) {
 			sp= tmp.split("%%%");
 			c.channels = new boolean[] {b(sp[0]),b(sp[1]),b(sp[2])};
