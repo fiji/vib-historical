@@ -22,6 +22,10 @@ public class Timeline {
 		this.univ = univ;
 	}
 
+	public Image3DUniverse getUniverse() {
+		return univ;
+	}
+
 	/**
 	 * Returns the number of time points.
 	 * @return
@@ -55,6 +59,8 @@ public class Timeline {
 	 */
 	public synchronized void play() {
 		if(size() == 0)
+			return;
+		if(playing)
 			return;
 		new Thread(new Runnable() {
 			public void run() {
