@@ -10,7 +10,7 @@ import vib.app.Options;
 
 import vib.FastMatrix;
 import vib.FloatMatrix;
-import vib.RigidRegistration_;
+import vib.RigidRegistration;
 import vib.TransformedImage;
 
 public class LabelCenterTransformation extends Module {
@@ -76,7 +76,7 @@ public class LabelCenterTransformation extends Module {
 			TransformedImage trans = new TransformedImage(
 					templLabels, labels);
 			trans.measure = new TwoValues(iTempl, i);
-			RigidRegistration_ rr = new RigidRegistration_();
+			RigidRegistration rr = new RigidRegistration();
 
 			StupidLog.log("registering neuropil: "+m.name+" between:");
 			StupidLog.log("           labelPath: "+labelPath);

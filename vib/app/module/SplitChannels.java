@@ -11,8 +11,6 @@ import ij.io.FileInfo;
 import java.io.File;
 import java.awt.image.ColorModel;
 
-import leica.Leica_SP_Reader;
-
 import util.BatchOpener;
 
 public class SplitChannels extends Module {

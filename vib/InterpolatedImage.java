@@ -11,7 +11,7 @@ import math3d.Point3d;
 
 public class InterpolatedImage {
 	public ImagePlus image;
-	int w,h,d;
+	public int w,h,d;
 	private byte[][] pixels;
 	private float[][] pixelsFloat;
 	private short[][] pixelsShort;

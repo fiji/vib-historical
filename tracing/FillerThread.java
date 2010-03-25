@@ -31,7 +31,7 @@ import java.util.*;
 
 public class FillerThread extends SearchThread {
 	
-	static final boolean verbose = Simple_Neurite_Tracer.verbose;
+	static final boolean verbose = SimpleNeuriteTracer.verbose;
 	
 	/* You should synchronize on this object if you want to rely
 	 * on the pause status not changing.  (The run() method is not

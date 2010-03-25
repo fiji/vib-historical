@@ -45,7 +45,7 @@ public class LocalRigidRegistration_ implements PlugInFilter{
 		
 		
 		try {
-			RigidRegistration_ r = new RigidRegistration_();
+			RigidRegistration r = new RigidRegistration();
 			FastMatrix global = r.rigidRegistration(
 					trans, //trans, 
 					null,  //materialBBox, 
@@ -87,7 +87,7 @@ public class LocalRigidRegistration_ implements PlugInFilter{
 							(p.x-50) + " " + (p.y-50) + " " + (p.z-50) + " " + 
 							(p.x+50) + " " + (p.y+50) + " " + (p.z+50);
 				
-				transformations[i] = new RigidRegistration_().rigidRegistration(
+				transformations[i] = new RigidRegistration().rigidRegistration(
 						trans,  //trans, 
 						bb,     //materialBBox, 
 						initial,//initial, 

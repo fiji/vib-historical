@@ -25,7 +25,7 @@ import java.io.File;
 
 public class TestRigidRegistration {
 
-	RigidRegistration_ plugin;
+	RigidRegistration plugin;
 
 	ImageJ imageJ;
 
@@ -57,10 +57,9 @@ public class TestRigidRegistration {
 			assertTrue( template != null );
 			assertTrue( toTransform != null );
 			
-			plugin = new RigidRegistration_();
-			plugin.setup( "", toTransform );
+			plugin = new RigidRegistration();
 			
-			int level = RigidRegistration_.guessLevelFromWidth(
+			int level = RigidRegistration.guessLevelFromWidth(
 				template.getWidth() );
 			
 			TransformedImage ti = new TransformedImage(
@@ -169,10 +168,9 @@ public class TestRigidRegistration {
 			
 			// First try with the Euclidean metric:
 			
-			plugin = new RigidRegistration_();
-			plugin.setup( "", toTransform );
+			plugin = new RigidRegistration();
 			
-			int level = RigidRegistration_.guessLevelFromWidth(
+			int level = RigidRegistration.guessLevelFromWidth(
 				template.getWidth() );
 			
 			TransformedImage ti = new TransformedImage(
@@ -265,10 +263,9 @@ public class TestRigidRegistration {
 
 			for( int measureIndex = 0; measureIndex < 3; ++measureIndex ) {
 				
-				plugin = new RigidRegistration_();
-				plugin.setup( "", toTransform );
+				plugin = new RigidRegistration();
 				
-				int level = RigidRegistration_.guessLevelFromWidth(
+				int level = RigidRegistration.guessLevelFromWidth(
 					template.getWidth() );
 				
 				TransformedImage ti = new TransformedImage(

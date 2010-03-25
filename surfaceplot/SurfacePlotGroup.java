@@ -16,7 +16,7 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Tuple3d;
 import javax.vecmath.Color3f;
 
-import vib.Resample_;
+import vib.NaiveResampler;
 
 /**
  * This class extends ContentNode to render a Content as a surface plot.
@@ -50,7 +50,7 @@ public class SurfacePlotGroup extends ContentNode implements AdjustmentListener{
 		this.c = c;
 		int res = c.getResamplingFactor();
 		ImagePlus imp = res == 1 ? c.getImage() 
-			: Resample_.resample(c.getImage(), res, res, 1);
+			: NaiveResampler.resample(c.getImage(), res, res, 1);
 		Volume volume = new Volume(imp);
 		volume.setAverage(true);
 		volume.setChannels(c.getChannels());

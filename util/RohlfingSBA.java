@@ -6,7 +6,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
-import process3d.Distance_Transform_3D;
+import process3d.DistanceTransform3D;
 
 import ij.IJ;
 import ij.gui.GenericDialog;
@@ -22,8 +22,6 @@ import ij.io.Opener;
 
 import vib.app.FileGroup;
 import vib.app.gui.FileGroupDialog;
-
-import process3d.Distance_Transform_3D;
 
 /**
  * Rohlfing, Maurer (2007): Shape-based averaging
@@ -127,10 +125,10 @@ public class RohlfingSBA implements PlugIn {
 		// Inside EDT
 		ImagePlus binary = createBinary(image, l);
 		image.close();
-		ImagePlus im1 = new Distance_Transform_3D()
+		ImagePlus im1 = new DistanceTransform3D()
 			.getTransformed(binary, 0);
 		// Outside EDT
-		ImagePlus im2 = new Distance_Transform_3D()
+		ImagePlus im2 = new DistanceTransform3D()
 			.getTransformed(binary, 255);
 		binary.close();
 		// Subtract Inside EDT from Outside EDT

@@ -410,6 +410,7 @@ class CropDialog extends Dialog implements ActionListener, WindowListener {
 }
 
 public class ThreePaneCrop extends ThreePanes {
+	public static final String PLUGIN_VERSION = "1.2";
 
 	public ThreePanesCanvas createCanvas( ImagePlus imagePlus, int plane ) {
 		return new ThreePaneCropCanvas( imagePlus, this, plane );
@@ -835,7 +836,7 @@ public class ThreePaneCrop extends ThreePanes {
 
 		{
 			GenericDialog gd = new GenericDialog("Three Pane Crop (v" +
-							     Three_Pane_Crop.PLUGIN_VERSION + ")");
+							     PLUGIN_VERSION + ")");
 			gd.addMessage("Cropping: "+imagePlus.getTitle());
 			if( ! singleSlice )
 				gd.addCheckbox("Three pane view?", true);

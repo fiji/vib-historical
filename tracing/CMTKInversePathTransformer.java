@@ -23,15 +23,15 @@
 
 package tracing;
 
-import util.CMTK_Transformation;
+import util.CMTKTransformation;
 
 /* And now some helpful implementations: */
 
 public class CMTKInversePathTransformer implements PathTransformer {
 
-	private CMTK_Transformation.Inverse t;
+	private CMTKTransformation.Inverse t;
 
-	public CMTKInversePathTransformer( CMTK_Transformation.Inverse t ) {
+	public CMTKInversePathTransformer( CMTKTransformation.Inverse t ) {
 		this.t = t;
 	}
 
