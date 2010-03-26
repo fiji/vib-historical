@@ -49,7 +49,7 @@ public class WavefrontExporter {
 				CustomMesh m = meshes.get(n);
 				m.loadedFromFile = objFile;
 				m.loadedFromName = n.replaceAll(" ", "_").
-					replaceAll("#", "__");
+					replaceAll("#", "--");
 				m.changed = false;
 			}
 		} catch (IOException e) {
