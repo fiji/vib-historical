@@ -110,7 +110,6 @@ public class Timeline {
 							next = univ.getStartTime();
 						}
 					} else if(next < univ.getStartTime()) {
-						assert bounceback;
 						inc = -inc;
 						continue;
 					}
