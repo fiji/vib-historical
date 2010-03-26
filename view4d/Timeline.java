@@ -51,15 +51,15 @@ public class Timeline {
 	 * Speed up the animation.
 	 */
 	public void faster() {
-		if(delay >= 100)
-			delay -= 100;
+		if(delay >= 50)
+			delay -= 50;
 	}
 
 	/**
 	 * Slows the animation down.
 	 */
 	public void slower() {
-		delay += 100;
+		delay += 50;
 	}
 
 	public ImagePlus record() {
@@ -86,7 +86,7 @@ public class Timeline {
 	}
 
 	private boolean shouldPause = false;
-	private int delay = 1000;
+	private int delay = 200;
 
 	/**
 	 * Start animation.
