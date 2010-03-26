@@ -339,14 +339,14 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			selected.setSelected(false);
 			selected = null;
 		}
-		if(c != null) {
+		if(c != null && c.isVisibleAt(currentTimepoint)) {
 			c.setSelected(true);
 			selected = c;
 		}
 		String st = c != null ? c.getName() : "none";
 		IJ.showStatus("selected: " + st);
 
-		fireContentSelected(c);
+		fireContentSelected(selected);
 
 		if(c != null && ij.plugin.frame.Recorder.record)
 			ij.plugin.frame.Recorder.record(
@@ -401,14 +401,14 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 
 		Iterator it = contents();
 		Content c = (Content)it.next();
-		c.getContent().getMin(min);
-		c.getContent().getMax(max);
+		c.getMin(min);
+		c.getMax(max);
 		globalMin.set(min);
 		globalMax.set(max);
 		while(it.hasNext()) {
 			c = (Content)it.next();
-			c.getContent().getMin(min);
-			c.getContent().getMax(max);
+			c.getMin(min);
+			c.getMax(max);
 			if(min.x < globalMin.x) globalMin.x = min.x;
 			if(min.y < globalMin.y) globalMin.y = min.y;
 			if(min.z < globalMin.z) globalMin.z = min.z;
@@ -429,8 +429,8 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * @param c
 	 */
 	public void recalculateGlobalMinMax(Content c) {
-		Point3d cmin = new Point3d(); c.getContent().getMin(cmin);
-		Point3d cmax = new Point3d(); c.getContent().getMax(cmax);
+		Point3d cmin = new Point3d(); c.getMin(cmin);
+		Point3d cmax = new Point3d(); c.getMax(cmax);
 		if(contents.size() == 1) {
 			globalMin.set(cmin);
 			globalMax.set(cmax);
@@ -1306,6 +1306,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			if(c.getEndTime() > endTime)
 				e = c.getEndTime();
 			updateStartAndEndTime(st, e);
+			c.showTimepoint(currentTimepoint);
 
 			this.scene.addChild(c);
 			this.contents.put(name, c);
