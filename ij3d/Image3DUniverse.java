@@ -163,6 +163,11 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	public void show() {
 		super.show();
 		plDialog = new PointListDialog(win);
+		plDialog.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				hideAllLandmarks();
+			}
+		});
 		menubar = new Image3DMenubar(this);
 		registrationMenubar = new RegistrationMenubar(this);
 		setMenubar(menubar);
@@ -178,6 +183,10 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		contents = null;
 		universes.remove(this);
 		adder.shutdownNow();
+		WindowListener[] ls = plDialog.getWindowListeners();
+		for(WindowListener l : ls)
+			plDialog.removeWindowListener(l);
+		plDialog.dispose();
 	}
 
 	/**
@@ -226,6 +235,15 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 */
 	public PointListDialog getPointListDialog() {
 		return plDialog;
+	}
+
+	/**
+	 * Hide point list dialog and all landmark points.
+	 */
+	public void hideAllLandmarks() {
+		for(Content c : contents.values()) {
+			c.showPointList(false);
+		}
 	}
 
 	/* *************************************************************
