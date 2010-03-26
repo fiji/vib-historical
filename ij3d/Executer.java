@@ -197,16 +197,15 @@ public class Executer {
 		if(c == null)
 			return null;
 		// record
-		boolean[] ch = c.getChannels();
 		String[] arg = new String[] {
-			c.getImage().getTitle(),
-			ColorTable.getColorName(c.getColor()),
-			c.getName(), Integer.toString(c.getThreshold()),
-			Boolean.toString(ch[0]), 
-			Boolean.toString(ch[1]),
-			Boolean.toString(ch[2]),
-			Integer.toString(c.getResamplingFactor()),
-			Integer.toString(c.getType())};
+			image.getTitle(),
+			ColorTable.getColorName(color),
+			name, Integer.toString(threshold),
+			Boolean.toString(channels[0]),
+			Boolean.toString(channels[1]),
+			Boolean.toString(channels[2]),
+			Integer.toString(resf),
+			Integer.toString(type)};
 		record(ADD, arg);
 
 		return c;
