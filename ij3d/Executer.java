@@ -144,6 +144,8 @@ public class Executer {
 		gd.addCheckboxGroup(1, 3, 
 				new String[] {"red", "green", "blue"}, 
 				new boolean[]{true, true, true});
+		gd.addNumericField("Start at time point",
+				univ.getCurrentTimepoint(), 0);
 
 
 		// automatically set threshold if surface is selected
@@ -177,6 +179,7 @@ public class Executer {
 		boolean[] channels = new boolean[] {gd.getNextBoolean(), 
 						gd.getNextBoolean(), 
 						gd.getNextBoolean()};
+		int tp = (int)gd.getNextNumber();
 
 		if(univ.contains(name)) {
 			IJ.error("Could not add new content. A content with " +
@@ -191,8 +194,9 @@ public class Executer {
 				"8-bit image required. Convert?"))
 				convert(image);
 
-		Content c = univ.addContent(image, color, 
-				name, threshold, channels, resf, type);
+		Content c = ContentCreator.createContent(name, image, type,
+			resf, tp, color, threshold, channels);
+		univ.addContent(c);
 
 		if(c == null)
 			return null;
