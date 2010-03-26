@@ -63,6 +63,35 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 		addChild(contentSwitch);
 	}
 
+	// replace if timepoint is already present
+	public void addInstant(ContentInstant ci, int timepoint) {
+		ci.timepoint = timepoint;
+		ci.name = name + "_#" + timepoint;
+		contents.put(timepoint, ci);
+		if(!contents.containsKey(timepoint)) {
+			timepointToSwitchIndex.put(timepoint, contentSwitch.numChildren());
+			contentSwitch.addChild(ci);
+		} else {
+			int switchIdx = timepointToSwitchIndex.get(timepoint);
+			contentSwitch.setChild(ci, switchIdx);
+		}
+	}
+
+	public void removeInstant(int timepoint) {
+		if(!contents.containsKey(timepoint))
+			return;
+		int sIdx = timepointToSwitchIndex.get(timepoint);
+		contentSwitch.removeChild(sIdx);
+		contents.remove(timepoint);
+		timepointToSwitchIndex.remove(timepoint);
+		// update the following switch indices.
+		for(int i = sIdx; i < contentSwitch.numChildren(); i++) {
+			ContentInstant ci = (ContentInstant)contentSwitch.getChild(i);
+			int tp = ci.getTimepoint();
+			timepointToSwitchIndex.put(tp, i);
+		}
+	}
+
 	public ContentInstant getCurrent() {
 		return contents.get(currentTimePoint);
 	}
