@@ -282,7 +282,7 @@ public class ImageJ3DViewer implements PlugIn {
 		for(int i = 0; i < s.length; i++) {
 			m[i] = Float.parseFloat(s[i]);
 		}
-		new math3d.Transform_IO().saveAffineTransform(m);
+		new math3d.TransformIO().saveAffineTransform(m);
 	}
 
 	public static void setTransform(String transform) {

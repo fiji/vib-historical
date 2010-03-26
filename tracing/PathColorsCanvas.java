@@ -30,8 +30,8 @@ import ij.gui.ColorChooser;
 
 public class PathColorsCanvas extends Canvas implements MouseListener {
 
-	Simple_Neurite_Tracer plugin;
-	public PathColorsCanvas( Simple_Neurite_Tracer plugin, int width, int height ) {
+	SimpleNeuriteTracer plugin;
+	public PathColorsCanvas( SimpleNeuriteTracer plugin, int width, int height ) {
 		this.plugin = plugin;
 		addMouseListener( this );
 		setSize( width, height );

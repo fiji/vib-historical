@@ -17,6 +17,8 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	private Executer executer;
 
 	private MenuItem add;
+	private MenuItem saveSession;
+	private MenuItem loadSession;
 	private MenuItem importObj;
 	private MenuItem color;
 	private MenuItem bgColor;
@@ -110,6 +112,16 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 
 	public Menu createFileMenu() {
 		Menu file = new Menu("File");
+
+		saveSession = new MenuItem("Save Session");
+		saveSession.addActionListener(this);
+		file.add(saveSession);
+
+		loadSession = new MenuItem("Load Session");
+		loadSession.addActionListener(this);
+		file.add(loadSession);
+
+		file.addSeparator();
 
 		add = new MenuItem("Add content");
 		add.addActionListener(this);
@@ -520,6 +532,10 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 			executer.savePointList(univ.getSelected());
 		else if (src == pl_size)
 			executer.changePointSize(univ.getSelected());
+		else if (src == saveSession)
+			executer.saveSession();
+		else if (src == loadSession)
+			executer.loadSession();
 		else if (src == importObj)
 			executer.importWaveFront();
 		else if (src == exportDXF)
@@ -657,7 +673,7 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 		pl_show.setState(c.isPLVisible());
 		shaded.setState(c.isShaded());
 
-		ImagePlus i = c.image;
+		ImagePlus i = c.getImage();
 		displayAsVolume.setEnabled(t != Content.VOLUME && i != null);
 		displayAsOrtho.setEnabled(t != Content.ORTHO && i != null);
 		displayAsSurface.setEnabled(t != Content.SURFACE && i != null);

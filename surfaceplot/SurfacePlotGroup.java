@@ -2,6 +2,7 @@ package surfaceplot;
 
 import ij.ImagePlus;
 import ij.gui.StackWindow;
+import ij3d.ContentInstant;
 import ij3d.Content;
 import ij3d.ContentNode;
 import ij3d.Volume;
@@ -16,7 +17,7 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Tuple3d;
 import javax.vecmath.Color3f;
 
-import vib.Resample_;
+import vib.NaiveResampler;
 
 /**
  * This class extends ContentNode to render a Content as a surface plot.
@@ -32,7 +33,7 @@ public class SurfacePlotGroup extends ContentNode implements AdjustmentListener{
 	private SurfacePlot surfacep;
 
 	/** The content which is displayed */
-	private Content c;
+	private ContentInstant c;
 
 	/** The min coordinate */
 	private Point3d min = new Point3d();
@@ -42,15 +43,23 @@ public class SurfacePlotGroup extends ContentNode implements AdjustmentListener{
 	private Point3d center = new Point3d();
 
 	/**
+	 * Constructs a surface plot for the given ContentInstant.
+	 * @param c
+	 */
+	public SurfacePlotGroup(Content c) {
+		this(c.getCurrent());
+	}
+
+	/**
 	 * Constructs a surface plot for the given Content.
 	 * @param c
 	 */
-	public SurfacePlotGroup (Content c) {
+	public SurfacePlotGroup (ContentInstant c) {
 		super();
 		this.c = c;
 		int res = c.getResamplingFactor();
 		ImagePlus imp = res == 1 ? c.getImage() 
-			: Resample_.resample(c.getImage(), res, res, 1);
+			: NaiveResampler.resample(c.getImage(), res, res, 1);
 		Volume volume = new Volume(imp);
 		volume.setAverage(true);
 		volume.setChannels(c.getChannels());

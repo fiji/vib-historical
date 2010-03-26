@@ -3,7 +3,7 @@ package vib.segment;
 import java.awt.*;
 import java.awt.event.*;
 
-import vib.IDT_Interpolate_Binary;
+import vib.BinaryInterpolator;
 
 import ij.IJ;
 import ij.measure.Calibration;
@@ -183,7 +183,7 @@ public class CustomStackWindow extends StackWindow
 		new Thread(new Runnable() {
 			public void run() {
 				setCursor(Cursor.WAIT_CURSOR);
-				new IDT_Interpolate_Binary().run(cc.getImage(), savedRois);
+				new BinaryInterpolator().run(cc.getImage(), savedRois);
 				setCursor(Cursor.DEFAULT_CURSOR);
 			}
 		}).start();

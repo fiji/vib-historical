@@ -43,8 +43,9 @@ import java.awt.image.IndexColorModel;
 
 import java.util.HashMap;
 
-import vib.Resample_;
 import process3d.Smooth_;
+
+import vib.NaiveResampler;
 
 /*
   This plugin should be used with 8-bit indexed colour images where
@@ -93,7 +94,7 @@ public class Show_Colour_Surfaces implements PlugIn {
 			resamplingFactor = requestedResampling;
 		}
 		if( resamplingFactor != 1 ) {
-			image = Resample_.resample( image, resamplingFactor );
+			image = NaiveResampler.resample( image, resamplingFactor );
 			width = image.getWidth();
 			height = image.getHeight();
 			depth = image.getStackSize();

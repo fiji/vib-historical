@@ -15,11 +15,12 @@ import ij.gui.Roi;
 import ij.measure.Calibration;
 import ij.process.ImageProcessor;
 
+import ij3d.ContentInstant;
 import ij3d.Content;
 import ij3d.ContentNode;
 
 import javax.vecmath.Tuple3d;
-import vib.Resample_;
+import vib.NaiveResampler;
 
 /**
  * This class extends ContentNode to display a Content as a
@@ -33,7 +34,7 @@ public class VoltexGroup extends ContentNode {
 	protected VolumeRenderer renderer;
 
 	/** Reference to the Content which holds this VoltexGroup */
-	protected Content c;
+	protected ContentInstant c;
 
 	/** The volume of this VoltexGroup */
 	private float volume;
@@ -58,17 +59,27 @@ public class VoltexGroup extends ContentNode {
 	/**
 	 * Initialize this VoltexGroup with the specified Content.
 	 * @param c
-	 * @throws IllegalArgumentException if the specified Content has no image.
+	 * @throws IllegalArgumentException if the specified Content has no
+	 *         image.
 	 */
 	public VoltexGroup(Content c) {
+		this(c.getCurrent());
+	}
+
+	/**
+	 * Initialize this VoltexGroup with the specified ContentInstant.
+	 * @param c
+	 * @throws IllegalArgumentException if the specified ContentInstant has no image.
+	 */
+	public VoltexGroup(ContentInstant c) {
 		super();
 		if(c.getImage() == null)
 			throw new IllegalArgumentException("VoltexGroup can only" +
-				"be initialized from a Content that holds an image.");
+				"be initialized from a ContentInstant that holds an image.");
 		this.c = c;
 		ImagePlus imp = c.getResamplingFactor() == 1
 			? c.getImage()
-			: Resample_.resample(c.getImage(), c.getResamplingFactor());
+			: NaiveResampler.resample(c.getImage(), c.getResamplingFactor());
 		renderer = new VolumeRenderer(imp, c.getColor(),
 				c.getTransparency(), c.getChannels());
 		renderer.fullReload();

@@ -29,6 +29,10 @@ public abstract class CustomMesh extends Shape3D {
 	protected float transparency = 0;
 	protected boolean shaded = true;
 
+	protected String loadedFromName = null;
+	protected String loadedFromFile = null;
+	protected boolean changed = false;
+
 	protected CustomMesh() {}
 
 	protected CustomMesh(List<Point3f> mesh) {
@@ -47,9 +51,22 @@ public abstract class CustomMesh extends Shape3D {
 		this.update();
 	}
 
+	public String getFile() {
+		return loadedFromFile;
+	}
+
+	public String getName() {
+		return loadedFromName;
+	}
+
+	public boolean hasChanged() {
+		return changed;
+	}
+
 	public void update() {
 		this.setGeometry(createGeometry());
 		this.setAppearance(createAppearance());
+		changed = true;
 	}
 
 	public List getMesh() {
@@ -103,6 +120,7 @@ public abstract class CustomMesh extends Shape3D {
 
 	private int[] valid = new int[1];
 	protected void addVerticesToGeometryStripArray(Point3f[] v) {
+		changed = true;
 		mesh.addAll(Arrays.asList(v));
 
 		// check maximum vertex count
@@ -131,6 +149,7 @@ public abstract class CustomMesh extends Shape3D {
 	}
 
 	protected void addVerticesToGeometryArray(Point3f[] v) {
+		changed = true;
 		mesh.addAll(Arrays.asList(v));
 
 		// check maximum vertex count
@@ -169,11 +188,13 @@ public abstract class CustomMesh extends Shape3D {
 	}
 
 	public void setCoordinate(int i, Point3f p) {
+		changed = true;
 		((GeometryArray)getGeometry()).setCoordinate(i, p);
 		mesh.get(i).set(p);
 	}
 
 	public void setCoordinates(int[] indices, Point3f p) {
+		changed = true;
 		GeometryArray ga = (GeometryArray)getGeometry();
 		for(int i = 0; i < indices.length; i++) {
 			ga.setCoordinate(indices[i], p);
@@ -186,6 +207,7 @@ public abstract class CustomMesh extends Shape3D {
 			return;
 		if((ga.getVertexFormat() & GeometryArray.NORMALS) == 0)
 			return;
+		changed = true;
 		GeometryInfo gi = new GeometryInfo(ga);
 		NormalGenerator ng = new NormalGenerator();
 		ng.generateNormals(gi);
@@ -200,6 +222,7 @@ public abstract class CustomMesh extends Shape3D {
 	protected void addVertices(Point3f[] v) {
 		if(mesh == null)
 			return;
+		changed = true;
 		GeometryArray ga = (GeometryArray)getGeometry();
 		if(ga == null) {
 			mesh.addAll(Arrays.asList(v));
@@ -217,6 +240,7 @@ public abstract class CustomMesh extends Shape3D {
 		if(mesh == null)
 			return;
 
+		changed = true;
 		for(int i = indices.length - 1; i >= 0; i--) {
 			if(indices[i] < 0 || indices[i] >= mesh.size())
 				continue;
@@ -236,6 +260,7 @@ public abstract class CustomMesh extends Shape3D {
 			colors[i] = this.color;
 		}
 		ga.setColors(0, colors);
+		changed = true;
 	}
 
 	public void setColor(List<Color3f> color) {
@@ -250,6 +275,7 @@ public abstract class CustomMesh extends Shape3D {
 		Color3f[] colors = new Color3f[N];
 		color.toArray(colors);
 		ga.setColors(0, colors);
+		changed = true;
 	}
 
 	public void setColor(int vtxIndex, Color3f color) {
@@ -258,6 +284,7 @@ public abstract class CustomMesh extends Shape3D {
 		if(ga == null)
 			return;
 		ga.setColor(vtxIndex, color);
+		changed = true;
 	}
 
 	public void setTransparency(float transparency) {

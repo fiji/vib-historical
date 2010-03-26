@@ -47,7 +47,7 @@ import vib.oldregistration.RegistrationAlgorithm;
 
 public class CreateTracingVolume_ implements PlugIn {
 	
-	static final boolean verbose = Simple_Neurite_Tracer.verbose;
+	static final boolean verbose = SimpleNeuriteTracer.verbose;
 	
         static final int NONE=0;
         static final int EB=9;

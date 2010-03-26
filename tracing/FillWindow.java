@@ -50,10 +50,10 @@ import java.util.Iterator;
 
 public class FillWindow extends JFrame implements PathAndFillListener, ActionListener, ItemListener, FillerProgressCallback {
 
-	Simple_Neurite_Tracer plugin;
+	SimpleNeuriteTracer plugin;
 	PathAndFillManager pathAndFillManager;
 
-	public FillWindow(PathAndFillManager pathAndFillManager, Simple_Neurite_Tracer plugin) {
+	public FillWindow(PathAndFillManager pathAndFillManager, SimpleNeuriteTracer plugin) {
 		this( pathAndFillManager, plugin, 200, 60 );
 	}
 
@@ -141,7 +141,7 @@ public class FillWindow extends JFrame implements PathAndFillListener, ActionLis
 		discardFill.setEnabled(false);
 	}
 
-	public FillWindow(PathAndFillManager pathAndFillManager, Simple_Neurite_Tracer plugin, int x, int y) {
+	public FillWindow(PathAndFillManager pathAndFillManager, SimpleNeuriteTracer plugin, int x, int y) {
 		super("All Fills");
 		this.plugin = plugin;
 		this.pathAndFillManager = pathAndFillManager;		
