@@ -15,6 +15,7 @@ public class Timeline {
 
 	private Image3DUniverse univ;
 	private boolean playing = false;
+	private boolean bounceback = true;
 
 	/**
 	 * Initialize the timeline
@@ -26,6 +27,14 @@ public class Timeline {
 
 	public Image3DUniverse getUniverse() {
 		return univ;
+	}
+
+	public void setBounceBack(boolean bounce) {
+		this.bounceback = bounce;
+	}
+
+	public boolean getBounceBack() {
+		return bounceback;
 	}
 
 	/**
@@ -90,12 +99,22 @@ public class Timeline {
 		new Thread(new Runnable() {
 			public void run() {
 				playing = true;
+				int inc = +1;
 				while(!shouldPause) {
-					if(univ.getCurrentTimepoint() <
-							univ.getEndTime())
-						next();
-					else
-						first();
+					int next = univ.getCurrentTimepoint() + inc;
+					if(next > univ.getEndTime()) {
+						if(bounceback) {
+							inc = -inc;
+							continue;
+						} else {
+							next = univ.getStartTime();
+						}
+					} else if(next < univ.getStartTime()) {
+						assert bounceback;
+						inc = -inc;
+						continue;
+					}
+					univ.showTimepoint(next);
 					try {
 						Thread.sleep(delay);
 					} catch(Exception e) {
