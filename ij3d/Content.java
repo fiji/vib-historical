@@ -356,6 +356,32 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 		return getCurrent().getContent();
 	}
 
+	public void getMin(Point3d min) {
+		min.set(Double.MAX_VALUE,
+			Double.MAX_VALUE,
+			Double.MAX_VALUE);
+		Point3d tmp = new Point3d();
+		for(ContentInstant c : contents.values()) {
+			c.getContent().getMin(tmp);
+			if(tmp.x < min.x) min.x = tmp.x;
+			if(tmp.y < min.y) min.y = tmp.y;
+			if(tmp.z < min.z) min.z = tmp.z;
+		}
+	}
+
+	public void getMax(Point3d max) {
+		max.set(Double.MIN_VALUE,
+			Double.MIN_VALUE,
+			Double.MIN_VALUE);
+		Point3d tmp = new Point3d();
+		for(ContentInstant c : contents.values()) {
+			c.getContent().getMax(tmp);
+			if(tmp.x > max.x) max.x = tmp.x;
+			if(tmp.y > max.y) max.y = tmp.y;
+			if(tmp.z > max.z) max.z = tmp.z;
+		}
+	}
+
 	public ImagePlus getImage() {
 		return getCurrent().getImage();
 	}
