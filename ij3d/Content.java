@@ -84,6 +84,10 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 			contentSwitch.setWhichChild(idx);
 	}
 
+	public boolean isVisibleAt(int tp) {
+		return contents.containsKey(tp);
+	}
+
 	public void startAt(int timepoint) {
 		TreeMap<Integer, ContentInstant> copy =
 			new TreeMap<Integer, ContentInstant>(contents);
