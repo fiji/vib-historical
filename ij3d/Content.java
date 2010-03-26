@@ -316,7 +316,10 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 	public void transformationFinished(View view) {
 		eyePtChanged(view);
 		// apply same transformation to all other time points
+		// in case this content was transformed
 		ContentInstant curr = getCurrent();
+		if(curr == null || !curr.selected)
+			return;
 		Transform3D t = new Transform3D();
 		Transform3D r = new Transform3D();
 		curr.getLocalTranslate(t);
