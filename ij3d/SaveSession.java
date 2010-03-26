@@ -202,6 +202,8 @@ public class SaveSession {
 		while((line = in.readLine()) != null) {
 			if(line.startsWith("EndView"))
 				break;
+			if(line.startsWith("#"))
+				continue;
 			String[] keyval = line.split("=");
 			props.put(keyval[0].trim(), keyval[1].trim());
 		}
@@ -324,6 +326,8 @@ public class SaveSession {
 		while((line = in.readLine()) != null) {
 			if(line.startsWith("EndContentInstant"))
 				break;
+			if(line.startsWith("#"))
+				continue;
 			String[] keyval = line.split("=");
 			props.put(keyval[0].trim(), keyval[1].trim());
 		}
