@@ -223,6 +223,8 @@ public class SaveSession {
 			univ.getZoomTG().setTransform(t(tmp));
 		if((tmp = props.get("animate")) != null)
 			univ.getAnimationTG().setTransform(t(tmp));
+
+		univ.getViewPlatformTransformer().updateFrontBackClip();
 	}
 
 	void saveContent(PrintWriter out, Content c) {

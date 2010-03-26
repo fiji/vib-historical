@@ -107,6 +107,14 @@ public class ViewPlatformTransformer {
 		transformChanged(BehaviorCallback.TRANSLATE, zoomXform);
 	}
 
+	public void updateFrontBackClip() {
+		zoomTG.getTransform(zoomXform);
+		zoomXform.get(zDir);
+		double d = zDir.length();
+		univ.getViewer().getView().setBackClipDistance(5 * d);
+		univ.getViewer().getView().setFrontClipDistance(5 * d / 100);
+	}
+
 	private Transform3D tmp = new Transform3D();
 	/**
 	 * Zoom by the specified amounts of units.
