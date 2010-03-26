@@ -1,6 +1,8 @@
 package view4d;
 
 import ij3d.Image3DUniverse;
+import ij.ImagePlus;
+import ij.ImageStack;
 
 
 /**
@@ -51,6 +53,29 @@ public class Timeline {
 		delay += 100;
 	}
 
+	public ImagePlus record() {
+		int s = univ.getStartTime();
+		int e = univ.getEndTime();
+
+		univ.showTimepoint(s);
+		try {
+			Thread.sleep(100);
+		} catch(InterruptedException ex) {}
+		ImagePlus imp = univ.takeSnapshot();
+		ImageStack stack = new ImageStack(
+			imp.getWidth(), imp.getHeight());
+		stack.addSlice("", imp.getProcessor());
+
+		for(int i = s + 1; i <= e; i++) {
+			univ.showTimepoint(i);
+			try {
+				Thread.sleep(100);
+			} catch(InterruptedException ex) {}
+			stack.addSlice("", univ.takeSnapshot().getProcessor());
+		}
+		return new ImagePlus("Movie", stack);
+	}
+
 	private boolean shouldPause = false;
 	private int delay = 1000;
 
@@ -66,7 +91,8 @@ public class Timeline {
 			public void run() {
 				playing = true;
 				while(!shouldPause) {
-					if(univ.getCurrentTimepoint() < univ.getEndTime())
+					if(univ.getCurrentTimepoint() <
+							univ.getEndTime())
 						next();
 					else
 						first();

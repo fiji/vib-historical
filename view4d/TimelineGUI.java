@@ -26,13 +26,14 @@ public class TimelineGUI implements ActionListener {
 				"icons/next.png",
 				"icons/last.png",
 				"icons/play.png",
+				"icons/record.png",
 				"icons/pause.png",
 				"icons/faster.png",
 				"icons/slower.png"};
 
 	private static final String[] COMMANDS = new String[] {
 			"FIRST", "PREV", "NEXT", "LAST",
-			"PLAY", "PAUSE", "FASTER", "SLOWER"};
+			"PLAY", "RECORD", "PAUSE", "FASTER", "SLOWER"};
 
 
 	private ImageButton[] buttons = new ImageButton[FILES.length];
@@ -153,6 +154,8 @@ public class TimelineGUI implements ActionListener {
 			timeline.previous();
 		} else if(command.equals("PLAY")) {
 			timeline.play();
+		} else if(command.equals("RECORD")) {
+			timeline.record().show();
 		} else if(command.equals("FIRST")) {
 			timeline.first();
 		} else if(command.equals("LAST")) {
