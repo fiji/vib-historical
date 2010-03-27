@@ -12,9 +12,6 @@ import ij.text.TextWindow;
 import ij.process.StackConverter;
 import ij.process.ImageConverter;
 
-import view4d.Viewer4D;
-import view4d.Viewer4DController;
-
 import math3d.TransformIO;
 
 import javax.swing.JFileChooser;
@@ -305,19 +302,12 @@ public class Executer {
 // 		univ.removeOctree();
 // 	}
 
+	/**
+	 * @deprecated
+	 */
 	public void load4D() {
-		if(!univ.getContents().isEmpty()) {
-			// showMessage...() is false if Canceled
-			if(!IJ.showMessageWithCancel(
-				"Loading 4D data...",
-				"All current 3D objects are removed from\n" +
-				"the view! Continue?")) {
-				return;
-			}
-		}
-		Viewer4D view4d = new Viewer4D(univ);
-		if(view4d.loadContents())
-			new Viewer4DController(view4d);
+		IJ.showMessage("This command will be removed in the \n" +
+			"near future. Use 'Load Content' instead.");
 	}
 
 	public void importWaveFront() {
