@@ -80,13 +80,16 @@ SOURCES(Extract_Surface.jar)=vib/ArrayBase.java vib/IntArray.java \
 	vib/DoubleArray.java vib/Extract_Surface.java \
 	vib/InterpolatedImage.java \
 	math3d/Point3d.java math3d/NormalEstimator.java
-SOURCES(ImageJ_3D_Viewer.jar)=ij3d/*.java voltex/*.java\
+SOURCES(ImageJ_3D_Viewer.jar)=ij3d/**/*.java voltex/*.java\
+	customnode/*.java \
+	octree/*.java \
 	marchingcubes/*.java isosurface/*.java \
 	orthoslice/*.java \
 	javax/media/j3d/*.java \
 	math3d/*.java \
 	view4d/*.java view4d/icons/*.png \
 	surfaceplot/*.java \
+	vib/NaiveResampler.java \
 	vib/segment/ImageButton.java vib/segment/Border.java \
 	vib/Resample_.java vib/InterpolatedImage.java \
 	vib/PointList.java vib/BenesNamedPoint.java \
