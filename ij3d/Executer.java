@@ -903,9 +903,12 @@ public class Executer {
 	 * Select menu
 	 * *********************************************************/
 	public void select(String name) {
+		if(name == null) {
+			univ.select(null);
+			return;
+		}
 		Content c = univ.getContent(name);
-		if(c != null)
-			univ.select(c);
+		univ.select(c);
 	}
 
 	/* **********************************************************
