@@ -491,7 +491,6 @@ public class Executer {
 		if(!checkSel(c))
 			return;
 		c.displayAs(type);
-		univ.clearSelection();
 	}
 
 
@@ -564,7 +563,6 @@ public class Executer {
 					Integer.toString(gSlider.getValue()),
 					Integer.toString(bSlider.getValue()));
 				}
-				univ.clearSelection();
 			}
 		});
 		gd.showDialog();
@@ -650,7 +648,6 @@ public class Executer {
 		record(SET_CHANNELS, Boolean.toString(channels[0]),
 			Boolean.toString(channels[1]),
 			Boolean.toString(channels[2]));
-		univ.clearSelection();
 	}
 
 	public void changeTransparency(final Content c) {
@@ -704,7 +701,6 @@ public class Executer {
 				}
 				if (null != transp_adjuster)
 					transp_adjuster.quit();
-				univ.clearSelection();
 			}
 		});
 		gd.showDialog();
@@ -768,7 +764,6 @@ public class Executer {
 					// clean up
 					if (null != thresh_adjuster)
 						thresh_adjuster.quit();
-					univ.clearSelection();
 				}
 			}
 		});
