@@ -79,8 +79,6 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	private Menu fileMenu;
 	private Menu helpMenu;
 
-	private SelectionListener selListener = new SelectionListener();
-
 	public Image3DMenubar(Image3DUniverse univ) {
 		super();
 		this.univ = univ;
@@ -438,12 +436,6 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 		return display;
 	}
 
-	private class SelectionListener implements ActionListener {
-		public void actionPerformed(ActionEvent e) {
-			executer.select(e.getActionCommand());
-		}
-	}
-
 	public void actionPerformed(ActionEvent e) {
 		Object src = e.getSource();
 
@@ -595,8 +587,16 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	public void contentAdded(Content c) {
 		if(c == null)
 			return;
-		MenuItem item = new MenuItem(c.getName());
-		item.addActionListener(selListener);
+		final String name = c.getName();
+		final CheckboxMenuItem item = new CheckboxMenuItem(name);
+		item.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				if(item.getState())
+					executer.select(name);
+				else
+					executer.select(null);
+			}
+		});
 		selectMenu.add(item);
 	}
 
@@ -613,6 +613,7 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	}
 
 	public void contentSelected(Content c) {
+
 		delete.setEnabled(c != null);
 		centerSelected.setEnabled(c != null);
 		updateVol.setEnabled(c != null);
@@ -646,9 +647,17 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 		saveTransform.setEnabled(c != null);
 		exportTransformed.setEnabled(c != null);
 
+		// update select menu
+		for(int i = 0; i < selectMenu.getItemCount(); i++) {
+			MenuItem item = selectMenu.getItem(i);
+			((CheckboxMenuItem)item).setState(c != null &&
+				c.getName().equals(item.getLabel()));
+		}
+
 
 		if(c == null)
 			return;
+
 		int t = c.getType();
 		
 		slices.setEnabled(t == Content.ORTHO);
