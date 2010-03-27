@@ -110,25 +110,23 @@ public class Executer {
 		// setup default values
 		int img_count = WindowManager.getImageCount();
 		Vector windows = new Vector();
-		String[] images;
 		for(int i=1; i<=img_count; i++) {
 			int id = WindowManager.getNthImageID(i);
 			ImagePlus imp = WindowManager.getImage(id);
 			if(imp != null && !imp.getTitle().equals("3d")){
 				 windows.add(imp.getTitle());
 			}
+			windows.add("Select from file...");
 		}
-		if(windows.size() == 0) {
-			IJ.error("No images open");
-			return null;
-		}
-		images = (String[])windows.toArray(new String[]{});
+		final String[] images = new String[windows.size()];
+		windows.toArray(images);
 		String name = image == null ? images[0] : image.getTitle();
 		String[] types = new String[] {
 			"Volume", "Orthoslice", "Surface", "Surface Plot 2D"};
 		type = type < 0 ? 0 : type;
 		int threshold = type == Content.SURFACE ? 50 : 0;
 		int resf = 2;
+		final StringBuilder file = new StringBuilder("");
 
 		// create dialog
 		GenericDialog gd = new GenericDialog(
@@ -147,7 +145,6 @@ public class Executer {
 		gd.addNumericField("Start at time point",
 				univ.getCurrentTimepoint(), 0);
 
-
 		// automatically set threshold if surface is selected
 		final TextField th = (TextField)gd.getNumericFields().get(0);
 		final Choice di = (Choice)gd.getChoices().get(1);
@@ -159,18 +156,42 @@ public class Executer {
 					th.setText(Integer.toString(0));
 			}
 		});
+		// automatically update name if a different image is selected
 		final Choice im = (Choice)gd.getChoices().get(0);
 		final TextField na = (TextField)gd.getStringFields().get(0);
 		im.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
-				na.setText(im.getSelectedItem());
+				int idx = im.getSelectedIndex();
+				if(idx < images.length - 1) {
+					na.setText(im.getSelectedItem());
+					file.delete(0, file.length());
+					return;
+				}
+				OpenDialog od = new OpenDialog(
+					"Open from file...", null);
+				String dir = od.getDirectory();
+				String name = od.getFileName();
+				if(dir == null || name == null)
+					return;
+				file.delete(0, file.length());
+				file.append(dir).append(name);
+				na.setText(file.toString());
 			}
 		});
 		gd.showDialog();
 		if(gd.wasCanceled())
 			return null;
 			
-		image = WindowManager.getImage(gd.getNextChoice());
+		int idx = im.getSelectedIndex();
+		if(idx == images.length - 1) {
+			image = IJ.openImage(file.toString());
+			if(image == null) {
+				IJ.error("Could not load " + file);
+				return null;
+			}
+		} else {
+			image = WindowManager.getImage(gd.getNextChoice());
+		}
 		name = gd.getNextString();
 		type = gd.getNextChoiceIndex();
 		Color3f color = ColorTable.getColor(gd.getNextChoice());
