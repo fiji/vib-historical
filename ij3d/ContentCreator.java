@@ -2,7 +2,13 @@ package ij3d;
 
 import ij.ImageStack;
 import ij.ImagePlus;
+import ij.IJ;
+import ij.process.ImageConverter;
+import ij.process.StackConverter;
+
+import java.io.File;
 import java.util.TreeMap;
+import java.util.Arrays;
 
 import customnode.CustomMesh;
 import customnode.CustomMultiMesh;
@@ -48,9 +54,36 @@ public class ContentCreator {
 				int thresh,
 				boolean[] channels) {
 
+		return createContent(name, getImages(image),
+			type, resf, tp, color, thresh, channels);
+	}
+
+	public static Content createContent(
+				String name,
+				File file,
+				int type,
+				int resf,
+				int tp,
+				Color3f color,
+				int thresh,
+				boolean[] channels) {
+
+		return createContent(name, getImages(file),
+			type, resf, tp, color, thresh, channels);
+	}
+
+	public static Content createContent(
+				String name,
+				ImagePlus[] images,
+				int type,
+				int resf,
+				int tp,
+				Color3f color,
+				int thresh,
+				boolean[] channels) {
+
 		TreeMap<Integer, ContentInstant> instants =
 			new TreeMap<Integer, ContentInstant>();
-		ImagePlus[] images = getImages(image);
 		for(ImagePlus imp : images) {
 			ContentInstant content = new ContentInstant(name);
 			content.image = imp;
@@ -100,9 +133,9 @@ public class ContentCreator {
 	}
 
 	/**
-	 * Get an array of images of the specified image, which is assumed to
-	 * be a hyperstack. The hyperstack should contain of only one channes,
-	 * with the different images as different frames.
+	 * Get an array of images of the specified image; if the image is a 
+	 * hyperstack, it is splitted into several individual images, otherwise,
+	 * it the returned array contains the given image only.
 	 * @param imp
 	 * @return
 	 */
@@ -131,5 +164,60 @@ public class ContentCreator {
 		return ret;
 	}
 
+	/**
+	 * If <code>file</code> is a regular file, it is opened using IJ.openImage(),
+	 * and then given to getImages(ImagePlus);
+	 * If <code>file</code> however is a directory, all the files in it are sorted
+	 * alphabetically and then loaded, failing silently if an image
+	 * can not be opened by IJ.openImage().
+	 * @param dir
+	 * @return
+	 */
+	public static ImagePlus[] getImages(File file) {
+		if(!file.isDirectory()) {
+			ImagePlus image = IJ.openImage(
+				file.getAbsolutePath());
+			return image == null ? null : getImages(image);
+		}
+		// get the file names
+		String[] names = file.list();
+		if (names.length == 0)
+			return null;
+		Arrays.sort(names);
+		ImagePlus[] ret = new ImagePlus[names.length];
+		for(int i = 0, j = 0; i < ret.length; i++) {
+			File f = new File(file, names[i]);
+			ImagePlus imp = IJ.openImage(f.getAbsolutePath());
+			if(imp != null)
+				ret[j++] = imp;
+		}
+		return ret;
+	}
+
+	public static void convert(ImagePlus image) {
+		int imaget = image.getType();
+		if(imaget == ImagePlus.GRAY8 || imaget == ImagePlus.COLOR_256)
+			return;
+		int s = image.getStackSize();
+		switch(imaget) {
+			case ImagePlus.COLOR_256:
+				if(s == 1)
+					new ImageConverter(image).
+						convertToRGB();
+				else
+					new StackConverter(image).
+						convertToRGB();
+				break;
+			case ImagePlus.GRAY16:
+			case ImagePlus.GRAY32:
+				if(s == 1)
+					new ImageConverter(image).
+						convertToGray8();
+				else
+					new StackConverter(image).
+						convertToGray8();
+				break;
+		}
+	}
 }
 

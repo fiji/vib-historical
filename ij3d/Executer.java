@@ -1,6 +1,7 @@
 package ij3d;
 
 import ij3d.shapes.Scalebar;
+import ij.util.Java2;
 import ij.gui.GenericDialog;
 import ij.io.SaveDialog;
 import ij.io.OpenDialog;
@@ -16,12 +17,16 @@ import view4d.Viewer4DController;
 
 import math3d.TransformIO;
 
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.*;
 import java.awt.event.*;
 import java.awt.*;
 import java.util.Vector;
 import java.util.Iterator;
 import java.util.Collection;
 import java.util.Map;
+
+import java.io.File;
 
 import vib.InterpolatedImage;
 import vib.FastMatrix;
@@ -116,8 +121,8 @@ public class Executer {
 			if(imp != null && !imp.getTitle().equals("3d")){
 				 windows.add(imp.getTitle());
 			}
-			windows.add("Select from file...");
 		}
+		windows.add("Open from file...");
 		final String[] images = new String[windows.size()];
 		windows.toArray(images);
 		String name = image == null ? images[0] : image.getTitle();
@@ -167,14 +172,11 @@ public class Executer {
 					file.delete(0, file.length());
 					return;
 				}
-				OpenDialog od = new OpenDialog(
-					"Open from file...", null);
-				String dir = od.getDirectory();
-				String name = od.getFileName();
-				if(dir == null || name == null)
+				File f = openFileOrDir("Open from file...");
+				if(f == null)
 					return;
 				file.delete(0, file.length());
-				file.append(dir).append(name);
+				file.append(f.getAbsolutePath());
 				na.setText(file.toString());
 			}
 		});
@@ -182,16 +184,14 @@ public class Executer {
 		if(gd.wasCanceled())
 			return null;
 			
-		int idx = im.getSelectedIndex();
-		if(idx == images.length - 1) {
-			image = IJ.openImage(file.toString());
-			if(image == null) {
-				IJ.error("Could not load " + file);
-				return null;
-			}
-		} else {
-			image = WindowManager.getImage(gd.getNextChoice());
-		}
+		File imgfile = null;
+		String imChoice = gd.getNextChoice();
+		boolean fromFile = imChoice.equals("Open from file...");
+		if(fromFile)
+			imgfile = new File(file.toString());
+		else
+			image = WindowManager.getImage(imChoice);
+
 		name = gd.getNextString();
 		type = gd.getNextChoiceIndex();
 		Color3f color = ColorTable.getColor(gd.getNextChoice());
@@ -208,22 +208,38 @@ public class Executer {
 			return null;
 		}
 
-		int imaget = image.getType();
-		if(imaget != ImagePlus.GRAY8 && imaget != ImagePlus.COLOR_RGB)
+		ImagePlus[] imps = fromFile ? 
+			ContentCreator.getImages(imgfile) :
+			ContentCreator.getImages(image);
+
+		if(imps == null || imps.length == 0)
+			return null;
+
+		// check image type
+		int imaget = imps[0].getType();
+		if(imaget != ImagePlus.GRAY8 && imaget != ImagePlus.COLOR_RGB) {
 			// TODO correct message
 			if(IJ.showMessageWithCancel("Convert...", 
-				"8-bit image required. Convert?"))
-				convert(image);
+				"8-bit image required. Convert?")) {
+				for(ImagePlus ip : imps)
+					ContentCreator.convert(ip);
+			} else {
+				return null;
+			}
+		}
 
-		Content c = ContentCreator.createContent(name, image, type,
-			resf, tp, color, threshold, channels);
-		univ.addContent(c);
-
+		Content c = ContentCreator.createContent(
+				name, imps, type, resf, tp,
+				color, threshold, channels);
 		if(c == null)
 			return null;
+
+		univ.addContent(c);
+
 		// record
+		String title = fromFile ? file.toString() : image.getTitle();
 		String[] arg = new String[] {
-			image.getTitle(),
+			title,
 			ColorTable.getColorName(color),
 			name, Integer.toString(threshold),
 			Boolean.toString(channels[0]),
@@ -235,6 +251,28 @@ public class Executer {
 
 		return c;
 	}
+
+	File openFileOrDir(final String title) {
+		Java2.setSystemLookAndFeel();
+		try {
+			JFileChooser chooser = new JFileChooser();
+			chooser.setCurrentDirectory(new File(OpenDialog.getDefaultDirectory()));
+			chooser.setDialogTitle(title);
+			chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+			chooser.setApproveButtonText("Select");
+			if(chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION)
+				return null;
+
+			File dir = chooser.getCurrentDirectory();
+			File file = chooser.getSelectedFile();
+			String directory = dir.getPath();
+			if(directory != null)
+				OpenDialog.setDefaultDirectory(directory);
+			return file;
+		} catch (Exception e) {}
+		return null;
+	}
+
 
 	public void delete(Content c) {
 		if(!checkSel(c))
@@ -1159,37 +1197,6 @@ public class Executer {
 						it.hasNext();) {
 			Map.Entry me = (Map.Entry)it.next();
 			tw.append(me.getKey() + "\t" + me.getValue());
-		}
-	}
-
-
-
-	/* **********************************************************
-	 * Utility methods
-	 * *********************************************************/
-	public static void convert(ImagePlus image) {
-		int imaget = image.getType();
-		if(imaget == ImagePlus.GRAY8 || imaget == ImagePlus.COLOR_256)
-			return;
-		int s = image.getStackSize();
-		switch(imaget) {
-			case ImagePlus.COLOR_256:
-				if(s == 1)
-					new ImageConverter(image).
-						convertToRGB();
-				else
-					new StackConverter(image).
-						convertToRGB();
-				break;
-			case ImagePlus.GRAY16:
-			case ImagePlus.GRAY32:
-				if(s == 1)
-					new ImageConverter(image).
-						convertToGray8();
-				else
-					new StackConverter(image).
-						convertToGray8();
-				break;
 		}
 	}
 

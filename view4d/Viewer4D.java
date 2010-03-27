@@ -268,7 +268,7 @@ public class Viewer4D {
 		for(int j = 0; j < images.length; j++) {
 			univ.setStatus("Adding " + (j+1) + "/" + images.length);
 			ImagePlus image = images[j];
-			Executer.convert(image);
+// 			Executer.convert(image);
 			c[j] = univ.addContent(image, null, image.getTitle(),
 				thresh, new boolean[] {true, true, true},
 				resf, type);
