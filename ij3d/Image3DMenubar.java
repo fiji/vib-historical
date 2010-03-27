@@ -209,15 +209,7 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	}
 
 	public Menu createSelectMenu() {
-		Menu select = new Menu("Select");
-		if(univ == null)
-			return select;
-		for(Iterator it = univ.contents(); it.hasNext();) {
-			String name = ((Content)it.next()).getName();
-			MenuItem mi = new MenuItem(name);
-			mi.addActionListener(selListener);
-		}
-		return select;
+		return new Menu("Select");
 	}
 
 	public Menu createTransformMenu() {
