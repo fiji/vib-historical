@@ -113,6 +113,10 @@ public class Content extends BranchGroup implements UniverseListener, ContentCon
 			contentSwitch.setWhichChild(idx);
 	}
 
+	public int getNumberOfInstants() {
+		return contents.size();
+	}
+
 	public boolean isVisibleAt(int tp) {
 		return contents.containsKey(tp);
 	}
