@@ -304,6 +304,10 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 					endTime = c.getEndTime();
 			}
 		}
+		if(currentTimepoint > endTime)
+			showTimepoint(endTime);
+		else if(currentTimepoint < startTime)
+			showTimepoint(startTime);
 		updateTimelineGUI();
 	}
 
