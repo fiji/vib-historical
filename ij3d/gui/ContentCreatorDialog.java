@@ -58,7 +58,7 @@ public class ContentCreatorDialog {
 		type = type < 0 ? 0 : type;
 		threshold = type == Content.SURFACE ? 50 : 0;
 		resamplingFactor = 2;
-		final StringBuilder path = new StringBuilder("");
+		file = null;
 
 		// create dialog
 		gd = new GenericDialog("Add ...", univ.getWindow());
@@ -95,15 +95,14 @@ public class ContentCreatorDialog {
 				int idx = im.getSelectedIndex();
 				if(idx < images.length - 1) {
 					na.setText(im.getSelectedItem());
-					path.delete(0, path.length());
+					file = null;
 					return;
 				}
 				File f = openFileOrDir("Open from file...");
 				if(f == null)
 					return;
-				path.delete(0, path.length());
-				path.append(f.getAbsolutePath());
-				na.setText(path.toString());
+				file = f;
+				na.setText(file.getAbsolutePath());
 			}
 		});
 		gd.showDialog();
@@ -112,9 +111,7 @@ public class ContentCreatorDialog {
 
 		String imChoice = gd.getNextChoice();
 		fromFile = imChoice.equals("Open from file...");
-		if(fromFile)
-			file = new File(path.toString());
-		else
+		if(!fromFile)
 			image = WindowManager.getImage(imChoice);
 
 		name = gd.getNextString();
