@@ -457,10 +457,13 @@ public class Executer {
 		gd.addSlider("Green",0,255,oldC == null ? 0 : oldC.y*255);
 		gd.addSlider("Blue",0,255,oldC == null ? 0 : oldC.z*255);
 
+		gd.addCheckbox("Apply to all timepoints", true);
+
 		final Scrollbar rSlider = (Scrollbar)gd.getSliders().get(0);
 		final Scrollbar gSlider = (Scrollbar)gd.getSliders().get(1);
 		final Scrollbar bSlider = (Scrollbar)gd.getSliders().get(2);
 		final Checkbox cBox = (Checkbox)gd.getCheckboxes().get(0);
+		final Checkbox aBox = (Checkbox)gd.getCheckboxes().get(1);
 
 		rSlider.setEnabled(oldC != null);
 		gSlider.setEnabled(oldC != null);
@@ -504,10 +507,12 @@ public class Executer {
 					return;
 				}
 				// gd.wasOKed: apply to all time points
-				c.setColor(new Color3f(
+				if(aBox.getState()) {
+					c.setColor(new Color3f(
 						rSlider.getValue() / 255f,
 						gSlider.getValue() / 255f,
 						bSlider.getValue() / 255f));
+				}
 				univ.fireContentChanged(c);
 				if(cBox.getState()){
 					record(SET_COLOR,
@@ -585,12 +590,14 @@ public class Executer {
 	public void changeChannels(Content c) {
 		if(!checkSel(c))
 			return;
+		final ContentInstant ci = c.getCurrent();
 		GenericDialog gd = new GenericDialog("Adjust channels ...",
 							univ.getWindow());
 		gd.addMessage("Channels");
 		gd.addCheckboxGroup(1, 3, 
 				new String[] {"red", "green", "blue"}, 
-				c.getChannels());
+				ci.getChannels());
+		gd.addCheckbox("Apply to all timepoints", true);
 		gd.showDialog();
 		if(gd.wasCanceled())
 			return;
@@ -598,7 +605,10 @@ public class Executer {
 		boolean[] channels = new boolean[]{gd.getNextBoolean(), 
 						gd.getNextBoolean(), 
 						gd.getNextBoolean()};
-		c.setChannels(channels);
+		if(gd.getNextBoolean())
+			c.setChannels(channels);
+		else
+			ci.setChannels(channels);
 		univ.fireContentChanged(c);
 		record(SET_CHANNELS, Boolean.toString(channels[0]),
 			Boolean.toString(channels[1]),
@@ -619,6 +629,8 @@ public class Executer {
 			"Adjust transparency ...", univ.getWindow());
 		final int oldTr = (int)(ci.getTransparency() * 100);
 		gd.addSlider("Transparency", 0, 100, oldTr);
+		gd.addCheckbox("Apply to all timepoints", true);
+
 		((Scrollbar)gd.getSliders().get(0)).
 			addAdjustmentListener(new AdjustmentListener() {
 			public void adjustmentValueChanged(AdjustmentEvent e) {
@@ -642,6 +654,7 @@ public class Executer {
 				}
 			}
 		});
+		final Checkbox aBox = (Checkbox)(gd.getCheckboxes().get(0));
 		gd.setModal(false);
 		gd.addWindowListener(new WindowAdapter() {
 			@Override
@@ -655,7 +668,9 @@ public class Executer {
 					return;
 				}
 				// apply to all instants of the content
-				c.setTransparency(ci.getTransparency());
+				if(aBox.getState())
+					c.setTransparency(ci.getTransparency());
+
 				record(SET_TRANSPARENCY, Float.
 					toString(((Scrollbar)gd.getSliders().
 					get(0)).getValue() / 100f));
@@ -681,11 +696,21 @@ public class Executer {
 		};
 		final int oldTr = (int)(ci.getThreshold());
 		if(c.getType() == Content.SURFACE) {
-			int th = (int)Math.round(
-				IJ.getNumber("Threshold [0..255]", oldTr));
+			final GenericDialog gd = new GenericDialog(
+				"Adjust threshold ...", univ.getWindow());
+			final int old = (int)ci.getThreshold();
+			gd.addNumericField("Threshold", old, 0);
+			gd.addCheckbox("Apply to all timepoints", true);
+			gd.showDialog();
+			if(gd.wasCanceled())
+				return;
+			int th = (int)gd.getNextNumber();
 			th = Math.max(0, th);
 			th = Math.min(th, 255);
-			c.setThreshold(th);
+			if(gd.getNextBoolean())
+				c.setThreshold(th);
+			else
+				ci.setThreshold(th);
 			univ.fireContentChanged(c);
 			record(SET_THRESHOLD, Integer.toString(th));
 			return;
@@ -703,6 +728,8 @@ public class Executer {
 				thresh_adjuster.exec((int)e.getValue(), ci, univ);
 			}
 		});
+		gd.addCheckbox("Apply to all timepoints", true);
+		final Checkbox aBox = (Checkbox)gd.getCheckboxes().get(0);
 		gd.setModal(false);
 		gd.addWindowListener(new WindowAdapter() {
 			@Override
@@ -714,7 +741,9 @@ public class Executer {
 						return;
 					}
 					// apply to other time points
-					c.setThreshold(ci.getThreshold());
+					if(aBox.getState())
+						c.setThreshold(ci.getThreshold());
+
 					record(SET_THRESHOLD,
 						Integer.toString(
 						c.getThreshold()));
@@ -735,9 +764,26 @@ public class Executer {
 		if(!checkSel(c))
 			return;
 		int t = c.getType();
-		if(t == Content.SURFACE ||
-				t == Content.SURFACE_PLOT2D || t == Content.CUSTOM)
+		if(t != Content.SURFACE &&
+				t != Content.SURFACE_PLOT2D && t != Content.CUSTOM)
+			return;
+
+		if(c.getNumberOfInstants() == 1) {
 			c.setShaded(b);
+			return;
+		}
+
+		ContentInstant ci = c.getCurrent();
+		GenericDialog gd = new GenericDialog("Set shaded");
+		gd.addCheckbox("Apply to all timepoints", true);
+		gd.showDialog();
+		if(gd.wasCanceled())
+			return;
+
+		if(gd.getNextBoolean())
+			c.setShaded(b);
+		else
+			ci.setShaded(b);
 	}
 
 
