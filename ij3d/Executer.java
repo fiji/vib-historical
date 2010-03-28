@@ -4,6 +4,7 @@ import ij3d.shapes.Scalebar;
 import ij.util.Java2;
 import ij.gui.GenericDialog;
 import ij.io.SaveDialog;
+import ij.io.DirectoryChooser;
 import ij.io.OpenDialog;
 import ij.IJ;
 import ij.WindowManager;
@@ -101,18 +102,56 @@ public class Executer {
 	/* **********************************************************
 	 * File menu
 	 * *********************************************************/
-	public void addContent(final ImagePlus image) {
+
+	public void addContentFromFile() {
+		OpenDialog od = new OpenDialog("Open from file", null);
+		String folder = od.getDirectory();
+		String name = od.getFileName();
+		if(folder == null || name == null)
+			return;
+		File f = new File(folder, name);
+		if(f.exists())
+			addContent(null, f);
+		else
+			IJ.error("Can not load " + f.getAbsolutePath());
+	}
+
+	public void addContentFromImage(ImagePlus image) {
+		addContent(image, null);
+	}
+
+	public void addTimelapseFromFile() {
+		addContentFromFile();
+	}
+
+	public void addTimelapseFromFolder() {
+		DirectoryChooser dc = new DirectoryChooser("Open from folder");
+		String dir = dc.getDirectory();
+		if(dir == null)
+			return;
+		File d = new File(dir);
+		if(d.exists())
+			addContent(null, d);
+		else
+			IJ.error("Cannot load " + d.getAbsolutePath());
+	}
+
+	public void addTimelapseFromHyperstack(ImagePlus image) {
+		addContentFromImage(image);
+	}
+
+	public void addContent(final ImagePlus image, final File file) {
 		new Thread() {
 			@Override
 			public void run() {
-				addC(image);
+				addC(image, file);
 			}
 		}.start();
 	}
 
-	private Content addC(ImagePlus image) {
+	private Content addC(ImagePlus image, File file) {
 		ContentCreatorDialog gui = new ContentCreatorDialog();
-		Content c = gui.showDialog(univ, image);
+		Content c = gui.showDialog(univ, image, file);
 		if(c == null)
 			return null;
 

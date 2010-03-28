@@ -32,33 +32,40 @@ public class ContentCreatorDialog {
 	private boolean[] channels;
 	private int timepoint;
 	private int type;
-	private boolean fromFile;
 	private ImagePlus image;
 	private File file;
 	private Content content;
 
 	private GenericDialog gd;
 
-	public Content showDialog(Image3DUniverse univ, ImagePlus imp) {
+	public Content showDialog(Image3DUniverse univ, ImagePlus imp, File fi) {
+		if(fi != null)
+			this.file = fi;
+
 		// setup default values
 		int img_count = WindowManager.getImageCount();
 		Vector windows = new Vector();
-		for(int i=1; i<=img_count; i++) {
-			int id = WindowManager.getNthImageID(i);
-			ImagePlus iimp = WindowManager.getImage(id);
-			if(iimp != null && !iimp.getTitle().equals("3d"))
-				 windows.add(iimp.getTitle());
+		if(file != null) {
+			windows.add(file.getAbsolutePath());
+		} else {
+			for(int i=1; i<=img_count; i++) {
+				int id = WindowManager.getNthImageID(i);
+				ImagePlus ip = WindowManager.getImage(id);
+				if(ip != null && !ip.getTitle().equals("3d"))
+					 windows.add(ip.getTitle());
+			}
 		}
-		windows.add("Open from file...");
 		final String[] images = new String[windows.size()];
 		windows.toArray(images);
-		name = image == null ? images[0] : imp.getTitle();
+		if(file != null)
+			name = file.getName();
+		else
+			name = image == null ? images[0] : imp.getTitle();
 		String[] types = new String[] {
 			"Volume", "Orthoslice", "Surface", "Surface Plot 2D"};
 		type = type < 0 ? 0 : type;
 		threshold = type == Content.SURFACE ? 50 : 0;
 		resamplingFactor = 2;
-		file = null;
 
 		// create dialog
 		gd = new GenericDialog("Add ...", univ.getWindow());
@@ -93,16 +100,10 @@ public class ContentCreatorDialog {
 		im.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
 				int idx = im.getSelectedIndex();
-				if(idx < images.length - 1) {
+				if(file == null || idx > 0)
 					na.setText(im.getSelectedItem());
-					file = null;
-					return;
-				}
-				File f = openFileOrDir("Open from file...");
-				if(f == null)
-					return;
-				file = f;
-				na.setText(file.getAbsolutePath());
+				else
+					na.setText(file.getName());
 			}
 		});
 		gd.showDialog();
@@ -110,9 +111,12 @@ public class ContentCreatorDialog {
 			return null;
 
 		String imChoice = gd.getNextChoice();
-		fromFile = imChoice.equals("Open from file...");
-		if(!fromFile)
+		boolean fromFile = file != null &&
+			im.getSelectedIndex() == 0;
+		if(!fromFile) {
 			image = WindowManager.getImage(imChoice);
+			file = null;
+		}
 
 		name = gd.getNextString();
 		type = gd.getNextChoiceIndex();
@@ -134,7 +138,7 @@ public class ContentCreatorDialog {
 	}
 
 	private Content createContent() {
-		ImagePlus[] imps = fromFile ?
+		ImagePlus[] imps = file != null ?
 			ContentCreator.getImages(file) :
 			ContentCreator.getImages(image);
 
@@ -195,26 +199,5 @@ public class ContentCreatorDialog {
 
 	public int getType() {
 		return type;
-	}
-
-	File openFileOrDir(final String title) {
-		Java2.setSystemLookAndFeel();
-		try {
-			JFileChooser chooser = new JFileChooser();
-			chooser.setCurrentDirectory(new File(OpenDialog.getDefaultDirectory()));
-			chooser.setDialogTitle(title);
-			chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-			chooser.setApproveButtonText("Select");
-			if(chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION)
-				return null;
-
-			File dir = chooser.getCurrentDirectory();
-			File file = chooser.getSelectedFile();
-			String directory = dir.getPath();
-			if(directory != null)
-				OpenDialog.setDefaultDirectory(directory);
-			return file;
-		} catch (Exception e) {}
-		return null;
 	}
 }

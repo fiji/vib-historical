@@ -16,7 +16,11 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	private Image3DUniverse univ;
 	private Executer executer;
 
-	private MenuItem add;
+	private MenuItem addContentFromFile;
+	private MenuItem addContentFromImage;
+	private MenuItem add4DFromFile;
+	private MenuItem add4DFromImage;
+	private MenuItem add4DFromFolder;
 	private MenuItem saveSession;
 	private MenuItem loadSession;
 	private MenuItem importObj;
@@ -123,9 +127,27 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 
 		file.addSeparator();
 
-		add = new MenuItem("Add content");
-		add.addActionListener(this);
-		file.add(add);
+		Menu addContent = new Menu("Add content");
+		addContentFromFile = new MenuItem("from file");
+		addContentFromFile.addActionListener(this);
+		addContent.add(addContentFromFile);
+		addContentFromImage = new MenuItem("from open image");
+		addContentFromImage.addActionListener(this);
+		addContent.add(addContentFromImage);
+		file.add(addContent);
+
+		Menu add4D = new Menu("Add timelapse");
+		add4DFromFile = new MenuItem("from hyperstack file");
+		add4DFromFile.addActionListener(this);
+		add4D.add(add4DFromFile);
+		add4DFromImage = new MenuItem("from open hyperstack");
+		add4DFromImage.addActionListener(this);
+		add4D.add(add4DFromImage);
+		add4DFromFolder = new MenuItem("from folder with stacks");
+		add4DFromFolder.addActionListener(this);
+		add4D.add(add4DFromFolder);
+		file.add(add4D);
+
 
 		importObj = new MenuItem("Import WaveFront");
 		importObj.addActionListener(this);
@@ -467,8 +489,16 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 			executer.changeChannels(univ.getSelected());
 		else if(src == transparency)
 			executer.changeTransparency(univ.getSelected());
-		else if(src == add)
-			executer.addContent(null);
+		else if(src == addContentFromFile)
+			executer.addContentFromFile();
+		else if(src == addContentFromImage)
+			executer.addContentFromImage(null);
+		else if(src == add4DFromFile)
+			executer.addTimelapseFromFile();
+		else if(src == add4DFromImage)
+			executer.addTimelapseFromHyperstack(null);
+		else if(src == add4DFromFolder)
+			executer.addTimelapseFromFolder();
 		else if(src == regist)
 			executer.register();
 		else if(src == delete)

@@ -29,7 +29,7 @@ public class ImageJ3DViewer implements PlugIn {
 			// only when there is an image and we are not called
 			// from a macro
 			if(image != null && !IJ.isMacro())
-				univ.getExecuter().addContent(image);
+				univ.getExecuter().addContent(image, null);
 
 		} catch(Exception e) {
 			StringBuffer buf = new StringBuffer();
