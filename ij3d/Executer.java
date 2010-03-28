@@ -447,9 +447,10 @@ public class Executer {
 	public void changeColor(final Content c) {
 		if(!checkSel(c))
 			return;
+		final ContentInstant ci = c.getCurrent();
 		final GenericDialog gd = 
 			new GenericDialog("Adjust color ...", univ.getWindow());
-		final Color3f oldC = c.getColor();
+		final Color3f oldC = ci.getColor();
 
 		gd.addCheckbox("Use default color", oldC == null);
 		gd.addSlider("Red",0,255,oldC == null ? 255 : oldC.x*255);
@@ -471,7 +472,7 @@ public class Executer {
 				rSlider.setEnabled(!cBox.getState());
 				gSlider.setEnabled(!cBox.getState());
 				bSlider.setEnabled(!cBox.getState());
-				c.setColor(cBox.getState() ? null :
+				ci.setColor(cBox.getState() ? null :
 					new Color3f(rSlider.getValue() / 255f,
 						gSlider.getValue() / 255f,
 						bSlider.getValue() / 255f));
@@ -482,7 +483,7 @@ public class Executer {
 
 		AdjustmentListener listener = new AdjustmentListener() {
 			public void adjustmentValueChanged(AdjustmentEvent e) {
-				c.setColor(new Color3f(
+				ci.setColor(new Color3f(
 						rSlider.getValue() / 255f,
 						gSlider.getValue() / 255f,
 						bSlider.getValue() / 255f));
@@ -498,10 +499,17 @@ public class Executer {
 			@Override
 			public void windowClosed(WindowEvent e) {
 				if(gd.wasCanceled()) {
-					c.setColor(oldC);
+					ci.setColor(oldC);
 					univ.fireContentChanged(c);
 					return;
-				} else if(cBox.getState()){
+				}
+				// gd.wasOKed: apply to all time points
+				c.setColor(new Color3f(
+						rSlider.getValue() / 255f,
+						gSlider.getValue() / 255f,
+						bSlider.getValue() / 255f));
+				univ.fireContentChanged(c);
+				if(cBox.getState()){
 					record(SET_COLOR,
 					"null", "null", "null");
 				} else {
