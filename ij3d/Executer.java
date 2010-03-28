@@ -208,14 +208,6 @@ public class Executer {
 // 		univ.removeOctree();
 // 	}
 
-	/**
-	 * @deprecated
-	 */
-	public void load4D() {
-		IJ.showMessage("This command will be removed in the \n" +
-			"near future. Use 'Load Content' instead.");
-	}
-
 	public void importWaveFront() {
 		OpenDialog od = new OpenDialog("Select .obj file", OpenDialog.getDefaultDirectory(), null);
 		String filename = od.getFileName();

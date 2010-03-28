@@ -68,7 +68,6 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	private MenuItem pl_size;
 	private CheckboxMenuItem pl_show;
 	private MenuItem j3dproperties;
-	private MenuItem viewer4d;
 	private CheckboxMenuItem coordinateSystem;
 	private CheckboxMenuItem boundingBox;
 	private CheckboxMenuItem allCoordinateSystems;
@@ -117,16 +116,6 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	public Menu createFileMenu() {
 		Menu file = new Menu("File");
 
-		saveSession = new MenuItem("Save Session");
-		saveSession.addActionListener(this);
-		file.add(saveSession);
-
-		loadSession = new MenuItem("Load Session");
-		loadSession.addActionListener(this);
-		file.add(loadSession);
-
-		file.addSeparator();
-
 		Menu addContent = new Menu("Add content");
 		addContentFromFile = new MenuItem("from file");
 		addContentFromFile.addActionListener(this);
@@ -160,9 +149,13 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 
 		file.addSeparator();
 
-		viewer4d = new MenuItem("Load 4D data");
-		viewer4d.addActionListener(this);
-		file.add(viewer4d);
+		saveSession = new MenuItem("Save Session");
+		saveSession.addActionListener(this);
+		file.add(saveSession);
+
+		loadSession = new MenuItem("Load Session");
+		loadSession.addActionListener(this);
+		file.add(loadSession);
 
 		file.addSeparator();
 
@@ -483,8 +476,6 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 			executer.changeBackgroundColor();
 		else if(src == scalebar)
 			executer.editScalebar();
-		else if(src == viewer4d)
-			executer.load4D();
 		else if(src == channels)
 			executer.changeChannels(univ.getSelected());
 		else if(src == transparency)
