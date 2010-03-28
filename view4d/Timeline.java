@@ -63,6 +63,7 @@ public class Timeline {
 	}
 
 	public ImagePlus record() {
+		pause();
 		int s = univ.getStartTime();
 		int e = univ.getEndTime();
 
