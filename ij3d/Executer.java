@@ -101,16 +101,16 @@ public class Executer {
 	/* **********************************************************
 	 * File menu
 	 * *********************************************************/
-	public void addContent(final ImagePlus image, final int type) {
+	public void addContent(final ImagePlus image) {
 		new Thread() {
 			@Override
 			public void run() {
-				addC(image, type);
+				addC(image);
 			}
 		}.start();
 	}
 
-	private Content addC(ImagePlus image, int type) {
+	private Content addC(ImagePlus image) {
 		ContentCreatorDialog gui = new ContentCreatorDialog();
 		Content c = gui.showDialog(univ, image);
 		if(c == null)

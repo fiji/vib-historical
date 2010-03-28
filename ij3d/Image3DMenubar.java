@@ -468,7 +468,7 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 		else if(src == transparency)
 			executer.changeTransparency(univ.getSelected());
 		else if(src == add)
-			executer.addContent(null, -1);
+			executer.addContent(null);
 		else if(src == regist)
 			executer.register();
 		else if(src == delete)
