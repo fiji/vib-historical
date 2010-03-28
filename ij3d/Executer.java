@@ -608,21 +608,23 @@ public class Executer {
 	public void changeTransparency(final Content c) {
 		if(!checkSel(c))
 			return;
+		final ContentInstant ci = c.getCurrent();
 		final SliderAdjuster transp_adjuster = new SliderAdjuster() {
-			public synchronized final void setValue(Content c, int v) {
-				c.setTransparency(v / 100f);
+			public synchronized final void setValue(ContentInstant ci, int v) {
+				ci.setTransparency(v / 100f);
+				univ.fireContentChanged(c);
 			}
 		};
 		final GenericDialog gd = new GenericDialog(
 			"Adjust transparency ...", univ.getWindow());
-		final int oldTr = (int)(c.getTransparency() * 100);
+		final int oldTr = (int)(ci.getTransparency() * 100);
 		gd.addSlider("Transparency", 0, 100, oldTr);
 		((Scrollbar)gd.getSliders().get(0)).
 			addAdjustmentListener(new AdjustmentListener() {
 			public void adjustmentValueChanged(AdjustmentEvent e) {
 				if(!transp_adjuster.go)
 					transp_adjuster.start();
-				transp_adjuster.exec((int)e.getValue(), c, univ);
+				transp_adjuster.exec((int)e.getValue(), ci, univ);
 			}
 		});
 		((TextField)gd.getNumericFields().get(0)).
@@ -634,7 +636,7 @@ public class Executer {
 				String text = input.getText();
 				try {
 					int value = Integer.parseInt(text);
-					transp_adjuster.exec(value, c, univ);
+					transp_adjuster.exec(value, ci, univ);
 				} catch (Exception exception) {
 					// ignore intermediately invalid number
 				}
@@ -644,18 +646,19 @@ public class Executer {
 		gd.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosed(WindowEvent e) {
-				if(gd.wasCanceled()) {
-					float newTr = (float)oldTr / 100f;
-					c.setTransparency(newTr);
-					univ.fireContentChanged(c);
-					return;
-				} else {
-					record(SET_TRANSPARENCY, Float.
-					toString(((Scrollbar)gd.getSliders().
-					get(0)).getValue() / 100f));
-				}
 				if (null != transp_adjuster)
 					transp_adjuster.quit();
+				if(gd.wasCanceled()) {
+					float newTr = (float)oldTr / 100f;
+					ci.setTransparency(newTr);
+					univ.fireContentChanged(c);
+					return;
+				}
+				// apply to all instants of the content
+				c.setTransparency(ci.getTransparency());
+				record(SET_TRANSPARENCY, Float.
+					toString(((Scrollbar)gd.getSliders().
+					get(0)).getValue() / 100f));
 			}
 		});
 		gd.showDialog();
@@ -669,12 +672,14 @@ public class Executer {
 					"therefore the threshold can't be changed");
 			return;
 		}
+		final ContentInstant ci = c.getCurrent();
 		final SliderAdjuster thresh_adjuster = new SliderAdjuster() {
-			public synchronized final void setValue(Content c, int v) {
-				c.setThreshold(v);
+			public synchronized final void setValue(ContentInstant ci, int v) {
+				ci.setThreshold(v);
+				univ.fireContentChanged(c);
 			}
 		};
-		final int oldTr = (int)(c.getThreshold());
+		final int oldTr = (int)(ci.getThreshold());
 		if(c.getType() == Content.SURFACE) {
 			int th = (int)Math.round(
 				IJ.getNumber("Threshold [0..255]", oldTr));
@@ -695,7 +700,7 @@ public class Executer {
 				// start adjuster and request an action
 				if(!thresh_adjuster.go)
 					thresh_adjuster.start();
-				thresh_adjuster.exec((int)e.getValue(), c, univ);
+				thresh_adjuster.exec((int)e.getValue(), ci, univ);
 			}
 		});
 		gd.setModal(false);
@@ -704,14 +709,15 @@ public class Executer {
 			public void windowClosed(WindowEvent e) {
 				try {
 					if(gd.wasCanceled()) {
-						c.setThreshold(oldTr);
+						ci.setThreshold(oldTr);
 						univ.fireContentChanged(c);
 						return;
-					} else {
-						record(SET_THRESHOLD, 
-							Integer.toString(
-							c.getThreshold()));
 					}
+					// apply to other time points
+					c.setThreshold(ci.getThreshold());
+					record(SET_THRESHOLD,
+						Integer.toString(
+						c.getThreshold()));
 				} finally {
 					// [ This code block executes even when
 					//   calling return above ]
@@ -1235,7 +1241,7 @@ public class Executer {
 	private abstract class SliderAdjuster extends Thread {
 		boolean go = false;
 		int newV;
-		Content content;
+		ContentInstant content;
 		Image3DUniverse univ;
 		final Object lock = new Object();
 
@@ -1248,7 +1254,7 @@ public class Executer {
 		/*
 		 * Set a new event, overwritting previous if any.
 		 */
-		void exec(final int newV, final Content content, final Image3DUniverse univ) {
+		void exec(final int newV, final ContentInstant content, final Image3DUniverse univ) {
 			synchronized (lock) {
 				this.newV = newV;
 				this.content = content;
@@ -1266,7 +1272,7 @@ public class Executer {
 		 * This class has to be implemented by subclasses, to define
 		 * the specific updating function.
 		 */
-		protected abstract void setValue(final Content c, final int v);
+		protected abstract void setValue(final ContentInstant c, final int v);
 
 		@Override
 		public void run() {
@@ -1278,7 +1284,7 @@ public class Executer {
 					}
 					if (!go) return;
 					// 1 - cache vars, to free the lock very quickly
-					Content c;
+					ContentInstant c;
 					int transp = 0;
 					Image3DUniverse u;
 					synchronized (lock) {
@@ -1289,7 +1295,6 @@ public class Executer {
 					// 2 - exec cached vars
 					if (null != c) {
 						setValue(c, transp);
-						u.fireContentChanged(c);
 					}
 					// 3 - done: reset only if no new request was put
 					synchronized (lock) {
