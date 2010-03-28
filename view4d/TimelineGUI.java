@@ -54,8 +54,8 @@ public class TimelineGUI implements ActionListener {
 	 * opens a new new window with the control buttons for the 4D viewer.
 	 * @param viewer
 	 */
-	public TimelineGUI(Timeline timeline) {
-		this.timeline = timeline;
+	public TimelineGUI(Timeline tl) {
+		this.timeline = tl;
 
 		bbImage = loadIcon(bbFile);
 		nbbImage = loadIcon(nbbFile);
@@ -91,6 +91,7 @@ public class TimelineGUI implements ActionListener {
 		scroll = new Scrollbar(Scrollbar.HORIZONTAL, cur, 1, min, max);
 		scroll.addAdjustmentListener(new AdjustmentListener() {
 			public void adjustmentValueChanged(AdjustmentEvent e) {
+				timeline.pause();
 				showTimepoint(scroll.getValue());
 			}
 		});
