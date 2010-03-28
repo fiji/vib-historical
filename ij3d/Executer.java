@@ -115,9 +115,8 @@ public class Executer {
 		for(int i=1; i<=img_count; i++) {
 			int id = WindowManager.getNthImageID(i);
 			ImagePlus imp = WindowManager.getImage(id);
-			if(imp != null && !imp.getTitle().equals("3d")){
+			if(imp != null && !imp.getTitle().equals("3d"))
 				 windows.add(imp.getTitle());
-			}
 		}
 		windows.add("Open from file...");
 		final String[] images = new String[windows.size()];
