@@ -130,6 +130,10 @@ public class ContentCreatorDialog {
 			return null;
 		}
 
+		return createContent();
+	}
+
+	private Content createContent() {
 		ImagePlus[] imps = fromFile ?
 			ContentCreator.getImages(file) :
 			ContentCreator.getImages(image);
