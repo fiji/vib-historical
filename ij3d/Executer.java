@@ -12,6 +12,8 @@ import ij.text.TextWindow;
 import ij.process.StackConverter;
 import ij.process.ImageConverter;
 
+import ij3d.gui.ContentCreatorDialog;
+
 import math3d.TransformIO;
 
 import javax.swing.JFileChooser;
@@ -109,166 +111,32 @@ public class Executer {
 	}
 
 	private Content addC(ImagePlus image, int type) {
-		// setup default values
-		int img_count = WindowManager.getImageCount();
-		Vector windows = new Vector();
-		for(int i=1; i<=img_count; i++) {
-			int id = WindowManager.getNthImageID(i);
-			ImagePlus imp = WindowManager.getImage(id);
-			if(imp != null && !imp.getTitle().equals("3d"))
-				 windows.add(imp.getTitle());
-		}
-		windows.add("Open from file...");
-		final String[] images = new String[windows.size()];
-		windows.toArray(images);
-		String name = image == null ? images[0] : image.getTitle();
-		String[] types = new String[] {
-			"Volume", "Orthoslice", "Surface", "Surface Plot 2D"};
-		type = type < 0 ? 0 : type;
-		int threshold = type == Content.SURFACE ? 50 : 0;
-		int resf = 2;
-		final StringBuilder file = new StringBuilder("");
-
-		// create dialog
-		GenericDialog gd = new GenericDialog(
-					"Add ...", univ.getWindow());
-		gd.addChoice("Image", images, name);
-		gd.addStringField("Name", name, 10);
-		gd.addChoice("Display as", types, types[type]);
-		gd.addChoice("Color", ColorTable.colorNames, 
-						ColorTable.colorNames[0]);
-		gd.addNumericField("Threshold", threshold, 0);
-		gd.addNumericField("Resampling factor", resf, 0);
-		gd.addMessage("Channels");
-		gd.addCheckboxGroup(1, 3, 
-				new String[] {"red", "green", "blue"}, 
-				new boolean[]{true, true, true});
-		gd.addNumericField("Start at time point",
-				univ.getCurrentTimepoint(), 0);
-
-		// automatically set threshold if surface is selected
-		final TextField th = (TextField)gd.getNumericFields().get(0);
-		final Choice di = (Choice)gd.getChoices().get(1);
-		di.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				if(di.getSelectedIndex() == Content.SURFACE)
-					th.setText(Integer.toString(50));
-				else
-					th.setText(Integer.toString(0));
-			}
-		});
-		// automatically update name if a different image is selected
-		final Choice im = (Choice)gd.getChoices().get(0);
-		final TextField na = (TextField)gd.getStringFields().get(0);
-		im.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				int idx = im.getSelectedIndex();
-				if(idx < images.length - 1) {
-					na.setText(im.getSelectedItem());
-					file.delete(0, file.length());
-					return;
-				}
-				File f = openFileOrDir("Open from file...");
-				if(f == null)
-					return;
-				file.delete(0, file.length());
-				file.append(f.getAbsolutePath());
-				na.setText(file.toString());
-			}
-		});
-		gd.showDialog();
-		if(gd.wasCanceled())
-			return null;
-			
-		File imgfile = null;
-		String imChoice = gd.getNextChoice();
-		boolean fromFile = imChoice.equals("Open from file...");
-		if(fromFile)
-			imgfile = new File(file.toString());
-		else
-			image = WindowManager.getImage(imChoice);
-
-		name = gd.getNextString();
-		type = gd.getNextChoiceIndex();
-		Color3f color = ColorTable.getColor(gd.getNextChoice());
-		threshold = (int)gd.getNextNumber();
-		resf = (int)gd.getNextNumber();
-		boolean[] channels = new boolean[] {gd.getNextBoolean(), 
-						gd.getNextBoolean(), 
-						gd.getNextBoolean()};
-		int tp = (int)gd.getNextNumber();
-
-		if(univ.contains(name)) {
-			IJ.error("Could not add new content. A content with " +
-				"name \"" + name + "\" exists already.");
-			return null;
-		}
-
-		ImagePlus[] imps = fromFile ? 
-			ContentCreator.getImages(imgfile) :
-			ContentCreator.getImages(image);
-
-		if(imps == null || imps.length == 0)
-			return null;
-
-		// check image type
-		int imaget = imps[0].getType();
-		if(imaget != ImagePlus.GRAY8 && imaget != ImagePlus.COLOR_RGB) {
-			// TODO correct message
-			if(IJ.showMessageWithCancel("Convert...", 
-				"8-bit image required. Convert?")) {
-				for(ImagePlus ip : imps)
-					ContentCreator.convert(ip);
-			} else {
-				return null;
-			}
-		}
-
-		Content c = ContentCreator.createContent(
-				name, imps, type, resf, tp,
-				color, threshold, channels);
+		ContentCreatorDialog gui = new ContentCreatorDialog();
+		Content c = gui.showDialog(univ, image);
 		if(c == null)
 			return null;
 
 		univ.addContent(c);
 
 		// record
-		String title = fromFile ? file.toString() : image.getTitle();
+		String title = gui.getFile() != null ?
+			gui.getFile().getAbsolutePath() :
+			gui.getImage().getTitle();
+		boolean[] channels = gui.getChannels();
 		String[] arg = new String[] {
 			title,
-			ColorTable.getColorName(color),
-			name, Integer.toString(threshold),
+			ColorTable.getColorName(gui.getColor()),
+			gui.getName(),
+			Integer.toString(gui.getThreshold()),
 			Boolean.toString(channels[0]),
 			Boolean.toString(channels[1]),
 			Boolean.toString(channels[2]),
-			Integer.toString(resf),
-			Integer.toString(type)};
+			Integer.toString(gui.getResamplingFactor()),
+			Integer.toString(gui.getType())};
 		record(ADD, arg);
 
 		return c;
 	}
-
-	File openFileOrDir(final String title) {
-		Java2.setSystemLookAndFeel();
-		try {
-			JFileChooser chooser = new JFileChooser();
-			chooser.setCurrentDirectory(new File(OpenDialog.getDefaultDirectory()));
-			chooser.setDialogTitle(title);
-			chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-			chooser.setApproveButtonText("Select");
-			if(chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION)
-				return null;
-
-			File dir = chooser.getCurrentDirectory();
-			File file = chooser.getSelectedFile();
-			String directory = dir.getPath();
-			if(directory != null)
-				OpenDialog.setDefaultDirectory(directory);
-			return file;
-		} catch (Exception e) {}
-		return null;
-	}
-
 
 	public void delete(Content c) {
 		if(!checkSel(c))
