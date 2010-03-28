@@ -27,8 +27,6 @@ public class TimelineGUI implements ActionListener {
 
 	private static final String[] FILES = new String[] {
 				"icons/first.png",
-// 				"icons/previous.png",
-// 				"icons/next.png",
 				"icons/last.png",
 				"icons/nobounceback.png",
 				"icons/play.png",
@@ -39,7 +37,6 @@ public class TimelineGUI implements ActionListener {
 
 	private static final String[] COMMANDS = new String[] {
 			"FIRST",
-			/* "PREV", "NEXT", */
 			"LAST", "NOBOUNCEBACK",
 			"PLAY", "RECORD", "PAUSE", "FASTER", "SLOWER"};
 
@@ -160,11 +157,7 @@ public class TimelineGUI implements ActionListener {
 			buttons[i].repaint();
 
 		String command = e.getActionCommand();
-		if(command.equals("NEXT")) {
-			timeline.next();
-		} else if(command.equals("PREV")) {
-			timeline.previous();
-		} else if(command.equals("BOUNCEBACK")) {
+		if(command.equals("BOUNCEBACK")) {
 			timeline.setBounceBack(true);
 			buttons[bbIndex].setUnarmedImage(nbbImage);
 			buttons[bbIndex].setActionCommand("NOBOUNCEBACK");
