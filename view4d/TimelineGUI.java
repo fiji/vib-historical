@@ -158,13 +158,11 @@ public class TimelineGUI implements ActionListener {
 
 		String command = e.getActionCommand();
 		if(command.equals("BOUNCEBACK")) {
-			timeline.setBounceBack(true);
 			buttons[bbIndex].setUnarmedImage(nbbImage);
 			buttons[bbIndex].setActionCommand("NOBOUNCEBACK");
 			buttons[bbIndex].repaint();
 			timeline.setBounceBack(true);
 		} else if(command.equals("NOBOUNCEBACK")) {
-			timeline.setBounceBack(true);
 			buttons[bbIndex].setUnarmedImage(bbImage);
 			buttons[bbIndex].setActionCommand("BOUNCEBACK");
 			buttons[bbIndex].repaint();
