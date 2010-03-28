@@ -25,20 +25,24 @@ public class TimelineGUI implements ActionListener {
 	final int bbIndex = 2;
 	final Image bbImage, nbbImage;
 
+	final String playFile = "icons/play.png";
+	final String pauseFile = "icons/pause.png";
+	final int playIndex = 3;
+	final Image playImage, pauseImage;
+
 	private static final String[] FILES = new String[] {
 				"icons/first.png",
 				"icons/last.png",
 				"icons/nobounceback.png",
 				"icons/play.png",
 				"icons/record.png",
-				"icons/pause.png",
 				"icons/faster.png",
 				"icons/slower.png"};
 
 	private static final String[] COMMANDS = new String[] {
 			"FIRST",
 			"LAST", "NOBOUNCEBACK",
-			"PLAY", "RECORD", "PAUSE", "FASTER", "SLOWER"};
+			"PLAY", "RECORD", "FASTER", "SLOWER"};
 
 
 	private ImageButton[] buttons = new ImageButton[FILES.length];
@@ -56,6 +60,8 @@ public class TimelineGUI implements ActionListener {
 
 		bbImage = loadIcon(bbFile);
 		nbbImage = loadIcon(nbbFile);
+		playImage = loadIcon(playFile);
+		pauseImage = loadIcon(pauseFile);
 
 		GridBagLayout gridbag = new GridBagLayout();
 		GridBagConstraints c = new GridBagConstraints();
@@ -168,15 +174,21 @@ public class TimelineGUI implements ActionListener {
 			buttons[bbIndex].repaint();
 			timeline.setBounceBack(false);
 		} else if(command.equals("PLAY")) {
+			buttons[playIndex].setUnarmedImage(pauseImage);
+			buttons[playIndex].setActionCommand("PAUSE");
+			buttons[playIndex].repaint();
 			timeline.play();
+		} else if(command.equals("PAUSE")) {
+			buttons[playIndex].setUnarmedImage(playImage);
+			buttons[playIndex].setActionCommand("PLAY");
+			buttons[playIndex].repaint();
+			timeline.pause();
 		} else if(command.equals("RECORD")) {
 			timeline.record().show();
 		} else if(command.equals("FIRST")) {
 			timeline.first();
 		} else if(command.equals("LAST")) {
 			timeline.last();
-		} else if(command.equals("PAUSE")) {
-			timeline.pause();
 		} else if(command.equals("FASTER")) {
 			timeline.faster();
 		} else if(command.equals("SLOWER")) {
