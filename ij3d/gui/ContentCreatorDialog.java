@@ -39,25 +39,25 @@ public class ContentCreatorDialog {
 
 	private GenericDialog gd;
 
-	public Content showDialog(Image3DUniverse univ, ImagePlus image) {
+	public Content showDialog(Image3DUniverse univ, ImagePlus imp) {
 		// setup default values
 		int img_count = WindowManager.getImageCount();
 		Vector windows = new Vector();
 		for(int i=1; i<=img_count; i++) {
 			int id = WindowManager.getNthImageID(i);
-			ImagePlus imp = WindowManager.getImage(id);
-			if(imp != null && !imp.getTitle().equals("3d"))
-				 windows.add(imp.getTitle());
+			ImagePlus iimp = WindowManager.getImage(id);
+			if(iimp != null && !iimp.getTitle().equals("3d"))
+				 windows.add(iimp.getTitle());
 		}
 		windows.add("Open from file...");
 		final String[] images = new String[windows.size()];
 		windows.toArray(images);
-		String name = image == null ? images[0] : image.getTitle();
+		name = image == null ? images[0] : imp.getTitle();
 		String[] types = new String[] {
 			"Volume", "Orthoslice", "Surface", "Surface Plot 2D"};
 		type = type < 0 ? 0 : type;
-		int threshold = type == Content.SURFACE ? 50 : 0;
-		int resf = 2;
+		threshold = type == Content.SURFACE ? 50 : 0;
+		resamplingFactor = 2;
 		final StringBuilder path = new StringBuilder("");
 
 		// create dialog
@@ -65,13 +65,13 @@ public class ContentCreatorDialog {
 		gd.addChoice("Image", images, name);
 		gd.addStringField("Name", name, 10);
 		gd.addChoice("Display as", types, types[type]);
-		gd.addChoice("Color", ColorTable.colorNames, 
+		gd.addChoice("Color", ColorTable.colorNames,
 						ColorTable.colorNames[0]);
 		gd.addNumericField("Threshold", threshold, 0);
-		gd.addNumericField("Resampling factor", resf, 0);
+		gd.addNumericField("Resampling factor", resamplingFactor, 0);
 		gd.addMessage("Channels");
-		gd.addCheckboxGroup(1, 3, 
-				new String[] {"red", "green", "blue"}, 
+		gd.addCheckboxGroup(1, 3,
+				new String[] {"red", "green", "blue"},
 				new boolean[]{true, true, true});
 		gd.addNumericField("Start at time point",
 				univ.getCurrentTimepoint(), 0);
@@ -115,17 +115,17 @@ public class ContentCreatorDialog {
 		if(fromFile)
 			file = new File(path.toString());
 		else
-			this.image = WindowManager.getImage(imChoice);
+			image = WindowManager.getImage(imChoice);
 
-		this.name = gd.getNextString();
-		this.type = gd.getNextChoiceIndex();
-		this.color = ColorTable.getColor(gd.getNextChoice());
-		this.threshold = (int)gd.getNextNumber();
-		this.resamplingFactor = (int)gd.getNextNumber();
-		this.channels = new boolean[] { gd.getNextBoolean(), 
-						gd.getNextBoolean(), 
-						gd.getNextBoolean() };
-		this.timepoint = (int)gd.getNextNumber();
+		name = gd.getNextString();
+		type = gd.getNextChoiceIndex();
+		color = ColorTable.getColor(gd.getNextChoice());
+		threshold = (int)gd.getNextNumber();
+		resamplingFactor = (int)gd.getNextNumber();
+		channels = new boolean[] { gd.getNextBoolean(),
+					gd.getNextBoolean(),
+					gd.getNextBoolean() };
+		timepoint = (int)gd.getNextNumber();
 
 		if(univ.contains(name)) {
 			IJ.error("Could not add new content. A content with " +
@@ -133,9 +133,9 @@ public class ContentCreatorDialog {
 			return null;
 		}
 
-		ImagePlus[] imps = fromFile ? 
+		ImagePlus[] imps = fromFile ?
 			ContentCreator.getImages(file) :
-			ContentCreator.getImages(this.image);
+			ContentCreator.getImages(image);
 
 		if(imps == null || imps.length == 0)
 			return null;
@@ -144,7 +144,7 @@ public class ContentCreatorDialog {
 		int imaget = imps[0].getType();
 		if(imaget != ImagePlus.GRAY8 && imaget != ImagePlus.COLOR_RGB) {
 			// TODO correct message
-			if(IJ.showMessageWithCancel("Convert...", 
+			if(IJ.showMessageWithCancel("Convert...",
 				"8-bit image required. Convert?")) {
 				for(ImagePlus ip : imps)
 					ContentCreator.convert(ip);
@@ -154,9 +154,9 @@ public class ContentCreatorDialog {
 		}
 
 		Content c = ContentCreator.createContent(
-			this.name, imps, this.type, this.resamplingFactor,
-			this.timepoint, this.color, this.threshold,
-			this.channels);
+			name, imps, type, resamplingFactor,
+			timepoint, color, threshold,
+			channels);
 		return c;
 	}
 
