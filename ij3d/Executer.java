@@ -1,8 +1,10 @@
 package ij3d;
 
 import ij3d.shapes.Scalebar;
+import ij.util.Java2;
 import ij.gui.GenericDialog;
 import ij.io.SaveDialog;
+import ij.io.DirectoryChooser;
 import ij.io.OpenDialog;
 import ij.IJ;
 import ij.WindowManager;
@@ -11,17 +13,20 @@ import ij.text.TextWindow;
 import ij.process.StackConverter;
 import ij.process.ImageConverter;
 
-import view4d.Viewer4D;
-import view4d.Viewer4DController;
+import ij3d.gui.ContentCreatorDialog;
 
 import math3d.TransformIO;
 
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.*;
 import java.awt.event.*;
 import java.awt.*;
 import java.util.Vector;
 import java.util.Iterator;
 import java.util.Collection;
 import java.util.Map;
+
+import java.io.File;
 
 import vib.InterpolatedImage;
 import vib.FastMatrix;
@@ -97,114 +102,76 @@ public class Executer {
 	/* **********************************************************
 	 * File menu
 	 * *********************************************************/
-	public void addContent(final ImagePlus image, final int type) {
+
+	public void addContentFromFile() {
+		OpenDialog od = new OpenDialog("Open from file", null);
+		String folder = od.getDirectory();
+		String name = od.getFileName();
+		if(folder == null || name == null)
+			return;
+		File f = new File(folder, name);
+		if(f.exists())
+			addContent(null, f);
+		else
+			IJ.error("Can not load " + f.getAbsolutePath());
+	}
+
+	public void addContentFromImage(ImagePlus image) {
+		addContent(image, null);
+	}
+
+	public void addTimelapseFromFile() {
+		addContentFromFile();
+	}
+
+	public void addTimelapseFromFolder() {
+		DirectoryChooser dc = new DirectoryChooser("Open from folder");
+		String dir = dc.getDirectory();
+		if(dir == null)
+			return;
+		File d = new File(dir);
+		if(d.exists())
+			addContent(null, d);
+		else
+			IJ.error("Cannot load " + d.getAbsolutePath());
+	}
+
+	public void addTimelapseFromHyperstack(ImagePlus image) {
+		addContentFromImage(image);
+	}
+
+	public void addContent(final ImagePlus image, final File file) {
 		new Thread() {
 			@Override
 			public void run() {
-				addC(image, type);
+				addC(image, file);
 			}
 		}.start();
 	}
 
-	private Content addC(ImagePlus image, int type) {
-		// setup default values
-		int img_count = WindowManager.getImageCount();
-		Vector windows = new Vector();
-		String[] images;
-		for(int i=1; i<=img_count; i++) {
-			int id = WindowManager.getNthImageID(i);
-			ImagePlus imp = WindowManager.getImage(id);
-			if(imp != null && !imp.getTitle().equals("3d")){
-				 windows.add(imp.getTitle());
-			}
-		}
-		if(windows.size() == 0) {
-			IJ.error("No images open");
-			return null;
-		}
-		images = (String[])windows.toArray(new String[]{});
-		String name = image == null ? images[0] : image.getTitle();
-		String[] types = new String[] {
-			"Volume", "Orthoslice", "Surface", "Surface Plot 2D"};
-		type = type < 0 ? 0 : type;
-		int threshold = type == Content.SURFACE ? 50 : 0;
-		int resf = 2;
-
-		// create dialog
-		GenericDialog gd = new GenericDialog(
-					"Add ...", univ.getWindow());
-		gd.addChoice("Image", images, name);
-		gd.addStringField("Name", name, 10);
-		gd.addChoice("Display as", types, types[type]);
-		gd.addChoice("Color", ColorTable.colorNames, 
-						ColorTable.colorNames[0]);
-		gd.addNumericField("Threshold", threshold, 0);
-		gd.addNumericField("Resampling factor", resf, 0);
-		gd.addMessage("Channels");
-		gd.addCheckboxGroup(1, 3, 
-				new String[] {"red", "green", "blue"}, 
-				new boolean[]{true, true, true});
-
-
-		// automatically set threshold if surface is selected
-		final TextField th = (TextField)gd.getNumericFields().get(0);
-		final Choice di = (Choice)gd.getChoices().get(1);
-		di.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				if(di.getSelectedIndex() == Content.SURFACE)
-					th.setText(Integer.toString(50));
-				else
-					th.setText(Integer.toString(0));
-			}
-		});
-		final Choice im = (Choice)gd.getChoices().get(0);
-		final TextField na = (TextField)gd.getStringFields().get(0);
-		im.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				na.setText(im.getSelectedItem());
-			}
-		});
-		gd.showDialog();
-		if(gd.wasCanceled())
-			return null;
-			
-		image = WindowManager.getImage(gd.getNextChoice());
-		name = gd.getNextString();
-		type = gd.getNextChoiceIndex();
-		Color3f color = ColorTable.getColor(gd.getNextChoice());
-		threshold = (int)gd.getNextNumber();
-		resf = (int)gd.getNextNumber();
-		boolean[] channels = new boolean[] {gd.getNextBoolean(), 
-						gd.getNextBoolean(), 
-						gd.getNextBoolean()};
-
-		if(univ.contains(name)) {
-			IJ.error("Could not add new content. A content with " +
-				"name \"" + name + "\" exists already.");
-			return null;
-		}
-
-		int imaget = image.getType();
-		if(imaget != ImagePlus.GRAY8 && imaget != ImagePlus.COLOR_RGB)
-			// TODO correct message
-			if(IJ.showMessageWithCancel("Convert...", 
-				"8-bit image required. Convert?"))
-				convert(image);
-
-		Content c = univ.addContent(image, color, 
-				name, threshold, channels, resf, type);
-
+	private Content addC(ImagePlus image, File file) {
+		ContentCreatorDialog gui = new ContentCreatorDialog();
+		Content c = gui.showDialog(univ, image, file);
 		if(c == null)
 			return null;
+
+		univ.addContent(c);
+
 		// record
+		String title = gui.getFile() != null ?
+			gui.getFile().getAbsolutePath() :
+			gui.getImage().getTitle();
+		boolean[] channels = gui.getChannels();
 		String[] arg = new String[] {
-			c.image.getTitle(), ColorTable.getColorName(c.color),
-			c.name, Integer.toString(c.threshold),
-			Boolean.toString(c.channels[0]), 
-			Boolean.toString(c.channels[1]),
-			Boolean.toString(c.channels[2]),
-			Integer.toString(c.resamplingF),
-			Integer.toString(c.type)};
+			title,
+			ColorTable.getColorName(gui.getColor()),
+			gui.getName(),
+			Integer.toString(gui.getThreshold()),
+			Boolean.toString(channels[0]),
+			Boolean.toString(channels[1]),
+			Boolean.toString(channels[2]),
+			Integer.toString(gui.getResamplingFactor()),
+			Integer.toString(gui.getType())};
 		record(ADD, arg);
 
 		return c;
@@ -213,7 +180,7 @@ public class Executer {
 	public void delete(Content c) {
 		if(!checkSel(c))
 			return;
-		univ.removeContent(c.name);
+		univ.removeContent(c.getName());
 		record(DELETE);
 	}
 
@@ -240,21 +207,6 @@ public class Executer {
 // 	public void removeOctree() {
 // 		univ.removeOctree();
 // 	}
-
-	public void load4D() {
-		if(!univ.getContents().isEmpty()) {
-			// showMessage...() is false if Canceled
-			if(!IJ.showMessageWithCancel(
-				"Loading 4D data...",
-				"All current 3D objects are removed from\n" +
-				"the view! Continue?")) {
-				return;
-			}
-		}
-		Viewer4D view4d = new Viewer4D(univ);
-		if(view4d.loadContents())
-			new Viewer4DController(view4d);
-	}
 
 	public void importWaveFront() {
 		OpenDialog od = new OpenDialog("Select .obj file", OpenDialog.getDefaultDirectory(), null);
@@ -353,7 +305,7 @@ public class Executer {
 		final boolean vis1 = os.isVisible(VolumeRenderer.X_AXIS);
 		final boolean vis2 = os.isVisible(VolumeRenderer.Y_AXIS);
 		final boolean vis3 = os.isVisible(VolumeRenderer.Z_AXIS);
-		ImagePlus imp = c.image;
+		ImagePlus imp = c.getImage();
 		int w = imp.getWidth() / c.getResamplingFactor();
 		int h = imp.getHeight() / c.getResamplingFactor();
 		int d = imp.getStackSize() / c.getResamplingFactor();
@@ -486,7 +438,6 @@ public class Executer {
 		if(!checkSel(c))
 			return;
 		c.displayAs(type);
-		univ.clearSelection();
 	}
 
 
@@ -496,19 +447,23 @@ public class Executer {
 	public void changeColor(final Content c) {
 		if(!checkSel(c))
 			return;
+		final ContentInstant ci = c.getCurrent();
 		final GenericDialog gd = 
 			new GenericDialog("Adjust color ...", univ.getWindow());
-		final Color3f oldC = c.color;
+		final Color3f oldC = ci.getColor();
 
 		gd.addCheckbox("Use default color", oldC == null);
 		gd.addSlider("Red",0,255,oldC == null ? 255 : oldC.x*255);
 		gd.addSlider("Green",0,255,oldC == null ? 0 : oldC.y*255);
 		gd.addSlider("Blue",0,255,oldC == null ? 0 : oldC.z*255);
 
+		gd.addCheckbox("Apply to all timepoints", true);
+
 		final Scrollbar rSlider = (Scrollbar)gd.getSliders().get(0);
 		final Scrollbar gSlider = (Scrollbar)gd.getSliders().get(1);
 		final Scrollbar bSlider = (Scrollbar)gd.getSliders().get(2);
 		final Checkbox cBox = (Checkbox)gd.getCheckboxes().get(0);
+		final Checkbox aBox = (Checkbox)gd.getCheckboxes().get(1);
 
 		rSlider.setEnabled(oldC != null);
 		gSlider.setEnabled(oldC != null);
@@ -520,7 +475,7 @@ public class Executer {
 				rSlider.setEnabled(!cBox.getState());
 				gSlider.setEnabled(!cBox.getState());
 				bSlider.setEnabled(!cBox.getState());
-				c.setColor(cBox.getState() ? null :
+				ci.setColor(cBox.getState() ? null :
 					new Color3f(rSlider.getValue() / 255f,
 						gSlider.getValue() / 255f,
 						bSlider.getValue() / 255f));
@@ -531,7 +486,7 @@ public class Executer {
 
 		AdjustmentListener listener = new AdjustmentListener() {
 			public void adjustmentValueChanged(AdjustmentEvent e) {
-				c.setColor(new Color3f(
+				ci.setColor(new Color3f(
 						rSlider.getValue() / 255f,
 						gSlider.getValue() / 255f,
 						bSlider.getValue() / 255f));
@@ -547,10 +502,19 @@ public class Executer {
 			@Override
 			public void windowClosed(WindowEvent e) {
 				if(gd.wasCanceled()) {
-					c.setColor(oldC);
+					ci.setColor(oldC);
 					univ.fireContentChanged(c);
 					return;
-				} else if(cBox.getState()){
+				}
+				// gd.wasOKed: apply to all time points
+				if(aBox.getState()) {
+					c.setColor(new Color3f(
+						rSlider.getValue() / 255f,
+						gSlider.getValue() / 255f,
+						bSlider.getValue() / 255f));
+				}
+				univ.fireContentChanged(c);
+				if(cBox.getState()){
 					record(SET_COLOR,
 					"null", "null", "null");
 				} else {
@@ -559,7 +523,6 @@ public class Executer {
 					Integer.toString(gSlider.getValue()),
 					Integer.toString(bSlider.getValue()));
 				}
-				univ.clearSelection();
 			}
 		});
 		gd.showDialog();
@@ -627,12 +590,14 @@ public class Executer {
 	public void changeChannels(Content c) {
 		if(!checkSel(c))
 			return;
+		final ContentInstant ci = c.getCurrent();
 		GenericDialog gd = new GenericDialog("Adjust channels ...",
 							univ.getWindow());
 		gd.addMessage("Channels");
 		gd.addCheckboxGroup(1, 3, 
 				new String[] {"red", "green", "blue"}, 
-				c.getChannels());
+				ci.getChannels());
+		gd.addCheckbox("Apply to all timepoints", true);
 		gd.showDialog();
 		if(gd.wasCanceled())
 			return;
@@ -640,32 +605,38 @@ public class Executer {
 		boolean[] channels = new boolean[]{gd.getNextBoolean(), 
 						gd.getNextBoolean(), 
 						gd.getNextBoolean()};
-		c.setChannels(channels);
+		if(gd.getNextBoolean())
+			c.setChannels(channels);
+		else
+			ci.setChannels(channels);
 		univ.fireContentChanged(c);
 		record(SET_CHANNELS, Boolean.toString(channels[0]),
 			Boolean.toString(channels[1]),
 			Boolean.toString(channels[2]));
-		univ.clearSelection();
 	}
 
 	public void changeTransparency(final Content c) {
 		if(!checkSel(c))
 			return;
+		final ContentInstant ci = c.getCurrent();
 		final SliderAdjuster transp_adjuster = new SliderAdjuster() {
-			public synchronized final void setValue(Content c, int v) {
-				c.setTransparency(v / 100f);
+			public synchronized final void setValue(ContentInstant ci, int v) {
+				ci.setTransparency(v / 100f);
+				univ.fireContentChanged(c);
 			}
 		};
 		final GenericDialog gd = new GenericDialog(
 			"Adjust transparency ...", univ.getWindow());
-		final int oldTr = (int)(c.getTransparency() * 100);
+		final int oldTr = (int)(ci.getTransparency() * 100);
 		gd.addSlider("Transparency", 0, 100, oldTr);
+		gd.addCheckbox("Apply to all timepoints", true);
+
 		((Scrollbar)gd.getSliders().get(0)).
 			addAdjustmentListener(new AdjustmentListener() {
 			public void adjustmentValueChanged(AdjustmentEvent e) {
 				if(!transp_adjuster.go)
 					transp_adjuster.start();
-				transp_adjuster.exec((int)e.getValue(), c, univ);
+				transp_adjuster.exec((int)e.getValue(), ci, univ);
 			}
 		});
 		((TextField)gd.getNumericFields().get(0)).
@@ -677,29 +648,32 @@ public class Executer {
 				String text = input.getText();
 				try {
 					int value = Integer.parseInt(text);
-					transp_adjuster.exec(value, c, univ);
+					transp_adjuster.exec(value, ci, univ);
 				} catch (Exception exception) {
 					// ignore intermediately invalid number
 				}
 			}
 		});
+		final Checkbox aBox = (Checkbox)(gd.getCheckboxes().get(0));
 		gd.setModal(false);
 		gd.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosed(WindowEvent e) {
-				if(gd.wasCanceled()) {
-					float newTr = (float)oldTr / 100f;
-					c.setTransparency(newTr);
-					univ.fireContentChanged(c);
-					return;
-				} else {
-					record(SET_TRANSPARENCY, Float.
-					toString(((Scrollbar)gd.getSliders().
-					get(0)).getValue() / 100f));
-				}
 				if (null != transp_adjuster)
 					transp_adjuster.quit();
-				univ.clearSelection();
+				if(gd.wasCanceled()) {
+					float newTr = (float)oldTr / 100f;
+					ci.setTransparency(newTr);
+					univ.fireContentChanged(c);
+					return;
+				}
+				// apply to all instants of the content
+				if(aBox.getState())
+					c.setTransparency(ci.getTransparency());
+
+				record(SET_TRANSPARENCY, Float.
+					toString(((Scrollbar)gd.getSliders().
+					get(0)).getValue() / 100f));
 			}
 		});
 		gd.showDialog();
@@ -708,23 +682,35 @@ public class Executer {
 	public void changeThreshold(final Content c) {
 		if(!checkSel(c))
 			return;
-		if(c.image == null) {
+		if(c.getImage() == null) {
 			IJ.error("The selected object contains no image data,\n" +
 					"therefore the threshold can't be changed");
 			return;
 		}
+		final ContentInstant ci = c.getCurrent();
 		final SliderAdjuster thresh_adjuster = new SliderAdjuster() {
-			public synchronized final void setValue(Content c, int v) {
-				c.setThreshold(v);
+			public synchronized final void setValue(ContentInstant ci, int v) {
+				ci.setThreshold(v);
+				univ.fireContentChanged(c);
 			}
 		};
-		final int oldTr = (int)(c.getThreshold());
+		final int oldTr = (int)(ci.getThreshold());
 		if(c.getType() == Content.SURFACE) {
-			int th = (int)Math.round(
-				IJ.getNumber("Threshold [0..255]", oldTr));
+			final GenericDialog gd = new GenericDialog(
+				"Adjust threshold ...", univ.getWindow());
+			final int old = (int)ci.getThreshold();
+			gd.addNumericField("Threshold", old, 0);
+			gd.addCheckbox("Apply to all timepoints", true);
+			gd.showDialog();
+			if(gd.wasCanceled())
+				return;
+			int th = (int)gd.getNextNumber();
 			th = Math.max(0, th);
 			th = Math.min(th, 255);
-			c.setThreshold(th);
+			if(gd.getNextBoolean())
+				c.setThreshold(th);
+			else
+				ci.setThreshold(th);
 			univ.fireContentChanged(c);
 			record(SET_THRESHOLD, Integer.toString(th));
 			return;
@@ -739,23 +725,28 @@ public class Executer {
 				// start adjuster and request an action
 				if(!thresh_adjuster.go)
 					thresh_adjuster.start();
-				thresh_adjuster.exec((int)e.getValue(), c, univ);
+				thresh_adjuster.exec((int)e.getValue(), ci, univ);
 			}
 		});
+		gd.addCheckbox("Apply to all timepoints", true);
+		final Checkbox aBox = (Checkbox)gd.getCheckboxes().get(0);
 		gd.setModal(false);
 		gd.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosed(WindowEvent e) {
 				try {
 					if(gd.wasCanceled()) {
-						c.setThreshold(oldTr);
+						ci.setThreshold(oldTr);
 						univ.fireContentChanged(c);
 						return;
-					} else {
-						record(SET_THRESHOLD, 
-							Integer.toString(
-								c.threshold));
 					}
+					// apply to other time points
+					if(aBox.getState())
+						c.setThreshold(ci.getThreshold());
+
+					record(SET_THRESHOLD,
+						Integer.toString(
+						c.getThreshold()));
 				} finally {
 					// [ This code block executes even when
 					//   calling return above ]
@@ -763,7 +754,6 @@ public class Executer {
 					// clean up
 					if (null != thresh_adjuster)
 						thresh_adjuster.quit();
-					univ.clearSelection();
 				}
 			}
 		});
@@ -774,9 +764,26 @@ public class Executer {
 		if(!checkSel(c))
 			return;
 		int t = c.getType();
-		if(t == Content.SURFACE ||
-				t == Content.SURFACE_PLOT2D || t == Content.CUSTOM)
+		if(t != Content.SURFACE &&
+				t != Content.SURFACE_PLOT2D && t != Content.CUSTOM)
+			return;
+
+		if(c.getNumberOfInstants() == 1) {
 			c.setShaded(b);
+			return;
+		}
+
+		ContentInstant ci = c.getCurrent();
+		GenericDialog gd = new GenericDialog("Set shaded");
+		gd.addCheckbox("Apply to all timepoints", true);
+		gd.showDialog();
+		if(gd.wasCanceled())
+			return;
+
+		if(gd.getNextBoolean())
+			c.setShaded(b);
+		else
+			ci.setShaded(b);
 	}
 
 
@@ -926,7 +933,7 @@ public class Executer {
 		if(!checkSel(c))
 			return;
 		if(c.isLocked()) {
-			IJ.error(c.name + " is locked");
+			IJ.error(c.getName() + " is locked");
 			return;
 		}
 		univ.fireTransformationStarted();
@@ -939,7 +946,7 @@ public class Executer {
 		if(!checkSel(c))
 			return;
 		if(c.isLocked()) {
-			IJ.error(c.name + " is locked");
+			IJ.error(c.getName() + " is locked");
 			return;
 		}
 		univ.fireTransformationStarted();
@@ -955,7 +962,7 @@ public class Executer {
 		if(!checkSel(c))
 			return;
 		if(c.isLocked()) {
-			IJ.error(c.name + " is locked");
+			IJ.error(c.getName() + " is locked");
 			return;
 		}
 		univ.fireTransformationStarted();
@@ -1144,37 +1151,6 @@ public class Executer {
 		}
 	}
 
-
-
-	/* **********************************************************
-	 * Utility methods
-	 * *********************************************************/
-	public static void convert(ImagePlus image) {
-		int imaget = image.getType();
-		if(imaget == ImagePlus.GRAY8 || imaget == ImagePlus.COLOR_256)
-			return;
-		int s = image.getStackSize();
-		switch(imaget) {
-			case ImagePlus.COLOR_256:
-				if(s == 1)
-					new ImageConverter(image).
-						convertToRGB();
-				else
-					new StackConverter(image).
-						convertToRGB();
-				break;
-			case ImagePlus.GRAY16:
-			case ImagePlus.GRAY32:
-				if(s == 1)
-					new ImageConverter(image).
-						convertToGray8();
-				else
-					new StackConverter(image).
-						convertToGray8();
-				break;
-		}
-	}
-
 	private float[] readTransform(Content selected) {
 		final GenericDialog gd = new GenericDialog(
 				"Read transformation", univ.getWindow());
@@ -1314,7 +1290,7 @@ public class Executer {
 	private abstract class SliderAdjuster extends Thread {
 		boolean go = false;
 		int newV;
-		Content content;
+		ContentInstant content;
 		Image3DUniverse univ;
 		final Object lock = new Object();
 
@@ -1327,7 +1303,7 @@ public class Executer {
 		/*
 		 * Set a new event, overwritting previous if any.
 		 */
-		void exec(final int newV, final Content content, final Image3DUniverse univ) {
+		void exec(final int newV, final ContentInstant content, final Image3DUniverse univ) {
 			synchronized (lock) {
 				this.newV = newV;
 				this.content = content;
@@ -1345,7 +1321,7 @@ public class Executer {
 		 * This class has to be implemented by subclasses, to define
 		 * the specific updating function.
 		 */
-		protected abstract void setValue(final Content c, final int v);
+		protected abstract void setValue(final ContentInstant c, final int v);
 
 		@Override
 		public void run() {
@@ -1357,7 +1333,7 @@ public class Executer {
 					}
 					if (!go) return;
 					// 1 - cache vars, to free the lock very quickly
-					Content c;
+					ContentInstant c;
 					int transp = 0;
 					Image3DUniverse u;
 					synchronized (lock) {
@@ -1368,7 +1344,6 @@ public class Executer {
 					// 2 - exec cached vars
 					if (null != c) {
 						setValue(c, transp);
-						u.fireContentChanged(c);
 					}
 					// 3 - done: reset only if no new request was put
 					synchronized (lock) {

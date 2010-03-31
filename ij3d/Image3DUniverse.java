@@ -4,6 +4,7 @@ import ij3d.pointlist.PointListDialog;
 import ij.ImagePlus;
 import ij.IJ;
 
+import java.awt.BorderLayout;
 import java.awt.MenuBar;
 import java.awt.event.*;
 
@@ -14,6 +15,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.ArrayList;
+import java.util.TreeMap;
 import java.util.Map;
 
 import customnode.MeshLoader;
@@ -24,6 +26,9 @@ import customnode.CustomMesh;
 import customnode.CustomMultiMesh;
 import customnode.CustomMeshNode;
 import customnode.CustomTriangleMesh;
+
+import view4d.TimelineGUI;
+import view4d.Timeline;
 
 import javax.media.j3d.*;
 import javax.vecmath.*;
@@ -43,6 +48,21 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 
 	public static ArrayList<Image3DUniverse> universes =
 				new ArrayList<Image3DUniverse>();
+
+	/** The current time point */
+	private int currentTimepoint = 0;
+
+	/** The global start time */
+	private int startTime = 0;
+
+	/** The global end time */
+	private int endTime = 0;
+
+	/** The timeline object for animation accross 4D */
+	private final Timeline timeline;
+
+	/** The GUI controlling the timeline */
+	private TimelineGUI timelineGUI;
 
 	/** The selected Content */
 	private Content selected;
@@ -104,6 +124,8 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		super(width, height);
 		canvas = (ImageCanvas3D)getCanvas();
 		executer = new Executer(this);
+		this.timeline = new Timeline(this);
+		this.timelineGUI = new TimelineGUI(timeline);
 
 		BranchGroup bg = new BranchGroup();
 		scene.addChild(bg);
@@ -117,7 +139,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 				Content c = picker.getPickedContent(
 						e.getX(), e.getY());
 				if(c != null)
-					IJ.showStatus(c.name);
+					IJ.showStatus(c.getName());
 				else
 					IJ.showStatus("");
 			}
@@ -141,6 +163,11 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	public void show() {
 		super.show();
 		plDialog = new PointListDialog(win);
+		plDialog.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				hideAllLandmarks();
+			}
+		});
 		menubar = new Image3DMenubar(this);
 		registrationMenubar = new RegistrationMenubar(this);
 		setMenubar(menubar);
@@ -156,6 +183,10 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		contents = null;
 		universes.remove(this);
 		adder.shutdownNow();
+		WindowListener[] ls = plDialog.getWindowListeners();
+		for(WindowListener l : ls)
+			plDialog.removeWindowListener(l);
+		plDialog.dispose();
 	}
 
 	/**
@@ -163,8 +194,8 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * @param text
 	 */
 	public void setStatus(String text) {
-		if(win != null)
-			win.getStatusLabel().setText("  " + text);
+// 		if(win != null)
+// 			win.getStatusLabel().setText("  " + text);
 	}
 
 	/**
@@ -206,6 +237,15 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 		return plDialog;
 	}
 
+	/**
+	 * Hide point list dialog and all landmark points.
+	 */
+	public void hideAllLandmarks() {
+		for(Content c : contents.values()) {
+			c.showPointList(false);
+		}
+	}
+
 	/* *************************************************************
 	 * Session methods
 	 * *************************************************************/
@@ -216,6 +256,77 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	public void loadSession(final String file) throws IOException {
 		removeAllContents();
 		SaveSession.loadScene(this, file);
+	}
+
+	/* *************************************************************
+	 * Timeline stuff
+	 * *************************************************************/
+	public Timeline getTimeline() {
+		return timeline;
+	}
+
+	public void showTimepoint(int tp) {
+		this.currentTimepoint = tp;
+		for(Content c : contents.values())
+			c.showTimepoint(tp);
+		if(timelineGUIVisible)
+			timelineGUI.updateTimepoint(tp);
+	}
+
+	public int getCurrentTimepoint() {
+		return currentTimepoint;
+	}
+
+	public int getStartTime() {
+		return startTime;
+	}
+
+	public int getEndTime() {
+		return endTime;
+	}
+
+	public void updateStartAndEndTime(int st, int e) {
+		this.startTime = st;
+		this.endTime = e;
+		updateTimelineGUI();
+	}
+
+	public void updateTimeline() {
+		if(contents.size() == 0)
+			startTime = endTime = 0;
+		else {
+			startTime = Integer.MAX_VALUE;
+			endTime = Integer.MIN_VALUE;
+			for(Content c : contents.values()) {
+				if(c.getStartTime() < startTime)
+					startTime = c.getStartTime();
+				if(c.getEndTime() > endTime)
+					endTime = c.getEndTime();
+			}
+		}
+		if(currentTimepoint > endTime)
+			showTimepoint(endTime);
+		else if(currentTimepoint < startTime)
+			showTimepoint(startTime);
+		updateTimelineGUI();
+	}
+
+	boolean timelineGUIVisible = false;
+	public void updateTimelineGUI() {
+		if(win == null)
+			return;
+		if(endTime != startTime && !timelineGUIVisible) {
+			win.add(timelineGUI.getPanel(), BorderLayout.SOUTH, -1);
+			timelineGUIVisible = true;
+			win.pack();
+		} else if(endTime == startTime && timelineGUIVisible) {
+			win.remove(timelineGUI.getPanel());
+			timelineGUIVisible = false;
+			win.pack();
+		}
+		if(timelineGUIVisible) {
+			timelineGUI.updateStartAndEnd(startTime, endTime);
+		}
 	}
 
 
@@ -232,18 +343,18 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			selected.setSelected(false);
 			selected = null;
 		}
-		if(c != null) {
+		if(c != null && c.isVisibleAt(currentTimepoint)) {
 			c.setSelected(true);
 			selected = c;
 		}
-		String st = c != null ? c.name : "none";
+		String st = c != null ? c.getName() : "none";
 		IJ.showStatus("selected: " + st);
 
-		fireContentSelected(c);
+		fireContentSelected(selected);
 
 		if(c != null && ij.plugin.frame.Recorder.record)
 			ij.plugin.frame.Recorder.record(
-				"call", "ImageJ_3D_Viewer.select", c.name);
+				"call", "ImageJ_3D_Viewer.select", c.getName());
 	}
 
 	/**
@@ -294,14 +405,14 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 
 		Iterator it = contents();
 		Content c = (Content)it.next();
-		c.getContent().getMin(min);
-		c.getContent().getMax(max);
+		c.getMin(min);
+		c.getMax(max);
 		globalMin.set(min);
 		globalMax.set(max);
 		while(it.hasNext()) {
 			c = (Content)it.next();
-			c.getContent().getMin(min);
-			c.getContent().getMax(max);
+			c.getMin(min);
+			c.getMax(max);
 			if(min.x < globalMin.x) globalMin.x = min.x;
 			if(min.y < globalMin.y) globalMin.y = min.y;
 			if(min.z < globalMin.z) globalMin.z = min.z;
@@ -322,8 +433,8 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * @param c
 	 */
 	public void recalculateGlobalMinMax(Content c) {
-		Point3d cmin = new Point3d(); c.getContent().getMin(cmin);
-		Point3d cmax = new Point3d(); c.getContent().getMax(cmax);
+		Point3d cmin = new Point3d(); c.getMin(cmin);
+		Point3d cmax = new Point3d(); c.getMax(cmax);
 		if(contents.size() == 1) {
 			globalMin.set(cmin);
 			globalMax.set(cmax);
@@ -508,18 +619,10 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			IJ.error("Content named '" + name + "' exists already");
 			return null;
 		}
-		Content content = new Content(name);
-		content.image = image;
-		content.color = color;
-		content.threshold = thresh;
-		content.channels = channels;
-		content.resamplingF = resf;
-		content.setPointListDialog(plDialog);
-		content.showCoordinateSystem(UniverseSettings.
-				showLocalCoordinateSystemsByDefault);
-		content.displayAs(type);
-		content.compile();
-		return addContent(content);
+		Content c = ContentCreator.createContent(name, image, type,
+			resf, -1, color, thresh, channels);
+		c.setPointListDialog(plDialog);
+		return addContent(c);
 	}
 
 	/**
@@ -719,7 +822,9 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			IJ.error("Mesh named '"+name+"' exists already");
 			return null;
 		}
-		return addContent(createContent(mesh, name));
+		Content content = createContent(mesh, name);
+		content.setPointListDialog(plDialog);
+		return addContent(content);
 	}
 
 	/**
@@ -737,6 +842,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			return null;
 		}
 		Content content = createContent(mesh, name);
+		content.setPointListDialog(plDialog);
 		return addContent(content);
 	}
 
@@ -753,27 +859,11 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	 * @return the created Content
 	 */
 	public Content createContent(CustomMesh mesh, String name) {
-		Content content = new Content(name);
-		content.color = mesh.getColor();
-		content.transparency = mesh.getTransparency();
-		content.shaded = mesh.isShaded();
-		content.showCoordinateSystem(
-			UniverseSettings.showLocalCoordinateSystemsByDefault);
-		content.display(new CustomMeshNode(mesh));
-		content.setPointListDialog(plDialog);
-		return content;
+		return ContentCreator.createContent(mesh, name);
 	}
 
 	public Content createContent(CustomMultiMesh node, String name) {
-		Content content = new Content(name);
-		content.color = null;
-		content.transparency = 0f;
-		content.shaded = false;
-		content.showCoordinateSystem(
-			UniverseSettings.showLocalCoordinateSystemsByDefault);
-		content.display(node);
-		content.setPointListDialog(plDialog);
-		return content;
+		return ContentCreator.createContent(node, name);
 	}
 
 	/**
@@ -934,6 +1024,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 				clearSelection();
 			fireContentRemoved(content);
 			this.removeUniverseListener(content);
+			updateTimeline();
 		}
 	}
 
@@ -1201,13 +1292,30 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	/** Returns true on success. */
 	private boolean addContentToScene(Content c) {
 		synchronized (lock) {
-			if(contents.containsKey(c.name)) {
-				IJ.log("Mesh named '" + c.name + "' exists already");
+			String name = c.getName();
+			if(contents.containsKey(name)) {
+				IJ.log("Mesh named '" + name + "' exists already");
 				return false;
 			}
+			TreeMap<Integer, ContentInstant> instants =
+				c.getInstants();
+			// in case the time point is not set, do so now
+			if(instants.firstKey() == -1)
+				c.startAt(currentTimepoint);
+			// update start and end time
+			int st = startTime;
+			int e = endTime;
+			if(c.getStartTime() < startTime)
+				st = c.getStartTime();
+			if(c.getEndTime() > endTime)
+				e = c.getEndTime();
+			updateStartAndEndTime(st, e);
+			c.showTimepoint(currentTimepoint);
+
 			this.scene.addChild(c);
-			this.contents.put(c.name, c);
+			this.contents.put(name, c);
 			this.recalculateGlobalMinMax(c);
+			c.showTimepoint(currentTimepoint);
 		}
 		return true;
 	}
@@ -1273,15 +1381,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 			name = getSafeContentName(name);
 			CustomMesh mesh = entry.getValue();
 
-			Content content = new Content(name);
-			content.color = mesh.getColor();
-			content.transparency = mesh.getTransparency();
-			content.shaded = mesh.isShaded();
-			content.showCoordinateSystem(
-				UniverseSettings.showLocalCoordinateSystemsByDefault);
-			content.display(new CustomMeshNode(mesh));
-			content.setPointListDialog(plDialog);
-
+			Content content = createContent(mesh, name);
 			contents.add(content);
 		}
 		return addContentLater(contents);

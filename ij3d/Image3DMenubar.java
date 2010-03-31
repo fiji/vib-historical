@@ -16,7 +16,11 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	private Image3DUniverse univ;
 	private Executer executer;
 
-	private MenuItem add;
+	private MenuItem addContentFromFile;
+	private MenuItem addContentFromImage;
+	private MenuItem add4DFromFile;
+	private MenuItem add4DFromImage;
+	private MenuItem add4DFromFolder;
 	private MenuItem saveSession;
 	private MenuItem loadSession;
 	private MenuItem importObj;
@@ -64,7 +68,6 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	private MenuItem pl_size;
 	private CheckboxMenuItem pl_show;
 	private MenuItem j3dproperties;
-	private MenuItem viewer4d;
 	private CheckboxMenuItem coordinateSystem;
 	private CheckboxMenuItem boundingBox;
 	private CheckboxMenuItem allCoordinateSystems;
@@ -111,19 +114,27 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 	public Menu createFileMenu() {
 		Menu file = new Menu("File");
 
-		saveSession = new MenuItem("Save Session");
-		saveSession.addActionListener(this);
-		file.add(saveSession);
+		Menu addContent = new Menu("Add content");
+		addContentFromFile = new MenuItem("from file");
+		addContentFromFile.addActionListener(this);
+		addContent.add(addContentFromFile);
+		addContentFromImage = new MenuItem("from open image");
+		addContentFromImage.addActionListener(this);
+		addContent.add(addContentFromImage);
+		file.add(addContent);
 
-		loadSession = new MenuItem("Load Session");
-		loadSession.addActionListener(this);
-		file.add(loadSession);
+		Menu add4D = new Menu("Add timelapse");
+		add4DFromFile = new MenuItem("from hyperstack file");
+		add4DFromFile.addActionListener(this);
+		add4D.add(add4DFromFile);
+		add4DFromImage = new MenuItem("from open hyperstack");
+		add4DFromImage.addActionListener(this);
+		add4D.add(add4DFromImage);
+		add4DFromFolder = new MenuItem("from folder with stacks");
+		add4DFromFolder.addActionListener(this);
+		add4D.add(add4DFromFolder);
+		file.add(add4D);
 
-		file.addSeparator();
-
-		add = new MenuItem("Add content");
-		add.addActionListener(this);
-		file.add(add);
 
 		importObj = new MenuItem("Import WaveFront");
 		importObj.addActionListener(this);
@@ -136,9 +147,13 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 
 		file.addSeparator();
 
-		viewer4d = new MenuItem("Load 4D data");
-		viewer4d.addActionListener(this);
-		file.add(viewer4d);
+		saveSession = new MenuItem("Save Session");
+		saveSession.addActionListener(this);
+		file.add(saveSession);
+
+		loadSession = new MenuItem("Load Session");
+		loadSession.addActionListener(this);
+		file.add(loadSession);
 
 		file.addSeparator();
 
@@ -445,14 +460,20 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 			executer.changeBackgroundColor();
 		else if(src == scalebar)
 			executer.editScalebar();
-		else if(src == viewer4d)
-			executer.load4D();
 		else if(src == channels)
 			executer.changeChannels(univ.getSelected());
 		else if(src == transparency)
 			executer.changeTransparency(univ.getSelected());
-		else if(src == add)
-			executer.addContent(null, -1);
+		else if(src == addContentFromFile)
+			executer.addContentFromFile();
+		else if(src == addContentFromImage)
+			executer.addContentFromImage(null);
+		else if(src == add4DFromFile)
+			executer.addTimelapseFromFile();
+		else if(src == add4DFromImage)
+			executer.addTimelapseFromHyperstack(null);
+		else if(src == add4DFromFolder)
+			executer.addTimelapseFromFolder();
 		else if(src == regist)
 			executer.register();
 		else if(src == delete)
@@ -674,7 +695,7 @@ public class Image3DMenubar extends MenuBar implements ActionListener,
 		pl_show.setState(c.isPLVisible());
 		shaded.setState(c.isShaded());
 
-		ImagePlus i = c.image;
+		ImagePlus i = c.getImage();
 		displayAsVolume.setEnabled(t != Content.VOLUME && i != null);
 		displayAsOrtho.setEnabled(t != Content.ORTHO && i != null);
 		displayAsSurface.setEnabled(t != Content.SURFACE && i != null);

@@ -1,22 +1,9 @@
 package ij3d;
 
-import ij3d.shapes.CoordinateSystem;
-import ij3d.shapes.BoundingBox;
-import ij3d.pointlist.PointListPanel;
-import ij3d.pointlist.PointListShape;
 import ij3d.pointlist.PointListDialog;
 import ij.ImagePlus;
-import ij.ImageStack;
-import ij.io.FileInfo;
-import ij.io.OpenDialog;
 
 import vib.PointList;
-import isosurface.MeshGroup;
-import voltex.VoltexGroup;
-import orthoslice.OrthoGroup;
-import surfaceplot.SurfacePlotGroup;
-
-import java.util.BitSet;
 
 import javax.media.j3d.BranchGroup;
 import javax.media.j3d.Switch;
@@ -25,177 +12,162 @@ import javax.media.j3d.TransformGroup;
 import javax.media.j3d.View;
 
 import javax.vecmath.Color3f;
-import javax.vecmath.Matrix3f;
 import javax.vecmath.Point3d;
-import javax.vecmath.Vector3d;
 
-public class Content extends BranchGroup implements UniverseListener {
+import java.util.TreeMap;
+import java.util.HashMap;
 
-	// attributes
-	protected final String name;
-	protected Color3f color = null;
-	protected ImagePlus image;
-	protected boolean[] channels = new boolean[] {true, true, true};
-	protected float transparency = 0f;
-	protected int resamplingF = 1;
-	protected int threshold = 0;
-	protected boolean shaded = true;
-	protected int type = VOLUME;
+public class Content extends BranchGroup implements UniverseListener, ContentConstants {
 
-	// visibility flags
-	private boolean locked = false;
-	private boolean visible = true;
-	private boolean bbVisible = false;
-	private boolean coordVisible = UniverseSettings.
-					showLocalCoordinateSystemsByDefault;
-	private boolean showPL = false;
-	protected boolean selected = false;
-
-	// entries
-	private ContentNode contentNode = null;
-
-	// point list
-	private PointListShape plShape   = null;
-	private PointListDialog plDialog = null;
-	private PointListPanel plPanel   = null;
-	private PointList points;
-
-	// scene graph entries
-	private Switch bbSwitch;
-	private BitSet whichChild = new BitSet(5);
-
-	protected TransformGroup localRotate;
-	protected TransformGroup localTranslate;
-
-	// global constants
-	public static final int CO = 0;
-	public static final int BS = 1;
-	public static final int BB = 2;
-	public static final int CS = 3;
-	public static final int PL = 4;
-
-	public static final int VOLUME = 0;
-	public static final int ORTHO = 1;
-	public static final int SURFACE = 2;
-	public static final int SURFACE_PLOT2D = 3;
-	public static final int CUSTOM = 4;
+	private HashMap<Integer, Integer> timepointToSwitchIndex;
+	private TreeMap<Integer, ContentInstant> contents;
+	private int currentTimePoint;
+	private Switch contentSwitch;
+	private final String name;
 
 	public Content(String name) {
-		// create BranchGroup for this image
+		this(name, 0);
+	}
+
+	public Content(String name, int tp) {
 		this.name = name;
 		setCapability(BranchGroup.ALLOW_DETACH);
 		setCapability(BranchGroup.ENABLE_PICK_REPORTING);
-
-		// create transformation for pickeing
-		localTranslate = new TransformGroup();
-		localTranslate.setCapability(TransformGroup.ALLOW_TRANSFORM_READ);
-		localTranslate.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
-		addChild(localTranslate);
-		localRotate = new TransformGroup();
-		localRotate.setCapability(TransformGroup.ALLOW_TRANSFORM_READ);
-		localRotate.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
-		localTranslate.addChild(localRotate);
-
-		bbSwitch = new Switch();
-		bbSwitch.setWhichChild(Switch.CHILD_MASK);
-		bbSwitch.setCapability(Switch.ALLOW_SWITCH_READ);
-		bbSwitch.setCapability(Switch.ALLOW_SWITCH_WRITE);
-		bbSwitch.setCapability(Switch.ALLOW_CHILDREN_WRITE);
-		bbSwitch.setCapability(Switch.ALLOW_CHILDREN_EXTEND);
-		localRotate.addChild(bbSwitch);
-
-		// create the point list
-		points = new PointList();
-		plShape = new PointListShape(points);
-		plShape.setPickable(false);
-		plPanel = new PointListPanel(name, points);
+		timepointToSwitchIndex = new HashMap<Integer, Integer>();
+		contents = new TreeMap<Integer, ContentInstant>();
+		ContentInstant ci = new ContentInstant(name + "_#" + tp);
+		ci.timepoint = tp;
+		contents.put(tp, ci);
+		timepointToSwitchIndex.put(tp, 0);
+		contentSwitch = new Switch();
+		contentSwitch.setCapability(Switch.ALLOW_SWITCH_WRITE);
+		contentSwitch.addChild(ci);
+		addChild(contentSwitch);
 	}
 
-	public void displayAs(int type) {
-		if(image == null)
-			return;
-		// create content node and add it to the switch
-		switch(type) {
-			case VOLUME: contentNode = new VoltexGroup(this); break;
-			case ORTHO: contentNode = new OrthoGroup(this); break;
-			case SURFACE: contentNode = new MeshGroup(this); break;
-			case SURFACE_PLOT2D: contentNode =
-				new SurfacePlotGroup(this); break;
-			default: throw new IllegalArgumentException(
-					"Specified type is neither VOLUME, ORTHO," +
-					"SURFACE or SURFACEPLOT2D");
+	public Content(String name, TreeMap<Integer, ContentInstant> contents) {
+		this.name = name;
+		setCapability(BranchGroup.ALLOW_DETACH);
+		setCapability(BranchGroup.ENABLE_PICK_REPORTING);
+		this.contents = contents;
+		timepointToSwitchIndex = new HashMap<Integer, Integer>();
+		contentSwitch = new Switch();
+		contentSwitch.setCapability(Switch.ALLOW_SWITCH_WRITE);
+		for(int i : contents.keySet()) {
+			ContentInstant c = contents.get(i);
+			c.timepoint = i;
+			c.name = name + "_#" + i;
+			timepointToSwitchIndex.put(i, contentSwitch.numChildren());
+			contentSwitch.addChild(c);
 		}
-		display(contentNode);
-		// update type
-		this.type = type;
+		addChild(contentSwitch);
+	}
+
+	// replace if timepoint is already present
+	public void addInstant(ContentInstant ci, int timepoint) {
+		ci.timepoint = timepoint;
+		ci.name = name + "_#" + timepoint;
+		contents.put(timepoint, ci);
+		if(!contents.containsKey(timepoint)) {
+			timepointToSwitchIndex.put(timepoint, contentSwitch.numChildren());
+			contentSwitch.addChild(ci);
+		} else {
+			int switchIdx = timepointToSwitchIndex.get(timepoint);
+			contentSwitch.setChild(ci, switchIdx);
+		}
+	}
+
+	public void removeInstant(int timepoint) {
+		if(!contents.containsKey(timepoint))
+			return;
+		int sIdx = timepointToSwitchIndex.get(timepoint);
+		contentSwitch.removeChild(sIdx);
+		contents.remove(timepoint);
+		timepointToSwitchIndex.remove(timepoint);
+		// update the following switch indices.
+		for(int i = sIdx; i < contentSwitch.numChildren(); i++) {
+			ContentInstant ci = (ContentInstant)contentSwitch.getChild(i);
+			int tp = ci.getTimepoint();
+			timepointToSwitchIndex.put(tp, i);
+		}
+	}
+
+	public ContentInstant getCurrent() {
+		return contents.get(currentTimePoint);
+	}
+
+	public ContentInstant getInstant(int i) {
+		return contents.get(i);
+	}
+
+	public TreeMap<Integer, ContentInstant> getInstants() {
+		return contents;
+	}
+
+	public void showTimepoint(int tp) {
+		currentTimePoint = tp;
+		Integer idx = timepointToSwitchIndex.get(tp);
+		if(idx == null)
+			contentSwitch.setWhichChild(Switch.CHILD_NONE);
+		else
+			contentSwitch.setWhichChild(idx);
+	}
+
+	public int getNumberOfInstants() {
+		return contents.size();
+	}
+
+	public boolean isVisibleAt(int tp) {
+		return contents.containsKey(tp);
+	}
+
+	public void startAt(int timepoint) {
+		TreeMap<Integer, ContentInstant> copy =
+			new TreeMap<Integer, ContentInstant>(contents);
+		contents.clear();
+		timepointToSwitchIndex.clear();
+		contentSwitch.removeAllChildren();
+		for(Integer i : copy.keySet()) {
+			ContentInstant c = copy.get(i);
+			c.timepoint = timepoint;
+			c.name = name + "_#" + timepoint;
+			timepointToSwitchIndex.put(timepoint, contentSwitch.numChildren());
+			contents.put(timepoint, c);
+			contentSwitch.addChild(c);
+			timepoint++;
+		}
+	}
+
+	public int getStartTime() {
+		return contents.firstKey();
+	}
+
+	public int getEndTime() {
+		return contents.lastKey();
+	}
+
+
+	// ==========================================================
+	// From here begins the 'Content Instant interface', i.e.
+	// methods which are delegated to the individual
+	// ContentInstants.
+	//
+	public void displayAs(int type) {
+		for(ContentInstant c : contents.values())
+			c.displayAs(type);
 	}
 
 	public static int getDefaultThreshold(ImagePlus imp, int type) {
-		if(type != SURFACE)
-			return 0;
-		ImageStack stack = imp.getStack();
-		int d = imp.getStackSize();
-		// compute stack histogram
-		int[] h = stack.getProcessor(1).getHistogram();
-		for(int z = 1; z < d; z++) {
-			int[] tmp = stack.getProcessor(z+1).getHistogram();
-			for(int i = 0; i < h.length; i++)
-				h[i] += tmp[i];
-
-		}
-		return imp.getProcessor().getAutoThreshold(h);
+		return ContentInstant.getDefaultThreshold(imp, type);
 	}
 
 	public static int getDefaultResamplingFactor(ImagePlus imp, int type) {
-		int w = imp.getWidth(), h = imp.getHeight();
-		int d = imp.getStackSize();
-		int max = Math.max(w, Math.max(h, d));
-		switch(type) {
-			case SURFACE: return (int)Math.ceil(max / 128f);
-			case VOLUME:  return (int)Math.ceil(max / 256f);
-			case ORTHO:   return (int)Math.ceil(max / 256f);
-			case SURFACE_PLOT2D: return (int)Math.ceil(max / 128f);
-		}
-		return 1;
+		return ContentInstant.getDefaultResamplingFactor(imp, type);
 	}
 
 	public void display(ContentNode node) {
-		// remove everything if possible
-		bbSwitch.removeAllChildren();
-
-		// create content node and add it to the switch
-		contentNode = node;
-		bbSwitch.addChild(contentNode);
-
-		// create the bounding box and add it to the switch
-		Point3d min = new Point3d(); contentNode.getMin(min);
-		Point3d max = new Point3d(); contentNode.getMax(max);
-		BoundingBox bb = new BoundingBox(min, max);
-		bb.setPickable(false);
-		bbSwitch.addChild(bb);
-		bb = new BoundingBox(min, max, new Color3f(0, 1, 0));
-		bb.setPickable(false);
-		bbSwitch.addChild(bb);
-
-		// create coordinate system and add it to the switch
-		float cl = (float)Math.abs(max.x - min.x) / 5f;
-		CoordinateSystem cs = new CoordinateSystem(
-						cl, new Color3f(0, 1, 0));
-		cs.setPickable(false);
-		bbSwitch.addChild(cs);
-
-		// create point list and add it to the switch
-		bbSwitch.addChild(plShape);
-
-		// initialize child mask of the switch
-		whichChild.set(BS, selected);
-		whichChild.set(CS, coordVisible);
-		whichChild.set(CO, visible);
-		whichChild.set(PL, showPL);
-		bbSwitch.setChildMask(whichChild);
-
-		// update type
-		this.type = CUSTOM;
+		for(ContentInstant c : contents.values())
+			c.display(node);
 	}
 
 	/* ************************************************************
@@ -204,73 +176,49 @@ public class Content extends BranchGroup implements UniverseListener {
 	 * ***********************************************************/
 
 	public void setVisible(boolean b) {
-		visible = b;
-		whichChild.set(CO, b);
-		whichChild.set(CS, b && coordVisible);
-		whichChild.set(BB, b && bbVisible);
-		// only if hiding, hide the point list
-		if(!b) {
-			showPointList(false);
-		}
-		bbSwitch.setChildMask(whichChild);
+		for(ContentInstant c : contents.values())
+			c.setVisible(b);
 	}
 
 	public void showBoundingBox(boolean b) {
-		bbVisible = b;
-		whichChild.set(BB, b);
-		bbSwitch.setChildMask(whichChild);
+		for(ContentInstant c : contents.values())
+			c.showBoundingBox(b);
 	}
 
 
 	public void showCoordinateSystem(boolean b) {
-		coordVisible = b;
-		whichChild.set(CS, b);
-		bbSwitch.setChildMask(whichChild);
+		for(ContentInstant c : contents.values())
+			c.showCoordinateSystem(b);
 	}
 
 	public void setSelected(boolean selected) {
-		this.selected = selected;
-		whichChild.set(BS, selected);
-		bbSwitch.setChildMask(whichChild);
+		// TODO really all?
+		for(ContentInstant c : contents.values())
+			c.setSelected(selected);
 	}
 
 	/* ************************************************************
 	 * point list
 	 *
 	 * ***********************************************************/
-
 	public void setPointListDialog(PointListDialog p) {
-		this.plDialog = p;
+		for(ContentInstant c : contents.values())
+			c.setPointListDialog(p);
 	}
 
 	public void showPointList(boolean b) {
-		if(plShape == null)
-			return;
-
-		whichChild.set(PL, b);
-		showPL = b;
-		bbSwitch.setChildMask(whichChild);
-		if(b && plDialog != null)
-			plDialog.addPointList(name, plPanel);
-		else if(!b && plDialog != null)
-			plDialog.removePointList(plPanel);
+		for(ContentInstant c : contents.values())
+			c.showPointList(b);
 	}
 
+	// TODO only for current point, makes this sense?
 	public void loadPointList() {
-		points = PointList.load(image);
-		plPanel.setPointList(points);
-		plShape.setPointList(points);
+		getCurrent().loadPointList();
 	}
 
+	// TODO only for current point, makes this sense?
 	public void savePointList() {
-		String dir = OpenDialog.getDefaultDirectory();
-		String n = this.name;
-		if(image != null) {
-			FileInfo fi = image.getFileInfo();
-			dir = fi.directory;
-			n = fi.fileName;
-		}
-		points.save(dir, n);
+		getCurrent().savePointList();
 	}
 
 	/**
@@ -278,9 +226,7 @@ public class Content extends BranchGroup implements UniverseListener {
 	 * @param p
 	 */
 	public void addPointListPoint(Point3d p) {
-		points.add(p.x, p.y, p.z);
-		if(plDialog != null)
-			plDialog.update();
+		getCurrent().addPointListPoint(p);
 	}
 
 	/**
@@ -289,19 +235,20 @@ public class Content extends BranchGroup implements UniverseListener {
 	 * @param pos
 	 */
 	public void setListPointPos(int i, Point3d pos) {
-		points.placePoint(points.get(i), pos.x, pos.y, pos.z);
+		getCurrent().setListPointPos(i, pos);
 	}
 
 	public float getLandmarkPointSize() {
-		return plShape.getRadius();
+		return getCurrent().getLandmarkPointSize();
 	}
 
 	public void setLandmarkPointSize(float r) {
-		plShape.setRadius(r);
+		for(ContentInstant c : contents.values())
+			c.setLandmarkPointSize(r);
 	}
 
 	public PointList getPointList() {
-		return points;
+		return getCurrent().getPointList();
 	}
 
 	/**
@@ -309,9 +256,7 @@ public class Content extends BranchGroup implements UniverseListener {
 	 * @param i
 	 */
 	public void deletePointListPoint(int i) {
-		points.remove(i);
-		if(plDialog != null)
-			plDialog.update();
+		getCurrent().deletePointListPoint(i);
 	}
 
 	/* ************************************************************
@@ -319,11 +264,13 @@ public class Content extends BranchGroup implements UniverseListener {
 	 *
 	 **************************************************************/
 	public void toggleLock() {
-		locked = !locked;
+		for(ContentInstant c : contents.values())
+			c.toggleLock();
 	}
 
 	public void setLocked(boolean b) {
-		locked = b;
+		for(ContentInstant c : contents.values())
+			c.setLocked(b);
 	}
 
 	public void applyTransform(double[] matrix) {
@@ -331,46 +278,17 @@ public class Content extends BranchGroup implements UniverseListener {
 	}
 
 	public void applyTransform(Transform3D transform) {
-		Transform3D t1 = new Transform3D();
-		localTranslate.getTransform(t1);
-		Transform3D t2 = new Transform3D();
-		localRotate.getTransform(t2);
-		t1.mul(t2);
-
-		t1.mul(transform, t1);
-		setTransform(t1);
+		for(ContentInstant c : contents.values())
+			c.applyTransform(transform);
 	}
 
 	public void setTransform(double[] matrix) {
-		if(contentNode == null)
-			return;
 		setTransform(new Transform3D(matrix));
 	}
 
 	public void setTransform(Transform3D transform) {
-		if(contentNode == null)
-			return;
-		Transform3D t = new Transform3D();
-		Point3d c = new Point3d(); contentNode.getCenter(c);
-
-		Matrix3f m = new Matrix3f();
-		transform.getRotationScale(m);
-		t.setRotationScale(m);
-		// One might thing a rotation matrix has no translational
-		// component, however, if the rotation is composed of
-		// translation - rotation - backtranslation, it has indeed.
-		Vector3d v = new Vector3d();
-		v.x = -m.m00*c.x - m.m01*c.y - m.m02*c.z + c.x;
-		v.y = -m.m10*c.x - m.m11*c.y - m.m12*c.z + c.y;
-		v.z = -m.m20*c.x - m.m21*c.y - m.m22*c.z + c.z;
-		t.setTranslation(v);
-		localRotate.setTransform(t);
-
-		Vector3d v2 = new Vector3d();
-		transform.get(v2);
-		v2.sub(v);
-		t.set(v2);
-		localTranslate.setTransform(t);
+		for(ContentInstant c : contents.values())
+			c.setTransform(transform);
 	}
 
 	/* ************************************************************
@@ -379,57 +297,28 @@ public class Content extends BranchGroup implements UniverseListener {
 	 * ***********************************************************/
 
 	public void setChannels(boolean[] channels) {
-		boolean channelsChanged = channels[0] != this.channels[0] ||
-				channels[1] != this.channels[1] ||
-				channels[2] != this.channels[2];
-		if(!channelsChanged)
-			return;
-		this.channels = channels;
-		if(contentNode != null)
-			contentNode.channelsUpdated(channels);
+		for(ContentInstant c : contents.values())
+			c.setChannels(channels);
 	}
 
 	public void setThreshold(int th) {
-		if(th != threshold) {
-			this.threshold = th;
-			if(contentNode != null)
-				contentNode.thresholdUpdated(threshold);
-		}
+		for(ContentInstant c : contents.values())
+			c.setThreshold(th);
 	}
 
 	public void setShaded(boolean b) {
-		if(b != shaded) {
-			this.shaded = b;
-			if(contentNode != null)
-				contentNode.shadeUpdated(shaded);
-		}
-	}
-
-	public boolean isShaded() {
-		return shaded;
+		for(ContentInstant c : contents.values())
+			c.setShaded(b);
 	}
 
 	public void setColor(Color3f color) {
-		boolean colorChanged = !(this.color == null && color == null)
-			|| (this.color == null && color != null)
-			|| (color == null && this.color != null)
-			|| !(this.color.equals(color));
-		if(!colorChanged)
-			return;
-		this.color = color;
- 		plShape.setColor(color);
-		if(contentNode != null)
-			contentNode.colorUpdated(this.color);
+		for(ContentInstant c : contents.values())
+			c.setColor(color);
 	}
 
 	public synchronized void setTransparency(float transparency) {
-		transparency = transparency < 0 ? 0 : transparency;
-		transparency = transparency > 1 ? 1 : transparency;
-		if(Math.abs(transparency - this.transparency) < 0.01)
-			return;
-		this.transparency = transparency;
-		if(contentNode != null)
-			contentNode.transparencyUpdated(this.transparency);
+		for(ContentInstant c : contents.values())
+			c.setTransparency(transparency);
 	}
 
 	/* ************************************************************
@@ -439,16 +328,18 @@ public class Content extends BranchGroup implements UniverseListener {
 	public void transformationStarted(View view) {}
 	public void contentAdded(Content c) {}
 	public void contentRemoved(Content c) {
-		if(plDialog != null && this == c)
-			plDialog.removePointList(plPanel);
+		for(ContentInstant co : contents.values()) {
+			co.contentRemoved(c);
+		}
 	}
 	public void canvasResized() {}
 	public void contentSelected(Content c) {}
 	public void contentChanged(Content c) {}
 
 	public void universeClosed() {
-		if(plDialog != null)
-			plDialog.removePointList(plPanel);
+		for(ContentInstant c : contents.values()) {
+			c.universeClosed();
+		}
 	}
 
 	public void transformationUpdated(View view) {
@@ -457,11 +348,28 @@ public class Content extends BranchGroup implements UniverseListener {
 
 	public void transformationFinished(View view) {
 		eyePtChanged(view);
+		// apply same transformation to all other time points
+		// in case this content was transformed
+		ContentInstant curr = getCurrent();
+		if(curr == null || !curr.selected)
+			return;
+		Transform3D t = new Transform3D();
+		Transform3D r = new Transform3D();
+		curr.getLocalTranslate(t);
+		curr.getLocalRotate(r);
+
+		for(ContentInstant c : contents.values()) {
+			if(c == getCurrent())
+				continue;
+			c.getLocalRotate().setTransform(r);
+			c.getLocalTranslate().setTransform(t);
+			c.transformationFinished(view);
+		}
 	}
 
 	public void eyePtChanged(View view) {
-		if(contentNode != null)
-			contentNode.eyePtChanged(view);
+		for(ContentInstant c : contents.values())
+			c.eyePtChanged(view);
 	}
 
 	/* *************************************************************
@@ -474,71 +382,101 @@ public class Content extends BranchGroup implements UniverseListener {
 	}
 
 	public int getType() {
-		return type;
+		return getCurrent().getType();
 	}
 
 	public ContentNode getContent() {
-		return contentNode;
+		return getCurrent().getContent();
+	}
+
+	public void getMin(Point3d min) {
+		min.set(Double.MAX_VALUE,
+			Double.MAX_VALUE,
+			Double.MAX_VALUE);
+		Point3d tmp = new Point3d();
+		for(ContentInstant c : contents.values()) {
+			c.getContent().getMin(tmp);
+			if(tmp.x < min.x) min.x = tmp.x;
+			if(tmp.y < min.y) min.y = tmp.y;
+			if(tmp.z < min.z) min.z = tmp.z;
+		}
+	}
+
+	public void getMax(Point3d max) {
+		max.set(Double.MIN_VALUE,
+			Double.MIN_VALUE,
+			Double.MIN_VALUE);
+		Point3d tmp = new Point3d();
+		for(ContentInstant c : contents.values()) {
+			c.getContent().getMax(tmp);
+			if(tmp.x > max.x) max.x = tmp.x;
+			if(tmp.y > max.y) max.y = tmp.y;
+			if(tmp.z > max.z) max.z = tmp.z;
+		}
 	}
 
 	public ImagePlus getImage() {
-		return image;
+		return getCurrent().getImage();
 	}
 
 	public boolean[] getChannels() {
-		return channels;
+		return getCurrent().getChannels();
 	}
 
 	public Color3f getColor() {
-		return color;
+		return getCurrent().getColor();
+	}
+
+	public boolean isShaded() {
+		return getCurrent().isShaded();
 	}
 
 	public int getThreshold() {
-		return threshold;
+		return getCurrent().getThreshold();
 	}
 
 	public float getTransparency() {
-		return transparency;
+		return getCurrent().getTransparency();
 	}
 
 	public int getResamplingFactor() {
-		return resamplingF;
+		return getCurrent().getResamplingFactor();
 	}
 
 	public TransformGroup getLocalRotate() {
-		return localRotate;
+		return getCurrent().getLocalRotate();
 	}
 
 	public TransformGroup getLocalTranslate() {
-		return localTranslate;
+		return getCurrent().getLocalTranslate();
 	}
 
 	public void getLocalRotate(Transform3D t) {
-		localRotate.getTransform(t);
+		getCurrent().getLocalRotate(t);
 	}
 
 	public void getLocalTranslate(Transform3D t) {
-		localTranslate.getTransform(t);
+		getCurrent().getLocalTranslate(t);
 	}
 
 	public boolean isLocked() {
-		return locked;
+		return getCurrent().isLocked();
 	}
 
 	public boolean isVisible() {
-		return visible;
+		return getCurrent().isVisible();
 	}
 
 	public boolean hasCoord() {
-		return coordVisible;
+		return getCurrent().hasCoord();
 	}
 
 	public boolean hasBoundingBox() {
-		return bbVisible;
+		return getCurrent().hasBoundingBox();
 	}
 
 	public boolean isPLVisible() {
-		return showPL;
+		return getCurrent().isPLVisible();
 	}
 }
 

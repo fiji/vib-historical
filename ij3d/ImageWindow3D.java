@@ -72,12 +72,12 @@ public class ImageWindow3D extends ImageWindow implements UniverseListener,
 			remove(component);
 
 		add(canvas3D, -1);
-		status.setText("");
-		status.setForeground(Color.WHITE);
-		Color3f c = UniverseSettings.defaultBackground;
-		status.setBackground(new Color(c.x, c.y, c.z));
-		status.setFont(new Font("Verdana", Font.PLAIN, 20));
-		add(status, BorderLayout.SOUTH, -1);
+// 		status.setText("");
+// 		status.setForeground(Color.WHITE);
+// 		Color3f c = UniverseSettings.defaultBackground;
+// 		status.setBackground(new Color(c.x, c.y, c.z));
+// 		status.setFont(new Font("Verdana", Font.PLAIN, 20));
+// 		add(status, BorderLayout.SOUTH, -1);
 
 		pack();
 

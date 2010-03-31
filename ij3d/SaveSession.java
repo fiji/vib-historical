@@ -3,11 +3,11 @@ package ij3d;
 import ij.io.SaveDialog;
 import ij.io.FileSaver;
 import ij.io.FileInfo;
+import ij.gui.GenericDialog;
 import ij.IJ;
 
 import orthoslice.OrthoGroup;
 import surfaceplot.SurfacePlotGroup;
-// import isosurface.MeshExporter;
 
 import customnode.MeshLoader;
 import customnode.WavefrontExporter;
@@ -27,20 +27,30 @@ import java.io.FileWriter;
 import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.ArrayList;
 
 import javax.media.j3d.Transform3D;
 
 import javax.vecmath.Color3f;
 
+import java.awt.Panel;
+import java.awt.Button;
+import java.awt.TextField;
+import java.awt.FlowLayout;
 import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class SaveSession {
 
 	public static void saveScene(Image3DUniverse univ, String path)
 							throws IOException {
 		SaveSession sase = new SaveSession();
-		sase.ensureAllSaved(univ.getContents());
+		if(!sase.ensureAllSaved(univ.getContents())) {
+			IJ.error("Could not save session");
+			return;
+		}
 		PrintWriter out = new PrintWriter(new FileWriter(path));
 		sase.saveView(out, univ);
 		for(Object c : univ.getContents())
@@ -57,6 +67,7 @@ public class SaveSession {
 		boolean b = univ.getAutoAdjustView();
 		Content c = null;
 		while((c = sase.readContent(in)) != null) {
+			// TODO
 			c.setPointListDialog(univ.getPointListDialog());
 			univ.addContent(c);
 		}
@@ -74,75 +85,123 @@ public class SaveSession {
 		}
 	}
 
-	void ensureAllSaved(Collection<Content> contents) throws IOException {
+	boolean ensureAllSaved(Collection<Content> contents) throws IOException {
 		// go through all contents, make sure that those with
 		// images have saved images, and collect the custom
 		// meshes file-wise.
 		HashMap<String, ArrayList<CMesh>> custommeshes =
 			new HashMap<String, ArrayList<CMesh>>();
-		for(Content c : contents) {
-			int t = c.getType();
-			if(t != Content.CUSTOM) {
-				FileInfo fi = c.image.getOriginalFileInfo();
-				if(fi == null || c.image.changes)
-					new FileSaver(c.image).save();
-				continue;
-			}
-			CustomMeshNode cn = (CustomMeshNode)c.getContent();
-			ArrayList<CustomMesh> meshes = getMeshes(cn);
-			for(CustomMesh cm : meshes) {
-				String file = cm.getFile();
-				boolean changed = cm.hasChanged() ||
-					cm.getFile() == null;
-				if(!changed)
+
+		ArrayList<String> unsavedImages = new ArrayList<String>();
+		for(Content content : contents) {
+			for(ContentInstant c : content.getInstants().values()) {
+				int t = c.getType();
+				if(t != Content.CUSTOM) {
+					FileInfo fi = c.getImage().getOriginalFileInfo();
+					if(fi == null || c.image.changes)
+						unsavedImages.add(c.image.getTitle());
 					continue;
-				if(!custommeshes.containsKey(file))
-					custommeshes.put(file,
-						new ArrayList<CMesh>());
-				String name = cm.getName() != null ?
-					cm.getName() : c.getName();
-				custommeshes.get(file).add(
-					new CMesh(cm, name));
+				}
+				CustomMeshNode cn = (CustomMeshNode)c.getContent();
+				ArrayList<CustomMesh> meshes = getMeshes(cn);
+				for(CustomMesh cm : meshes) {
+					String file = cm.getFile();
+					boolean changed = file == null || cm.hasChanged();
+					if(!changed)
+						continue;
+					if(!custommeshes.containsKey(file))
+						custommeshes.put(file,
+							new ArrayList<CMesh>());
+					String name = cm.getName() != null ?
+						cm.getName() : c.getName();
+					custommeshes.get(file).add(
+						new CMesh(cm, name));
+				}
 			}
 		}
 
+		// show the user a dialog with all changed images and ask them
+		// to save them all
+		if(!unsavedImages.isEmpty()) {
+			StringBuilder sb = new StringBuilder();
+			sb.append("Error.\n")
+				.append("The following images have unsaved ")
+				.append("changes:\n  \n");
+			for(String s : unsavedImages)
+				sb.append("  ").append(s).append("\n");
+			sb.append("  \nPlease save them separately ").
+				append("before calling 'Save session' again");
+
+			IJ.error(sb.toString());
+			return false;
+		}
+
 		// ask user to save all meshes with no file in single new file
+		if(custommeshes.containsKey(null)) {
+			ArrayList<CMesh> meshes = custommeshes.get(null);
+			if(meshes != null && !saveObj(meshes)) {
+				IJ.error("Error saving session");
+				return false;
+			}
+			custommeshes.remove(null);
+		}
+
+		if(custommeshes.isEmpty())
+			return true;
+
 		// and the other files to where they came from
+		StringBuilder sb = new StringBuilder();
+		sb.append("The following mesh(es) were loaded from file \n");
+		sb.append("but changed. Save them to their original\n");
+		sb.append("file(s)?\n  \n");
+		for(String file : custommeshes.keySet())
+			for(CMesh m : custommeshes.get(file))
+				sb.append("  " + m.name + "\n");
+		sb.append("  \n");
+		GenericDialog gd = new GenericDialog("");
+		gd.addMessage(sb.toString());
+		gd.showDialog();
+		if(gd.wasCanceled())
+			return false;
+
 		for(String file : custommeshes.keySet()) {
 			ArrayList<CMesh> meshes = custommeshes.get(file);
 			if(meshes == null)
 				continue;
-			if(file == null)
-				saveObj(meshes);
-			else
-				updateObj(meshes, file);
+			if(!updateObj(meshes, file))
+				return false;
 		}
+		return true;
 	}
 
-	static void updateObj(ArrayList<CMesh> meshes, String path)
+	static boolean updateObj(ArrayList<CMesh> meshes, String path)
 						throws IOException {
-		Map<String,CustomMesh> prev = MeshLoader.load(path);
+		Map<String, CustomMesh> prev = MeshLoader.load(path);
 		// TODO may go wrong since m.name is not unique
 		// especially for CustomMultiMesh
 		for(CMesh m : meshes)
 			prev.put(m.name, m.mesh);
 
-		SaveDialog sd = new SaveDialog(
-			"Store unsaved meshes",
-			"untitled",
-			".obj");
-		String dir = sd.getDirectory();
-		String file = sd.getFileName();
-		if(dir == null || file == null)
-			return;
 		try {
-			WavefrontExporter.save(prev, dir + file);
+			WavefrontExporter.save(prev, path);
+			return true;
 		} catch(IOException e) {
 			IJ.error(e.getMessage());
+			return false;
 		}
 	}
 
-	static void saveObj(ArrayList<CMesh> meshes) {
+	static boolean saveObj(ArrayList<CMesh> meshes) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("The following surfaces are not saved:\n");
+		for(CMesh m : meshes)
+			sb.append("  " + m.name + "\n");
+		sb.append("Select a path below to save them");
+
+		String path = showPathDialog("Save meshes", sb.toString());
+		if(path == null)
+			return false;
+
 		HashMap<String, CustomMesh> m2w =
 			new HashMap<String, CustomMesh>();
 		// TODO may go wrong since m.name is not unique
@@ -150,19 +209,38 @@ public class SaveSession {
 		for(CMesh m : meshes)
 			m2w.put(m.name, m.mesh);
 
-		SaveDialog sd = new SaveDialog(
-			"Store unsaved meshes",
-			"untitled",
-			".obj");
-		String dir = sd.getDirectory();
-		String file = sd.getFileName();
-		if(dir == null || file == null)
-			return;
 		try {
-			WavefrontExporter.save(m2w, dir + file);
+			WavefrontExporter.save(m2w, path);
+			return true;
 		} catch(IOException e) {
 			IJ.error(e.getMessage());
+			return false;
 		}
+	}
+
+	static String showPathDialog(String title, String msg) {
+		GenericDialog gd = new GenericDialog(title);
+		gd.addMessage(msg);
+		Panel p = new Panel(new FlowLayout());
+		final TextField tf = new TextField(30);
+		p.add(tf);
+		Button b = new Button("...");
+		p.add(b);
+		b.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				SaveDialog sd = new SaveDialog(
+					"Select path", "untitled", ".obj");
+				String dir = sd.getDirectory();
+				String file = sd.getFileName();
+				File f = new File(dir, file);
+				tf.setText(f.getAbsolutePath());
+			}
+		});
+		gd.addPanel(p);
+		gd.showDialog();
+		if(gd.wasCanceled())
+			return null;
+		return new File(tf.getText()).getAbsolutePath();
 	}
 
 	void saveView(PrintWriter out, Image3DUniverse univ)
@@ -199,6 +277,8 @@ public class SaveSession {
 		while((line = in.readLine()) != null) {
 			if(line.startsWith("EndView"))
 				break;
+			if(line.startsWith("#"))
+				continue;
 			String[] keyval = line.split("=");
 			props.put(keyval[0].trim(), keyval[1].trim());
 		}
@@ -218,9 +298,19 @@ public class SaveSession {
 			univ.getZoomTG().setTransform(t(tmp));
 		if((tmp = props.get("animate")) != null)
 			univ.getAnimationTG().setTransform(t(tmp));
+
+		univ.getViewPlatformTransformer().updateFrontBackClip();
 	}
 
 	void saveContent(PrintWriter out, Content c) {
+		out.println("BeginContent");
+		out.println("name = " + c.getName());
+		for(ContentInstant ci : c.getInstants().values())
+			saveContentInstant(out, ci);
+		out.println("EndContent");
+	}
+
+	void saveContentInstant(PrintWriter out, ContentInstant c) {
 		// color string
 		String col = c.color == null ? null : Integer.toString(
 			c.color.get().getRGB());
@@ -234,10 +324,11 @@ public class SaveSession {
 		c.getLocalTranslate(t);
 		String trans = toString(t);
 
-		out.println("BeginContent");
+		out.println("BeginContentInstant");
 		out.println("name = "         + c.name);
 		if(col != null)
 			out.println("color = "        + col);
+		out.println("timepoint = "    + c.timepoint);
 		out.println("channels = "     + chan);
 		out.println("transparency = " + c.transparency);
 		out.println("threshold = "    + c.threshold);
@@ -263,10 +354,11 @@ public class SaveSession {
 		} else if(type == Content.CUSTOM) {
 			out.println("surffiles = " + getMeshString(c));
 		}
-		out.println("EndContent");
+		out.println("EndContentInstant");
 	}
 
 	public Content readContent(BufferedReader in) throws IOException {
+		String name = null;
 		String line;
 		boolean foundNext = false;
 		while((line = in.readLine()) != null) {
@@ -277,11 +369,42 @@ public class SaveSession {
 		}
 		if(!foundNext)
 			return null;
+		while((line = in.readLine()) != null) {
+			if(line.startsWith("name")) {
+				name = line.split("=")[1].trim();
+				break;
+			}
+		}
+		TreeMap<Integer, ContentInstant> cis =
+			new TreeMap<Integer, ContentInstant>();
+		ContentInstant ci = null;
+		while((ci = readContentInstant(in)) != null)
+			cis.put(ci.timepoint, ci);
+		if(name == null)
+			throw new RuntimeException("no name for content");
+		return new Content(name, cis);
+	}
 
-		HashMap<String, String> props = new HashMap<String, String>();
+	public ContentInstant readContentInstant(BufferedReader in) throws IOException {
+		String line;
+		boolean foundNext = false;
 		while((line = in.readLine()) != null) {
 			if(line.startsWith("EndContent"))
 				break;
+			if(line.startsWith("BeginContentInstant")) {
+				foundNext = true;
+				break;
+			}
+		}
+		if(!foundNext)
+			return null;
+
+		HashMap<String, String> props = new HashMap<String, String>();
+		while((line = in.readLine()) != null) {
+			if(line.startsWith("EndContentInstant"))
+				break;
+			if(line.startsWith("#"))
+				continue;
 			String[] keyval = line.split("=");
 			props.put(keyval[0].trim(), keyval[1].trim());
 		}
@@ -289,11 +412,13 @@ public class SaveSession {
 		String[] sp;
 
 		// Set up new Content
-		Content c = new Content(props.get("name"));
+		ContentInstant c = new ContentInstant(props.get("name"));
 		if((tmp = props.get("channels")) != null) {
 			sp= tmp.split("%%%");
 			c.channels = new boolean[] {b(sp[0]),b(sp[1]),b(sp[2])};
 		}
+		if((tmp = props.get("timepoint")) != null)
+			c.timepoint = i(tmp);
 		if((tmp = props.get("resampling")) != null)
 			c.resamplingF = i(tmp);
 		if((tmp = props.get("rotation")) != null)
@@ -434,7 +559,7 @@ System.out.println("loading " + sp[0]);
 		return meshes;
 	}
 
-	private static final String getMeshString(Content c) {
+	private static final String getMeshString(ContentInstant c) {
 		ArrayList<CustomMesh> meshes = getMeshes(
 				(CustomMeshNode)c.getContent());
 		String ret = "";
@@ -459,7 +584,7 @@ System.out.println("loading " + sp[0]);
 		return xSlide + "%%%" + ySlide + "%%%" + zSlide;
 	}
 
-	private static final String getImageFile(Content c) {
+	private static final String getImageFile(ContentInstant c) {
 		if(c.image == null)
 			return null;
 		FileInfo fi = c.image.getOriginalFileInfo();
