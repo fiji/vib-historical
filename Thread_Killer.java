@@ -13,6 +13,7 @@ public class Thread_Killer implements PlugIn {
 			String name = threads[i].getName();
 			if (threads[i] == Thread.currentThread() ||
 					name.startsWith("AWT-") ||
+					name.equals("zSelector") ||
 					name.equals("Java2D Disposer") ||
 					name.equals("SocketListener") ||
 					name.equals("DestroyJavaVM") ||
