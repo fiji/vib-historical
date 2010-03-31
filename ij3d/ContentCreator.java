@@ -3,6 +3,7 @@ package ij3d;
 import ij.ImageStack;
 import ij.ImagePlus;
 import ij.IJ;
+import ij.process.ColorProcessor;
 import ij.process.ImageConverter;
 import ij.process.StackConverter;
 
@@ -143,24 +144,42 @@ public class ContentCreator {
 		if(!imp.isHyperStack())
 			return new ImagePlus[] {imp};
 
+		int nChannels = imp.getNChannels();
 		int nSlices = imp.getNSlices();
 		int nFrames = imp.getNFrames();
+
+		// setSliceWithoutUpdate() does not update the position!
+		int channel = imp.getChannel();
+		int slice = imp.getSlice();
+		int frame = imp.getFrame();
+
 		ImagePlus[] ret = new ImagePlus[nFrames];
 		int w = imp.getWidth(), h = imp.getHeight();
 
 		ImageStack oldStack = imp.getStack();
 		String oldTitle = imp.getTitle();
-		for(int i = 0, slice = 1; i < nFrames; i++) {
+		for(int i = 0; i < nFrames; i++) {
 			ImageStack newStack = new ImageStack(w, h);
-			for(int j = 0; j < nSlices; j++, slice++) {
+			for(int j = 0; j < nSlices; j++) {
+				int index = imp.getStackIndex(1, j, i);
+				Object pixels;
+				if (nChannels > 1) {
+					imp.setPositionWithoutUpdate(1, j, i);
+					pixels = new ColorProcessor(imp
+						.getImage()).getPixels();
+				}
+				else
+					pixels = oldStack.getPixels(index);
 				newStack.addSlice(
-					oldStack.getSliceLabel(slice),
-					oldStack.getPixels(slice));
+					oldStack.getSliceLabel(index),
+					pixels);
 			}
 			ret[i] = new ImagePlus(oldTitle
 				+ " (frame " + i + ")", newStack);
 			ret[i].setCalibration(imp.getCalibration().copy());
 		}
+		if (nChannels > 1)
+			imp.setPositionWithoutUpdate(channel, slice, frame);
 		return ret;
 	}
 
