@@ -14,7 +14,7 @@ import ij.ImageStack;
 public class Timeline {
 
 	private Image3DUniverse univ;
-	private boolean playing = false;
+	private Thread playing = null;
 	private boolean bounceback = true;
 
 	/**
@@ -95,11 +95,10 @@ public class Timeline {
 	public synchronized void play() {
 		if(size() == 0)
 			return;
-		if(playing)
+		if(playing != null)
 			return;
-		new Thread(new Runnable() {
+		playing = new Thread(new Runnable() {
 			public void run() {
-				playing = true;
 				int inc = +1;
 				while(!shouldPause) {
 					int next = univ.getCurrentTimepoint() + inc;
@@ -121,10 +120,11 @@ public class Timeline {
 						shouldPause = true;
 					}
 				}
-				playing = false;
 				shouldPause = false;
+				playing = null;
 			}
-		}).start();
+		});
+		playing.start();
 	}
 
 	/**

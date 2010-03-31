@@ -179,6 +179,7 @@ public class Image3DUniverse extends DefaultAnimatableUniverse {
 	@Override
 	public void close() {
 		super.close();
+		timeline.pause();
 		removeAllContents();
 		contents = null;
 		universes.remove(this);
