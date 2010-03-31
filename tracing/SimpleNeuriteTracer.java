@@ -82,19 +82,19 @@ public class SimpleNeuriteTracer extends ThreePanes
 implements SearchProgressCallback, FillerProgressCallback, GaussianGenerationCallback {
 
 public static final String PLUGIN_VERSION = "1.6.0";
-static final boolean verbose = false;
+protected static final boolean verbose = false;
 
-static final int DISPLAY_PATHS_SURFACE = 1;
-static final int DISPLAY_PATHS_LINES = 2;
-static final int DISPLAY_PATHS_LINES_AND_DISCS = 3;
+protected static final int DISPLAY_PATHS_SURFACE = 1;
+protected static final int DISPLAY_PATHS_LINES = 2;
+protected static final int DISPLAY_PATHS_LINES_AND_DISCS = 3;
 
-PathAndFillManager pathAndFillManager;
+protected PathAndFillManager pathAndFillManager;
 
-boolean use3DViewer;
-Image3DUniverse univ;
-Content imageContent;
+protected boolean use3DViewer;
+protected Image3DUniverse univ;
+protected Content imageContent;
 
-boolean unsavedPaths = false;
+protected boolean unsavedPaths = false;
 
 public boolean pathsUnsaved() {
 	return unsavedPaths;
@@ -107,9 +107,9 @@ public PathAndFillManager getPathAndFillManager() {
 /* Just for convenience, keep casted references to the
    superclass's InteractiveTracerCanvas objects: */
 
-InteractiveTracerCanvas xy_tracer_canvas;
-InteractiveTracerCanvas xz_tracer_canvas;
-InteractiveTracerCanvas zy_tracer_canvas;
+protected InteractiveTracerCanvas xy_tracer_canvas;
+protected InteractiveTracerCanvas xz_tracer_canvas;
+protected InteractiveTracerCanvas zy_tracer_canvas;
 
 public ImagePlus getImagePlus() {
 	return xy;
@@ -224,7 +224,7 @@ public void pointsInSearch( SearchThread source, int inOpen, int inClosed ) {
 /* FIXME, just for synchronization - replace this with
    synchronization on the object it protects: */
 
-String nonsense = "unused";
+protected String nonsense = "unused";
 
 /* These member variables control what we're actually doing -
    whether that's tracing, logging points or displaying values
@@ -232,15 +232,15 @@ String nonsense = "unused";
    support tracing, support for the others has been
    removed. */
 
-boolean setupLog = false;
-boolean setupEv = false;
-boolean setupTrace = false;
-boolean setupPreprocess = false;
+protected boolean setupLog = false;
+protected boolean setupEv = false;
+protected boolean setupTrace = false;
+protected boolean setupPreprocess = false;
 
 /* If we're timing out the searches (probably not any longer...) */
 
-boolean setupTimeout = false;
-float   setupTimeoutValue = 0.0f;
+protected boolean setupTimeout = false;
+protected float   setupTimeoutValue = 0.0f;
 
 /* For the original file info - needed for loading the
    corresponding labels file and checking if a "tubes.tif"
@@ -897,11 +897,11 @@ public static String getStackTrace( ) {
 	return sw.toString();
 }
 
-double x_spacing = 1;
-double y_spacing = 1;
-double z_spacing = 1;
+protected double x_spacing = 1;
+protected double y_spacing = 1;
+protected double z_spacing = 1;
 
-String spacing_units = "";
+protected String spacing_units = "";
 
 public void viewFillIn3D( boolean asMask ) {
 	ImagePlus imagePlus = filler.fillAsImagePlus( asMask );
@@ -916,24 +916,24 @@ public void setPositionAllPanes( int x, int y, int z ) {
 
 }
 
-int imageType = -1;
+protected int imageType = -1;
 
-byte [][] slices_data_b;
-short [][] slices_data_s;
-float [][] slices_data_f;
+protected byte [][] slices_data_b;
+protected short [][] slices_data_s;
+protected float [][] slices_data_f;
 
-NeuriteTracerResultsDialog resultsDialog;
+protected NeuriteTracerResultsDialog resultsDialog;
 
-boolean cancelled = false;
+protected boolean cancelled = false;
 
-TextWindow helpTextWindow;
+protected TextWindow helpTextWindow;
 
-boolean singleSlice;
+protected boolean singleSlice;
 
-ArchiveClient archiveClient;
+protected ArchiveClient archiveClient;
 
-float stackMax = Float.MIN_VALUE;
-float stackMin = Float.MAX_VALUE;
+protected float stackMax = Float.MIN_VALUE;
+protected float stackMin = Float.MAX_VALUE;
 
 
 public int guessResamplingFactor() {
