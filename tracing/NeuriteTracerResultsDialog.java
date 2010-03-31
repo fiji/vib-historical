@@ -40,14 +40,14 @@ import ij.gui.GenericDialog;
 
 import java.text.DecimalFormat;
 
-class NeuriteTracerResultsDialog
+public class NeuriteTracerResultsDialog
 	extends Dialog
 	implements ActionListener, WindowListener, ItemListener, PathAndFillListener, TextListener, SigmaPalette.SigmaPaletteListener {
 
 	static final boolean verbose = SimpleNeuriteTracer.verbose;
 
-	PathWindow pw;
-	FillWindow fw;
+	public PathWindow pw;
+	public FillWindow fw;
 
 	// These are the states that the UI can be in:
 
